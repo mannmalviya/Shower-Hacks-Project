@@ -9,6 +9,88 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      education: {
+        Row: {
+          created_at: string
+          degree: string | null
+          end_date: string | null
+          field: string | null
+          id: string
+          person_id: string
+          school: string
+          start_date: string | null
+        }
+        Insert: {
+          created_at?: string
+          degree?: string | null
+          end_date?: string | null
+          field?: string | null
+          id?: string
+          person_id: string
+          school: string
+          start_date?: string | null
+        }
+        Update: {
+          created_at?: string
+          degree?: string | null
+          end_date?: string | null
+          field?: string | null
+          id?: string
+          person_id?: string
+          school?: string
+          start_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "education_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      experiences: {
+        Row: {
+          company: string
+          created_at: string
+          end_date: string | null
+          id: string
+          is_primary: boolean
+          person_id: string
+          start_date: string | null
+          title: string | null
+        }
+        Insert: {
+          company: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_primary?: boolean
+          person_id: string
+          start_date?: string | null
+          title?: string | null
+        }
+        Update: {
+          company?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_primary?: boolean
+          person_id?: string
+          start_date?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "experiences_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       follows: {
         Row: {
           created_at: string
@@ -97,52 +179,40 @@ export type Database = {
       }
       people: {
         Row: {
-          company: string | null
+          country: string | null
           created_at: string
           headline: string | null
           id: string
-          instagram_url: string | null
-          linkedin_url: string | null
           location: string | null
           name: string
           photo_url: string | null
           raw: Json
-          role: string | null
           updated_at: string
           user_id: string | null
-          x_url: string | null
         }
         Insert: {
-          company?: string | null
+          country?: string | null
           created_at?: string
           headline?: string | null
           id?: string
-          instagram_url?: string | null
-          linkedin_url?: string | null
           location?: string | null
           name: string
           photo_url?: string | null
           raw?: Json
-          role?: string | null
           updated_at?: string
           user_id?: string | null
-          x_url?: string | null
         }
         Update: {
-          company?: string | null
+          country?: string | null
           created_at?: string
           headline?: string | null
           id?: string
-          instagram_url?: string | null
-          linkedin_url?: string | null
           location?: string | null
           name?: string
           photo_url?: string | null
           raw?: Json
-          role?: string | null
           updated_at?: string
           user_id?: string | null
-          x_url?: string | null
         }
         Relationships: []
       }
@@ -177,6 +247,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "scrape_jobs_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          follower_count: number | null
+          handle: string | null
+          id: string
+          person_id: string
+          platform: string
+          raw: Json
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          follower_count?: number | null
+          handle?: string | null
+          id?: string
+          person_id: string
+          platform: string
+          raw?: Json
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          follower_count?: number | null
+          handle?: string | null
+          id?: string
+          person_id?: string
+          platform?: string
+          raw?: Json
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_profiles_person_id_fkey"
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "people"
