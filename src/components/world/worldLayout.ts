@@ -105,7 +105,7 @@ export function computeWorld(a: Analysis, links: [string, string][], c: Category
     });
   } else {
     keys.forEach((k, i) => {
-      const d = i === 0 ? 0 : 14 + 13 * Math.sqrt(i);
+      const d = i === 0 ? 0 : 12 + 11.5 * Math.sqrt(i);
       anchors.set(k, { x: Math.cos(i * GOLDEN) * d, z: Math.sin(i * GOLDEN) * d });
     });
   }
