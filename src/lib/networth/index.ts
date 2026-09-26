@@ -1,14 +1,14 @@
 // Net worth estimator. See PLAN.md "Net worth".
 //
 //   normalize (tables or scraper raw) -> classify jobs -> salary evidence (levels.fyi, Firecrawl)
-//   -> rules simulation (low / mid / high) -> Claude review (optional) -> { low, high, reasoning, sources }
+//   -> rules simulation (low / mid / high) -> LLM review (optional) -> { low, high, reasoning, sources }
 //
 // Works without any keys: no FIRECRAWL_API_KEY = levels.fyi only, no LLM key = rules only.
 import { buildTimeline } from "./classify";
 import { quoteComp } from "./comp";
 import { findCompEvidence, type EvidenceResult } from "./evidence";
 import type { LanguageModel } from "ai";
-import { applyParsedCareer, extractCareer, llmModel, MODEL_ID, refineWithClaude } from "./llm";
+import { applyParsedCareer, extractCareer, llmChoice, refineWithClaude } from "./llm";
 import { normalize, type PersonBundle } from "./normalize";
 import { resolvePlace } from "./place";
 import { simulate, usd, type Baseline } from "./simulate";
@@ -18,7 +18,7 @@ export type EstimateOptions = {
   asOf?: Date;
   /** Look up salary evidence on the web (levels.fyi, plus Firecrawl if keyed). Default true. */
   search?: boolean;
-  /** Ask Claude to review the baseline (needs ANTHROPIC_API_KEY or AI_GATEWAY_API_KEY). Default true. */
+  /** Ask an LLM to review the baseline (FEATHERLESS_API_KEY, ANTHROPIC_API_KEY or AI_GATEWAY_API_KEY). Default true. */
   llm?: boolean;
   /** Let Claude look up more salaries itself (slower, more tokens). Default false. */
   deep?: boolean;
@@ -34,7 +34,8 @@ const US_HUB = resolvePlace("San Francisco Bay Area", "United States");
 export async function estimateNetWorth(bundle: PersonBundle, opts: EstimateOptions = {}): Promise<Estimate | null> {
   const log = opts.log;
   let profile = normalize(bundle);
-  const useLlm = opts.llm !== false && !!llmModel(opts.model);
+  const llm = opts.llm !== false ? llmChoice(opts.model) : null;
+  const useLlm = !!llm;
 
   // No scraped work history (connection cards, bios only): let Claude read the headline into jobs.
   const hasHistory = profile.inputs.some((i) => i === "experiences" || i.endsWith(".experience"));
@@ -88,7 +89,7 @@ export async function estimateNetWorth(bundle: PersonBundle, opts: EstimateOptio
     place: base.place.label,
   };
 
-  // ---------- Claude review ----------
+  // ---------- LLM review (Featherless or Claude) ----------
   if (useLlm) {
     try {
       const r = await refineWithClaude(profile, tl, base, ev.evidence, { deep: opts.deep, model: opts.model, log, signal: opts.signal });
@@ -96,7 +97,7 @@ export async function estimateNetWorth(bundle: PersonBundle, opts: EstimateOptio
         for (const e of r.looked_up.slice(0, 4)) sources.push(evidenceSource(e));
         sources.push({
           type: "llm",
-          label: `Claude (${MODEL_ID}) review, ${r.confidence} confidence${r.adjustments.length ? `: ${r.adjustments.join("; ").slice(0, 300)}` : ": kept the baseline"}${r.clamped ? " (clamped to the model's range)" : ""}`,
+          label: `${llm!.label} review, ${r.confidence} confidence${r.adjustments.length ? `: ${r.adjustments.join("; ").slice(0, 300)}` : ": kept the baseline"}${r.clamped ? " (clamped to the model's range)" : ""}`,
         });
         debug.llm = { low: r.low, high: r.high, confidence: r.confidence, adjustments: r.adjustments, clamped: r.clamped };
         return { low: r.low, high: r.high, reasoning: r.reasoning.slice(0, 500), sources, debug };

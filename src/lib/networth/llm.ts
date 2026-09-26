@@ -1,11 +1,15 @@
-// Claude step: review the rules baseline with the profile and salary evidence, return a range.
-// Optional "deep" mode gives Claude a salary lookup tool (levels.fyi + Firecrawl) for jobs the rules
+// LLM step: review the rules baseline with the profile and salary evidence, return a range.
+// Optional "deep" mode gives the model a salary lookup tool (levels.fyi + Firecrawl) for jobs the rules
 // could not price well (founders, unknown companies, older roles).
+//
+// Providers (first match): NETWORTH_LLM_PROVIDER if set, else FEATHERLESS_API_KEY (open models,
+// sponsor credits), ANTHROPIC_API_KEY (Claude), AI_GATEWAY_API_KEY / VERCEL_OIDC_TOKEN (Claude via gateway).
 //
 // Scraped profile text is untrusted (headlines can contain text aimed at LLMs), so it is passed as
 // JSON data and the result is clamped to a band around the baseline.
 import { anthropic } from "@ai-sdk/anthropic";
-import { generateText, isStepCount, NoOutputGeneratedError, Output, tool, type LanguageModel } from "ai";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { generateText, isStepCount, NoObjectGeneratedError, NoOutputGeneratedError, Output, tool, type LanguageModel } from "ai";
 import { z } from "zod";
 import { companyTier, roleFamily, titleLevel, type Timeline } from "./classify";
 import { quoteComp } from "./comp";
@@ -23,12 +27,104 @@ const US_HUB = resolvePlace("San Francisco Bay Area", "United States");
 /** Deep mode: most salary lookups per estimate (each is a levels.fyi fetch and maybe a paid search). */
 const LOOKUP_BUDGET = 3;
 
-/** Claude via ANTHROPIC_API_KEY, else Vercel AI Gateway (AI_GATEWAY_API_KEY / OIDC), else null. */
+export const FEATHERLESS_DEFAULT_MODEL = "deepseek-ai/DeepSeek-V3.2";
+
+type LlmChoice = {
+  model: LanguageModel;
+  label: string; // for sources, e.g. "Claude (claude-sonnet-5)"
+  /** Provider enforces the JSON schema itself. Otherwise we put the schema in the prompt and repair. */
+  nativeSchema: boolean;
+  concurrency: number;
+};
+
+export function llmChoice(override?: LanguageModel): LlmChoice | null {
+  if (override) return { model: override, label: "test model", nativeSchema: true, concurrency: 4 };
+  const env = process.env;
+  const want = env.NETWORTH_LLM_PROVIDER?.toLowerCase();
+  const featherless = (): LlmChoice | null => {
+    if (!env.FEATHERLESS_API_KEY) return null;
+    const id = env.FEATHERLESS_MODEL || FEATHERLESS_DEFAULT_MODEL;
+    const provider = createOpenAICompatible({ name: "featherless", baseURL: "https://api.featherless.ai/v1", apiKey: env.FEATHERLESS_API_KEY });
+    // Featherless plans limit concurrent requests; one at a time avoids 429s.
+    return { model: provider.chatModel(id), label: `Featherless (${id})`, nativeSchema: false, concurrency: Number(env.NETWORTH_LLM_CONCURRENCY) || 1 };
+  };
+  const claude = (): LlmChoice | null =>
+    env.ANTHROPIC_API_KEY ? { model: anthropic(MODEL_ID), label: `Claude (${MODEL_ID})`, nativeSchema: true, concurrency: Number(env.NETWORTH_LLM_CONCURRENCY) || 4 } : null;
+  const gateway = (): LlmChoice | null =>
+    env.AI_GATEWAY_API_KEY || env.VERCEL_OIDC_TOKEN
+      ? { model: `anthropic/${MODEL_ID}`, label: `Claude (${MODEL_ID}, AI Gateway)`, nativeSchema: true, concurrency: Number(env.NETWORTH_LLM_CONCURRENCY) || 4 }
+      : null;
+  if (want === "featherless") return featherless();
+  if (want === "anthropic") return claude();
+  if (want === "gateway") return gateway();
+  return featherless() ?? claude() ?? gateway();
+}
+
+/** The model to use, or null when no LLM key is set. */
 export function llmModel(override?: LanguageModel): LanguageModel | null {
-  if (override) return override;
-  if (process.env.ANTHROPIC_API_KEY) return anthropic(MODEL_ID);
-  if (process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN) return `anthropic/${MODEL_ID}`;
-  return null;
+  return llmChoice(override)?.model ?? null;
+}
+
+// ---------- helpers shared by both calls ----------
+
+// Few LLM calls at once (per process), whatever the caller's concurrency.
+let active = 0;
+const waiting: (() => void)[] = [];
+async function withSlot<T>(limit: number, fn: () => Promise<T>): Promise<T> {
+  while (active >= limit) await new Promise<void>((r) => waiting.push(r));
+  active++;
+  try {
+    return await fn();
+  } finally {
+    active--;
+    waiting.shift()?.();
+  }
+}
+
+/** Open models: say the schema in the prompt (the API only guarantees "some JSON object"). */
+function schemaHint(choice: LlmChoice, schema: z.ZodType): string {
+  if (choice.nativeSchema) return "";
+  return `\n\nReply with only a JSON object, no prose and no code fences, matching this JSON Schema:\n${JSON.stringify(z.toJSONSchema(schema))}`;
+}
+
+/** Parse model text that should be JSON: drops <think> blocks, code fences and prose around the object. */
+function repairJson<T>(raw: string | undefined, schema: z.ZodType<T>): T | null {
+  if (!raw) return null;
+  const text = raw.replace(/<think>[\s\S]*?<\/think>/g, "").replace(/```(?:json)?/g, "");
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start < 0 || end <= start) return null;
+  try {
+    const parsed = schema.safeParse(JSON.parse(text.slice(start, end + 1)));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Run a generateText call with Output.object and return the object. Open models often wrap JSON in
+ * fences or prose; the SDK then throws NoObjectGeneratedError (from the call or from result.output),
+ * so repair its raw text. Null when there is no usable answer.
+ */
+async function callJson<T, R extends { output: T; usage: { inputTokens?: number; outputTokens?: number }; steps: unknown[] }>(
+  schema: z.ZodType<T>,
+  run: () => Promise<R>,
+): Promise<{ out: T | null; result: R | null }> {
+  let result: R;
+  try {
+    result = await run();
+  } catch (e) {
+    if (NoObjectGeneratedError.isInstance(e)) return { out: repairJson(e.text, schema), result: null };
+    throw e;
+  }
+  try {
+    return { out: result.output, result };
+  } catch (e) {
+    if (NoObjectGeneratedError.isInstance(e)) return { out: repairJson(e.text, schema), result };
+    if (NoOutputGeneratedError.isInstance(e)) return { out: null, result };
+    throw e;
+  }
 }
 
 const ResultSchema = z.object({
@@ -123,8 +219,8 @@ export async function refineWithClaude(
   evidence: CompEvidence[],
   opts: { deep?: boolean; model?: LanguageModel; log?: (m: string) => void; signal?: AbortSignal } = {},
 ): Promise<(LlmResult & { clamped: boolean; looked_up: CompEvidence[] }) | null> {
-  const model = llmModel(opts.model);
-  if (!model) return null;
+  const choice = llmChoice(opts.model);
+  if (!choice) return null;
 
   const lookedUp: CompEvidence[] = [];
   let budget = LOOKUP_BUDGET; // enforced here, not only in the prompt: parallel calls all land in one step
@@ -162,10 +258,10 @@ export async function refineWithClaude(
   );
 
   const maxSteps = opts.deep ? 5 : 1;
-  const result = await generateText({
-    model,
+  const { out, result } = await callJson(ResultSchema, () => withSlot(choice.concurrency, () => generateText({
+    model: choice.model,
     instructions: INSTRUCTIONS + (opts.deep ? `\n\nYou may call lookupSalary up to ${LOOKUP_BUDGET} times, one at a time, for jobs the baseline priced from generic tables, then answer.` : ""),
-    prompt: `Estimate this person's net worth. Input JSON:\n${payload}`,
+    prompt: `Estimate this person's net worth. Input JSON:\n${payload}${schemaHint(choice, ResultSchema)}`,
     output: Output.object({ name: "NetWorthEstimate", schema: ResultSchema }),
     ...(opts.deep
       ? {
@@ -178,21 +274,15 @@ export async function refineWithClaude(
           providerOptions: { anthropic: { disableParallelToolUse: true } },
         }
       : {}),
-    reasoning: "low",
+    // Claude: light thinking. Open models: provider default (no reasoning_effort param).
+    ...(choice.nativeSchema ? { reasoning: "low" as const } : {}),
     maxOutputTokens: 4_000,
     maxRetries: 2,
     timeout: opts.deep ? { totalMs: 120_000 } : 60_000,
     abortSignal: opts.signal,
-  });
-  opts.log?.(`claude: ${result.usage.inputTokens ?? "?"} in / ${result.usage.outputTokens ?? "?"} out tokens, ${result.steps.length} step(s)`);
-
-  let out: LlmResult;
-  try {
-    out = result.output;
-  } catch (e) {
-    if (NoOutputGeneratedError.isInstance(e)) return null;
-    throw e;
-  }
+  })));
+  if (result) opts.log?.(`${choice.label}: ${result.usage.inputTokens ?? "?"} in / ${result.usage.outputTokens ?? "?"} out tokens, ${result.steps.length} step(s)`);
+  if (!out) return null;
   const c = clampToBaseline(out, base);
   return { ...out, low: c.low, high: c.high, clamped: c.clamped, looked_up: lookedUp };
 }
@@ -225,8 +315,8 @@ export async function extractCareer(
   profile: CareerProfile,
   opts: { model?: LanguageModel; log?: (m: string) => void; signal?: AbortSignal } = {},
 ): Promise<ParsedCareer | null> {
-  const model = llmModel(opts.model);
-  if (!model) return null;
+  const choice = llmChoice(opts.model);
+  if (!choice) return null;
   const text = {
     headline: profile.headline,
     about: profile.about?.slice(0, 800) ?? null,
@@ -234,30 +324,25 @@ export async function extractCareer(
     bios: profile.socials.map((s) => ({ platform: s.platform, bio: s.bio?.slice(0, 300) ?? null })).filter((s) => s.bio),
   };
   if (!text.headline && !text.about && !text.bios.length) return null;
-  const result = await generateText({
-    model,
+  const { out } = await callJson(CareerSchema, () => withSlot(choice.concurrency, () => generateText({
+    model: choice.model,
     instructions: PARSE_INSTRUCTIONS,
-    prompt: `Profile text (JSON):\n${JSON.stringify(text, null, 1)}`,
+    prompt: `Profile text (JSON):\n${JSON.stringify(text, null, 1)}${schemaHint(choice, CareerSchema)}`,
     output: Output.object({ name: "Career", schema: CareerSchema }),
-    reasoning: "none",
+    ...(choice.nativeSchema ? { reasoning: "none" as const } : {}),
     maxOutputTokens: 1_500,
     maxRetries: 2,
     timeout: 30_000,
     abortSignal: opts.signal,
-  });
-  try {
-    const out = result.output;
-    opts.log?.(`claude parsed headline: ${out.jobs.length} jobs, ${out.schools.length} schools, student=${out.student}`);
-    // Drop impossible years (a 1950 start, a 2040 end) rather than let them drive the timeline.
-    return {
-      ...out,
-      jobs: out.jobs.map((j) => ({ ...j, start_year: plausibleYear(j.start_year), end_year: plausibleYear(j.end_year) })),
-      schools: out.schools.map((s) => ({ ...s, end_year: plausibleYear(s.end_year, SCHOOL_YEARS_AHEAD) })),
-    };
-  } catch (e) {
-    if (NoOutputGeneratedError.isInstance(e)) return null;
-    throw e;
-  }
+  })));
+  if (!out) return null;
+  opts.log?.(`${choice.label} parsed headline: ${out.jobs.length} jobs, ${out.schools.length} schools, student=${out.student}`);
+  // Drop impossible years (a 1950 start, a 2040 end) rather than let them drive the timeline.
+  return {
+    ...out,
+    jobs: out.jobs.map((j) => ({ ...j, start_year: plausibleYear(j.start_year), end_year: plausibleYear(j.end_year) })),
+    schools: out.schools.map((s) => ({ ...s, end_year: plausibleYear(s.end_year, SCHOOL_YEARS_AHEAD) })),
+  };
 }
 
 // Expected graduation can be years ahead ("Class of 2030", an MD/PhD); jobs at most next year.

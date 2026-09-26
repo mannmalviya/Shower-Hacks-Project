@@ -121,6 +121,33 @@ async function checkLlmPlumbing(): Promise<number> {
   const bundle = CASES[3][1];
   const fallback = await estimateNetWorth(bundle, { asOf: AS_OF, search: false, model: failing });
   check(!!fallback && !fallback.sources.some((s) => s.type === "llm"), "Claude failure falls back to the rules estimate");
+
+  // Featherless (OpenAI-compatible) with a fake fetch: request shape + repair of fenced / chatty JSON.
+  const saved = { key: process.env.FEATHERLESS_API_KEY, fetch: globalThis.fetch };
+  process.env.FEATHERLESS_API_KEY = "test";
+  const bodies: Record<string, unknown>[] = [];
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    if (!String(url).startsWith("https://api.featherless.ai/")) return saved.fetch(url, init);
+    const body = JSON.parse(String(init?.body));
+    bodies.push(body);
+    const prompt = JSON.stringify(body.messages);
+    const answer = prompt.includes("Profile text (JSON)")
+      ? { student: false, jobs: [{ title: "Software Engineer", company: "Stripe", current: true, start_year: 2021, end_year: null }], schools: [] }
+      : { low: 250000, high: 700000, reasoning: "Featherless reasoning.", confidence: "medium", adjustments: [] };
+    const content = `Sure! Here is the JSON:\n\`\`\`json\n${JSON.stringify(answer)}\n\`\`\``;
+    return new Response(JSON.stringify({ id: "x", object: "chat.completion", created: 0, model: body.model, choices: [{ index: 0, message: { role: "assistant", content }, finish_reason: "stop" }], usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 } }), { headers: { "content-type": "application/json" } });
+  }) as typeof fetch;
+  try {
+    const fe = await estimateNetWorth(headlineOnly, { asOf: AS_OF, search: false });
+    const first = bodies[0] ?? {};
+    check(bodies.length === 2, `Featherless called for parse + review (${bodies.length} requests)`);
+    check((first.response_format as { type?: string } | undefined)?.type === "json_object" && !("reasoning_effort" in first) && JSON.stringify(first.messages).includes("JSON Schema"), "Featherless request: json_object mode, schema in prompt, no reasoning_effort");
+    check(fe?.reasoning === "Featherless reasoning." && fe.sources.some((s) => s.type === "llm" && s.label.startsWith("Featherless (")), "fenced JSON repaired and saved with a Featherless source");
+  } finally {
+    globalThis.fetch = saved.fetch;
+    if (saved.key === undefined) delete process.env.FEATHERLESS_API_KEY;
+    else process.env.FEATHERLESS_API_KEY = saved.key;
+  }
   return bad;
 }
 main();
