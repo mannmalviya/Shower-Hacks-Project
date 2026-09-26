@@ -2,6 +2,21 @@
 
 Hackathon project. ~8 hours, 3 people, all using Claude. Read `PLAN.md` first. It holds every design decision.
 
+
+## Tech Stack
+### Frontend
+- Next.js
+- TypeScript
+- React Three Fiber + drei
+
+### Backend
+- Potentially a Zo cloud instance that does computer use scraping
+
+
+### Database
+- Hosted Cloud Supabase
+
+
 ## Rules
 
 - **Speed over polish.** Build the smallest thing that works for the demo.
