@@ -23,8 +23,10 @@ export function Terrain({ layout, heights, onGround }: Props) {
   const settling = useRef(0);
   const colors = useRef(new Float32Array(S * S * 3).fill(0.6));
 
+  const first = useRef(true);
   useEffect(() => {
-    settling.current = 120; // frames of morphing after a category change
+    settling.current = first.current ? 1 : 50; // first load: snap; later: morph between categories
+    first.current = false;
   }, [layout]);
 
   useFrame(() => {
@@ -50,7 +52,7 @@ export function Terrain({ layout, heights, onGround }: Props) {
       </mesh>
       <mesh rotation-x={-Math.PI / 2} position-y={-0.05}>
         <circleGeometry args={[600, 48]} />
-        <meshLambertMaterial color="#8ccf6a" />
+        <meshLambertMaterial color="#9be07a" />
       </mesh>
     </group>
   );

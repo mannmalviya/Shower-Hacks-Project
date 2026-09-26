@@ -99,12 +99,12 @@ export function Player({ heights, pos, walkTo, keys, follow, stack, ghostStack, 
       {ghostStack != null && (
         <group position={[1.7, 0, 0]}><CashStack height={ghostStack} isGhost /></group>
       )}
-      <group ref={body} scale={1.35}>
-        <mesh geometry={miiGeo.body} position={[0, 0.95, 0]} castShadow><meshLambertMaterial color="#ff3366" /></mesh>
-        <mesh geometry={miiGeo.head} position={[0, 1.95, 0]} castShadow><meshLambertMaterial color="#f1c27d" /></mesh>
-        <mesh geometry={miiGeo.hair} position={[0, 2.05, -0.03]}><meshLambertMaterial color="#111111" /></mesh>
-        <mesh geometry={miiGeo.eye} position={[-0.17, 2.0, 0.46]}><meshBasicMaterial color="#212529" /></mesh>
-        <mesh geometry={miiGeo.eye} position={[0.17, 2.0, 0.46]}><meshBasicMaterial color="#212529" /></mesh>
+      <group ref={body} scale={1.25}>
+        <mesh geometry={miiGeo.body} position={[0, 0.8, 0]} castShadow><meshLambertMaterial color="#ff3366" /></mesh>
+        <mesh geometry={miiGeo.head} position={[0, 2.2, 0]} castShadow><meshLambertMaterial color="#f1c27d" /></mesh>
+        <mesh geometry={miiGeo.hair} position={[0, 2.3, 0]} rotation-x={-0.25}><meshLambertMaterial color="#111111" /></mesh>
+        <mesh geometry={miiGeo.eye} position={[-0.25, 2.25, 0.68]}><meshBasicMaterial color="#212529" /></mesh>
+        <mesh geometry={miiGeo.eye} position={[0.25, 2.25, 0.68]}><meshBasicMaterial color="#212529" /></mesh>
       </group>
       {children}
     </group>

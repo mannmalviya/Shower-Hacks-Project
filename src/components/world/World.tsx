@@ -21,7 +21,7 @@ const FACT_DIM: Partial<Record<Category, Dimension>> = {
 
 export default function World({ analysis, links }: { analysis: Analysis; links: [string, string][] }) {
   const [category, setCategory] = useState<Category>("tribe");
-  const [follow, setFollow] = useState(true);
+  const [follow, setFollow] = useState(false); // V1: orbit camera by default, walking is opt-in
   const [showSecond, setShowSecond] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [nearest, setNearest] = useState<string | null>(null);
@@ -103,10 +103,10 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
 
   return (
     <div className="fixed inset-0 select-none bg-sky-200">
-      <Canvas shadows camera={{ position: [0, 60, 80], fov: 50 }} onPointerMissed={() => setSelected(null)}>
+      <Canvas shadows camera={{ position: [0, 70, 95], fov: 50 }} onPointerMissed={() => setSelected(null)}>
         <color attach="background" args={["#bfe6ff"]} />
-        <fog attach="fog" args={["#bfe6ff", 90, 230]} />
-        <hemisphereLight args={["#ffffff", "#88bb77", 1.15]} />
+        <fog attach="fog" args={["#bfe6ff", 120, 320]} />
+        <hemisphereLight args={["#ffffff", "#88bb77", 1.1]} />
         <directionalLight position={[50, 90, 40]} intensity={1.4} castShadow shadow-mapSize={[2048, 2048]}
           shadow-camera-left={-110} shadow-camera-right={110} shadow-camera-top={110} shadow-camera-bottom={-110} />
 
@@ -158,7 +158,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
             color="#1d6fb8" lineWidth={1.5} transparent opacity={0.55} />;
         })}
 
-        <OrbitControls ref={controls} enabled={!follow} maxPolarAngle={Math.PI / 2.2} minDistance={10} maxDistance={220} enableDamping />
+        <OrbitControls ref={controls} enabled={!follow} maxPolarAngle={Math.PI / 2.2} minDistance={10} maxDistance={260} enableDamping />
       </Canvas>
 
       {/* HUD */}
@@ -217,7 +217,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
         <button onClick={() => setPortrait(true)} className="w-full rounded-2xl bg-rose-500 py-2 text-sm font-black text-white shadow hover:bg-rose-600">
           🪞 My portrait
         </button>
-        <p className="mt-2 text-center text-[10px] text-slate-400">WASD / ZQSD / arrows to walk · click the ground to go · E to meet someone</p>
+        <p className="mt-2 text-center text-[10px] text-slate-400">{follow ? "WASD / ZQSD / arrows to walk · click the ground to go · E to meet someone" : "Drag to rotate · scroll to zoom · click a Mii"}</p>
       </div>
 
       {near && !sel && (
@@ -238,7 +238,7 @@ function NameTag({ crowd, id, name }: { crowd: React.RefObject<CrowdState | null
     const c = crowd.current, g = ref.current;
     if (!c || !g || !id) return;
     const i = c.ids.indexOf(id);
-    if (i >= 0) g.position.set(c.x[i], c.y[i] + 3, c.z[i]);
+    if (i >= 0) g.position.set(c.x[i], c.y[i] + 4, c.z[i]);
   });
   return (
     <group ref={ref}>

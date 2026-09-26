@@ -139,8 +139,8 @@ export function computeWorld(a: Analysis, links: [string, string][], c: Category
     for (let i = 0; i < P.length; i++) {
       for (let j = i + 1; j < P.length; j++) {
         const dx = P[j].x - P[i].x, dz = P[j].z - P[i].z, d2 = dx * dx + dz * dz;
-        if (d2 < 4.4 && d2 > 1e-6) {
-          const d = Math.sqrt(d2), f = (2.1 - d) * 0.5;
+        if (d2 < 6.3 && d2 > 1e-6) {
+          const d = Math.sqrt(d2), f = (2.5 - d) * 0.5;
           P[i].x -= (dx / d) * f; P[i].z -= (dz / d) * f;
           P[j].x += (dx / d) * f; P[j].z += (dz / d) * f;
         }
@@ -187,6 +187,8 @@ export function computeWorld(a: Analysis, links: [string, string][], c: Category
 
 const hexRgb = (h: string) => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
 
+const toLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+
 function terrain(first: Node[], pos: Map<string, { x: number; z: number }>, colorOf: Map<string, string>) {
   const S = TERRAIN_SEG + 1, half = TERRAIN_SIZE / 2, step = TERRAIN_SIZE / TERRAIN_SEG;
   const rich = first.filter((n) => n.wealth).map((n) => ({ ...pos.get(n.id)!, w: Math.max(0, Math.min(1.3, (Math.log10(n.wealth!.mid + 1) - 3.5) / 2.5)) }));
@@ -204,7 +206,7 @@ function terrain(first: Node[], pos: Map<string, { x: number; z: number }>, colo
         const g = Math.exp(-d2 / s2h);
         kw += g * r.w; k += g;
       }
-      const h = k > 0 ? (kw / (k + 0.25)) * 9 : 0;
+      const h = k > 0 ? (kw / (k + 0.25)) * 6 : 0;
       heights[v] = h;
       // ground tint = color of the group standing there, over grass that turns golden uphill
       let cr = 0, cg = 0, cb = 0, ck = 0;
@@ -214,12 +216,13 @@ function terrain(first: Node[], pos: Map<string, { x: number; z: number }>, colo
         const g = Math.exp(-d2 / s2c);
         cr += g * p.rgb[0]; cg += g * p.rgb[1]; cb += g * p.rgb[2]; ck += g;
       }
-      const t = Math.min(1, h / 9);
-      const base = [0.55 + 0.35 * t, 0.84 - 0.1 * t, 0.42 - 0.2 * t];
-      const m = Math.min(0.5, ck * 0.35);
-      tints[v * 3] = ck ? base[0] * (1 - m) + (cr / ck) * m : base[0];
-      tints[v * 3 + 1] = ck ? base[1] * (1 - m) + (cg / ck) * m : base[1];
-      tints[v * 3 + 2] = ck ? base[2] * (1 - m) + (cb / ck) * m : base[2];
+      const t = Math.min(1, h / 6);
+      const base = [0.61 + 0.3 * t, 0.88 - 0.08 * t, 0.48 - 0.2 * t]; // V1 grass #9be07a, golden uphill
+      const m = Math.min(0.22, ck * 0.15); // just a hint of the group color
+      // vertex colors are linear in three.js: convert from sRGB or everything looks washed out
+      tints[v * 3] = toLinear(ck ? base[0] * (1 - m) + (cr / ck) * m : base[0]);
+      tints[v * 3 + 1] = toLinear(ck ? base[1] * (1 - m) + (cg / ck) * m : base[1]);
+      tints[v * 3 + 2] = toLinear(ck ? base[2] * (1 - m) + (cb / ck) * m : base[2]);
     }
   }
   return { heights, tints };
