@@ -1,18 +1,18 @@
 "use client";
 // The social mirror: an open Mii world of your network. Walk among your tribes; every category reorganizes the world.
-import { Html, Line, OrbitControls } from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Line, OrbitControls } from "@react-three/drei";
+import { Canvas } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { Analysis, Dimension, Node } from "@/lib/analysis";
 import { Crowd, type CrowdState } from "./Crowd";
+import { LabelProjector, type Anchor } from "./Labels";
 import { Landmarks } from "./Landmarks";
 import { Player, stackHeight } from "./Player";
 import { Portrait } from "./Portrait";
 import { Terrain } from "./Terrain";
 import { CATEGORIES, TERRAIN_SEG, computeWorld, coverage, heightAt, type Category } from "./worldLayout";
 
-const LABEL_SLOTS = 18; // fixed pool of labels: never unmounted, so no React root churn
 const money = (n: number | null | undefined) =>
   n == null ? "?" : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}k` : `$${n}`;
 const FACT_DIM: Partial<Record<Category, Dimension>> = {
@@ -49,6 +49,35 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
   const keys = useRef(new Set<string>());
   const crowd = useRef<CrowdState | null>(null);
   const controls = useRef<React.ComponentRef<typeof OrbitControls>>(null);
+  const labelEls = useRef(new Map<string, HTMLElement>());
+  const anchors = useRef(new Map<string, Anchor>());
+  const bindLabel = useCallback((key: string) => (el: HTMLElement | null) => {
+    if (el) labelEls.current.set(key, el);
+    else labelEls.current.delete(key);
+  }, []);
+  const egoStack = stackHeight(analysis.class.ego?.mid);
+  const ghostStack = analysis.class.projected ? stackHeight(analysis.class.projected.mid) : null;
+
+  // where each label sits in 3D (read every frame by <LabelProjector>)
+  useEffect(() => {
+    const m = new Map<string, Anchor>();
+    layout.groups.forEach((g, i) => {
+      const y = heightAt(layout.heights, g.x, g.z) + 5.5;
+      m.set(`g${i}`, () => [g.x, y, g.z]);
+    });
+    const p = playerPos.current;
+    m.set("you", () => [p.x, p.y + egoStack + 4.6, p.z]);
+    if (ghostStack != null) m.set("future", () => [p.x + 1.7, p.y + ghostStack + 0.7, p.z]);
+    const axis = category === "lifemap" || category === "places";
+    m.set("past", () => (axis ? [-60, 2, 40] : null));
+    m.set("now", () => (axis ? [60, 2, 40] : null));
+    m.set("near", () => {
+      const c = crowd.current;
+      const i = c && nearest ? c.ids.indexOf(nearest) : -1;
+      return c && i >= 0 ? [c.x[i], c.y[i] + 4, c.z[i]] : null;
+    });
+    anchors.current = m;
+  }, [layout, category, nearest, egoStack, ghostStack]);
 
   // on a new category, walk back to your spot in it
   useEffect(() => {
@@ -114,43 +143,8 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
         {category === "places" && <Landmarks layout={layout} />}
         <Crowd nodes={crowdNodes} layout={layout} heights={heights} dim={dim} player={playerPos} state={crowd}
           onSelect={setSelected} onNearest={setNearest} />
-        <Player heights={heights} pos={playerPos} walkTo={walkTo} keys={keys} follow={follow}
-          stack={stackHeight(analysis.class.ego?.mid)} ghostStack={analysis.class.projected ? stackHeight(analysis.class.projected.mid) : null}>
-          <Html position={[0, stackHeight(analysis.class.ego?.mid) + 4.3, 0]} center zIndexRange={[20, 0]}>
-            <div className="whitespace-nowrap rounded-full bg-rose-500 px-3 py-0.5 text-xs font-extrabold text-white shadow">You</div>
-          </Html>
-          {analysis.class.projected && (
-            <Html position={[1.7, stackHeight(analysis.class.projected.mid) + 0.6, 0]} center zIndexRange={[20, 0]}>
-              <div className="whitespace-nowrap rounded-full bg-emerald-50/90 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-                future you? {money(analysis.class.projected.mid)}
-              </div>
-            </Html>
-          )}
-        </Player>
-
-        {/* group labels: fixed pool */}
-        {Array.from({ length: LABEL_SLOTS }, (_, i) => {
-          const g = layout.groups[i];
-          const x = g?.x ?? 0, z = g?.z ?? 0;
-          return (
-            <Html key={i} position={[x, heightAt(layout.heights, x, z) + 5, z]} center zIndexRange={[10, 0]}>
-              <div style={{ display: g ? "block" : "none", borderColor: g?.color }}
-                className={`whitespace-nowrap rounded-full border-2 bg-white/95 px-3 py-0.5 text-xs font-extrabold shadow ${g?.era === "past" && category === "lifemap" ? "text-slate-400" : "text-slate-700"}`}>
-                {g?.key} <span className="text-slate-400">{g?.count}</span>
-              </div>
-            </Html>
-          );
-        })}
-        {/* life map axis */}
-        {(["past", "now"] as const).map((side) => (
-          <Html key={side} position={[side === "past" ? -60 : 60, 2, 40]} center zIndexRange={[10, 0]}>
-            <div style={{ display: category === "lifemap" || category === "places" ? "block" : "none" }}
-              className="whitespace-nowrap text-2xl font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]">
-              {side === "past" ? "⬅ YOUR PAST" : "NOW ➡"}
-            </div>
-          </Html>
-        ))}
-        <NameTag crowd={crowd} id={nearest} name={near?.name ?? ""} />
+        <Player heights={heights} pos={playerPos} walkTo={walkTo} keys={keys} follow={follow} stack={egoStack} ghostStack={ghostStack} />
+        <LabelProjector anchors={anchors} els={labelEls} />
 
         {sel && selLines.map((t, i) => {
           const s = layout.pos.get(sel.id)!;
@@ -160,6 +154,32 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
 
         <OrbitControls ref={controls} enabled={!follow} maxPolarAngle={Math.PI / 2.2} minDistance={10} maxDistance={260} enableDamping />
       </Canvas>
+
+      {/* labels overlay: moved every frame by <LabelProjector> */}
+      <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+        {layout.groups.map((g, i) => (
+          <div key={`${category}-${i}`} ref={bindLabel(`g${i}`)} style={{ borderColor: g.color, visibility: "hidden" }}
+            className={`absolute left-0 top-0 whitespace-nowrap rounded-full border-2 bg-white/95 px-3 py-0.5 text-xs font-extrabold shadow ${g.era === "past" && category === "lifemap" ? "text-slate-400" : "text-slate-700"}`}>
+            {g.key} <span className="text-slate-400">{g.count}</span>
+          </div>
+        ))}
+        <div ref={bindLabel("you")} style={{ visibility: "hidden" }}
+          className="absolute left-0 top-0 whitespace-nowrap rounded-full bg-rose-500 px-3 py-0.5 text-xs font-extrabold text-white shadow">You</div>
+        {analysis.class.projected && (
+          <div ref={bindLabel("future")} style={{ visibility: "hidden" }}
+            className="absolute left-0 top-0 whitespace-nowrap rounded-full bg-emerald-50/90 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+            future you? {money(analysis.class.projected.mid)}
+          </div>
+        )}
+        {(["past", "now"] as const).map((side) => (
+          <div key={side} ref={bindLabel(side)} style={{ visibility: "hidden" }}
+            className="absolute left-0 top-0 whitespace-nowrap text-2xl font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]">
+            {side === "past" ? "⬅ YOUR PAST" : "NOW ➡"}
+          </div>
+        ))}
+        <div ref={bindLabel("near")} style={{ visibility: "hidden" }}
+          className="absolute left-0 top-0 whitespace-nowrap rounded-full bg-slate-900/80 px-2 py-0.5 text-xs font-bold text-white">{near?.name}</div>
+      </div>
 
       {/* HUD */}
       <div className="absolute left-4 top-4 z-[100] w-80 max-w-[calc(100vw-2rem)] rounded-3xl border-4 border-white bg-white/90 p-4 shadow-xl">
@@ -228,26 +248,6 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
       {sel && <PersonCard n={sel} links={neighbors.get(sel.id)?.size ?? 0} tribes={analysis.tribes} onClose={() => setSelected(null)} />}
       {portrait && <Portrait analysis={analysis} onClose={() => setPortrait(false)} />}
     </div>
-  );
-}
-
-/** Name above whoever is closest to you. Follows them every frame. */
-function NameTag({ crowd, id, name }: { crowd: React.RefObject<CrowdState | null>; id: string | null; name: string }) {
-  const ref = useRef<THREE.Group>(null);
-  useFrame(() => {
-    const c = crowd.current, g = ref.current;
-    if (!c || !g || !id) return;
-    const i = c.ids.indexOf(id);
-    if (i >= 0) g.position.set(c.x[i], c.y[i] + 4, c.z[i]);
-  });
-  return (
-    <group ref={ref}>
-      <Html center zIndexRange={[30, 0]}>
-        <div style={{ display: id ? "block" : "none" }} className="whitespace-nowrap rounded-full bg-slate-900/80 px-2 py-0.5 text-xs font-bold text-white">
-          {name}
-        </div>
-      </Html>
-    </group>
   );
 }
 
