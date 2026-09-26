@@ -314,7 +314,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
           <button onClick={toggleFollow} className="flex-1 rounded-xl bg-sky-100 py-1.5 text-xs font-bold text-sky-700 hover:bg-sky-200">
             {follow ? "🗺️ Overview" : "🚶 Walk"}
           </button>
-          <label title={`Friends of friends, grouped by the part of your world they come through. ${layout.ring.hidden} people with no data at all are hidden.`}
+          <label title={`Friends of friends, grouped by the part of your world they come through. ${layout.ring.hidden} people whose company is unknown are hidden.`}
             className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xl bg-slate-100 text-xs font-bold text-slate-600">
             <input type="checkbox" checked={showSecond} onChange={(e) => {
               setShowSecond(e.target.checked);

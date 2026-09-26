@@ -36,8 +36,8 @@ export type WorldLayout = {
 export const TERRAIN_SIZE = 260;
 export const TERRAIN_SEG = 110;
 
-/** An N+1 person we know something about (not just a login from a following list). */
-export const hasData = (n: Node) => !!(n.company || n.city || n.name.trim().includes(" "));
+/** N+1 people are only shown when we know where they work (unknowns are dropped; your own circle keeps everyone). */
+export const hasData = (n: Node) => !!n.company;
 
 /** Keys a person belongs to in a category; the first one is primary. */
 export function keysOf(n: Node, c: Category): string[] {
@@ -185,7 +185,7 @@ export function computeWorld(a: Analysis, links: [string, string][], c: Category
     return Math.atan2(sz, sx);
   };
   // N+1 grouped by the group of your world they reach you through ("friends of your Cal friends"); that is always
-  // known, unlike their company. People we know nothing about (just a login) are left out.
+  // known. N+1 people whose company is unknown are left out.
   const allSecond = a.nodes.filter((n) => n.degree === 2);
   const second = allSecond.filter(hasData);
   const firstById = new Map(first.map((f) => [f.id, f]));
