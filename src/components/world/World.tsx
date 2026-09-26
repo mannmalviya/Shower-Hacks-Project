@@ -230,7 +230,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
         ))}
         {layout.ring.groups.map((g, i) => (
           <div key={`ring-${category}-${i}`} ref={bindLabel(`r${i}`)} style={{ visibility: "hidden", borderColor: g.color }}
-            className="absolute left-0 top-0 whitespace-nowrap rounded-full border-2 border-dashed bg-white/85 px-2 py-0.5 text-[10px] font-bold text-slate-600 hover:!opacity-100">
+            className="absolute left-0 top-0 whitespace-nowrap rounded-full border-2 border-dashed bg-emerald-50/90 px-2 py-0.5 text-[10px] font-bold text-emerald-900/70 hover:!opacity-100">
             {g.key} <span className="text-slate-400">{g.count}</span>
           </div>
         ))}
@@ -455,7 +455,7 @@ function Halo({ inner, outer }: { inner: number; outer: number }) {
       void main() {
         float r = length(vP), w = (outer - inner) * 0.35;
         float a = smoothstep(inner, inner + w, r) * (1.0 - smoothstep(outer - w, outer, r));
-        gl_FragColor = vec4(0.95, 0.93, 1.0, a * 0.6);
+        gl_FragColor = vec4(0.86, 0.97, 0.9, a * 0.55); // soft mint aura, in the family of the grass and the sky
       }`,
   }), [inner, outer]);
   return (
@@ -466,7 +466,7 @@ function Halo({ inner, outer }: { inner: number; outer: number }) {
       {[inner, outer].map((r) => (
         <mesh key={r} rotation-x={-Math.PI / 2} position-y={0.32}>
           <ringGeometry args={[r - 0.12, r + 0.12, 160]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={0.9} />
+          <meshBasicMaterial color="#e6fcf5" transparent opacity={0.9} />
         </mesh>
       ))}
     </group>

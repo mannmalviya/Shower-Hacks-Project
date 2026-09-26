@@ -33,7 +33,7 @@ const lambert = (color: string) => new THREE.MeshLambertMaterial({ color });
 const white = lambert("#ffffff");
 const dark = new THREE.MeshBasicMaterial({ color: "#212529" });
 const gold = lambert("#ffc800");
-const AURA = new THREE.Color("#f3f0ff");
+const AURA = new THREE.Color("#e6fcf5"); // same mint as the N+1 aura
 
 // one accessory per tribe family, picked from the tribe's emoji
 type Acc = { match: RegExp; geo: THREE.BufferGeometry; mat: THREE.Material; local: THREE.Matrix4 };
