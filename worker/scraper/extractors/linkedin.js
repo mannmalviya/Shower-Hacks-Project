@@ -1,51 +1,54 @@
-// Runs inside a logged-in LinkedIn profile page (linkedin.com/in/<handle>/).
-// Returns a JSON string. Selectors lean on stable-ish structure (h1, section anchors
-// #experience / #education, aria-hidden spans) instead of hashed class names.
+// Runs inside a logged-in LinkedIn page and returns a JSON string. Three page types:
+//   /in/<handle>/                      -> top card (name, headline, location, photo, counts)
+//   /in/<handle>/details/experience/   -> {items: [[line, line, ...], ...]}
+//   /in/<handle>/details/education/    -> same
+// Handles the 2026 server-driven layout (id$="Topcard", componentkey="entity-collection-item...")
+// and falls back to the older h1 / li.pvs-list layout. Text lines, not hashed classes.
 (() => {
   const t = (el) => (el ? el.innerText.replace(/\s+/g, " ").trim() : null);
+  const lines = (el) => (el?.innerText || "").split("\n").map((s) => s.trim()).filter(Boolean);
   const href = window.location.href;
   if (/\/(authwall|login|checkpoint|uas\/login)/.test(href) || document.querySelector("form#join-form, .authwall-join-form")) {
     return JSON.stringify({ blocked: "login wall: " + href });
   }
   const main = document.querySelector("main") || document.body;
-  const h1 = main.querySelector("h1");
-  if (!h1) return JSON.stringify({ blocked: "no profile h1 found (page not loaded or layout changed)", url: href });
-  const top = h1.closest("section") || main;
 
-  const headline = t(top.querySelector(".text-body-medium"));
-  const loc = t(top.querySelector(".text-body-small.inline.t-black--light, span.text-body-small.inline"));
+  if (/\/details\/(experience|education)/.test(href)) {
+    const key = '[componentkey^="entity-collection-item"]';
+    let items = [...main.querySelectorAll(key)].filter((e) => !e.parentElement.closest(key)).map(lines);
+    if (!items.length) {
+      items = [...main.querySelectorAll("li.pvs-list__paged-list-item, li.artdeco-list__item")].map((li) => [
+        ...new Set([...li.querySelectorAll('span[aria-hidden="true"]')].map(t).filter(Boolean)),
+      ]);
+    }
+    return JSON.stringify({ url: href, items: items.filter((l) => l.length) });
+  }
+
+  const top = document.querySelector('[id$="Topcard"]') || main.querySelector("h1")?.closest("section");
+  if (!top) return JSON.stringify({ blocked: "no top card yet (not loaded or layout changed)", url: href });
+  const name = t(top.querySelector("h1, h2"));
+  // Lines after the name, minus noise: connection degree ("· 2nd"), pronouns, lone separators.
+  const noise = /^(·|·\s*)?(1st|2nd|3rd\+?)?$|^(he|she|they)\/\w+$|^·$/i;
+  const all = lines(top);
+  const after = all.slice(all.indexOf(name) + 1).filter((l) => !noise.test(l));
+  const stop = (l) => /connections?$|followers$|^contact info$|^open to|^message$|^connect$|^follow$|^more$/i.test(l);
+  const headline = t(top.querySelector(".text-body-medium")) || (after[0] && !stop(after[0]) ? after[0] : null);
+  const rest = after.slice(after.indexOf(headline) + 1);
+  const loc =
+    t(top.querySelector(".text-body-small.inline.t-black--light")) || (rest[0] && !stop(rest[0]) ? rest[0] : null);
   const img =
-    top.querySelector("img.pv-top-card-profile-picture__image--show, img.pv-top-card-profile-picture__image, img.profile-photo-edit__preview") ||
-    [...top.querySelectorAll("img")].find((i) => (i.alt || "").trim() === t(h1));
-  const followersEl = [...top.querySelectorAll("li, span")].find((e) => /followers$/i.test(t(e) || ""));
-
-  // Each list item -> the visible text lines (LinkedIn duplicates text in visually-hidden spans; aria-hidden ones are the visible copy).
-  const sectionFor = (id) => {
-    const anchor = document.getElementById(id);
-    return anchor ? anchor.closest("section") : null;
-  };
-  const items = (sec) => {
-    if (!sec) return [];
-    const lis = [...sec.querySelectorAll("li.artdeco-list__item, li.pvs-list__paged-list-item")];
-    return lis
-      .map((li) => {
-        const lines = [...li.querySelectorAll('span[aria-hidden="true"]')].map((s) => t(s)).filter(Boolean);
-        return [...new Set(lines)];
-      })
-      .filter((l) => l.length);
-  };
-  const about = t(sectionFor("about")?.querySelector('.inline-show-more-text span[aria-hidden="true"], .display-flex span[aria-hidden="true"]'));
+    [...top.querySelectorAll("img")].find((i) => /profile-displayphoto/.test(i.src)) ||
+    top.querySelector("img.pv-top-card-profile-picture__image--show, img.pv-top-card-profile-picture__image");
+  const count = (re) => [...main.querySelectorAll("p, span, li, a")].map(t).find((s) => s && re.test(s)) || null;
 
   return JSON.stringify({
     url: href,
-    name: t(h1),
+    name,
     headline,
     location: loc,
     photo_url: img ? img.src : null,
-    followers: t(followersEl),
-    about,
-    experience_lines: items(sectionFor("experience")),
-    education_lines: items(sectionFor("education")),
+    followers: count(/^[\d,.]+[KM]?\+? followers$/i),
+    connections: all.find((l) => /connections?$/i.test(l)) || null,
     page_text: (main.innerText || "").slice(0, 15000),
   });
 })()

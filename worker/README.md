@@ -9,7 +9,7 @@ Each platform tries backends in order until one works (`SCRAPE_ORDER_<PLATFORM>`
 | Backend | How | Good at | Weak at |
 | --- | --- | --- | --- |
 | `zo` | `POST api.zo.computer/zo/ask` with a JSON schema. Zo's agent reads the profile in **its own logged-in cloud browser**. | LinkedIn: clicks "Show all", survives markup changes, runs off our laptops | Slow (1–3 min), costs Zo credits, less predictable |
-| `harness` | Scripted `browser-harness` over CDP against a logged-in Chrome, then a fixed JS extractor (`scraper/extractors/*.js`). No LLM. | Fast (~15 s), deterministic, free | Selectors break when the site changes; needs a Chrome with a spare account signed in |
+| `harness` | Scripted `browser-harness` over CDP against a logged-in Chrome, then a fixed JS extractor (`scraper/extractors/*.js`). No LLM. | Fast (~25 s for LinkedIn), deterministic, free. Verified on LinkedIn's 2026 layout | Selectors break when the site changes; needs a Chrome with a spare account signed in |
 | `http` | Plain HTTP, no browser. Instagram only (`web_profile_info`). | Instant | Instagram rate-limits it fast (HTTP 401 "wait a few minutes") |
 
 Defaults: LinkedIn `zo,harness` · X `zo,harness` · Instagram `http,zo,harness`.
