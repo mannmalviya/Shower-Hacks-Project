@@ -20,6 +20,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env.local")  # the app's file, as a fallback
 
 from . import db as dbm  # noqa: E402
 from .backends import harness, scrape  # noqa: E402
@@ -28,8 +29,8 @@ from .models import PLATFORMS, URL_COLUMN, ScrapeError, handle  # noqa: E402
 
 log = logging.getLogger("scraper")
 
-# scrape_jobs.platform values: the PLATFORMS (one profile) plus this one, which
-# pulls the person's first-degree LinkedIn connections into people + follows.
+# First-degree LinkedIn connections are synced inside a signed-up user's `linkedin`
+# job (scrape_jobs.platform only allows linkedin | x | instagram). Cache dir name:
 CONNECTIONS_JOB = "linkedin_connections"
 CONNECTIONS_LIMIT = int(os.environ.get("CONNECTIONS_LIMIT", "50"))
 CONNECTIONS_ENQUEUE = int(os.environ.get("CONNECTIONS_ENQUEUE", "15"))
@@ -54,12 +55,16 @@ def get_connections(limit: int, use_cache: bool = True, expected_owner: str | No
     return owner, contacts
 
 
-def run_connections_job(db, person: dict) -> None:
-    if not person.get("linkedin_url"):
-        raise ScrapeError("person has no linkedin_url")
-    _, contacts = get_connections(CONNECTIONS_LIMIT, expected_owner=handle(person["linkedin_url"]))
-    stats = dbm.upsert_contacts(db, person["id"], contacts, source=CONNECTIONS_JOB, enqueue_top=CONNECTIONS_ENQUEUE)
-    log.info("connections for %s: %s", person.get("name") or person["id"], stats)
+def sync_connections(db, person: dict) -> None:
+    """Best effort: a failure here (e.g. the harness Chrome is signed in as someone
+    else) is logged and must not fail the user's own profile job."""
+    try:
+        _, contacts = get_connections(CONNECTIONS_LIMIT, expected_owner=handle(person["linkedin_url"]))
+        stats = dbm.upsert_contacts(db, person["id"], contacts, source=CONNECTIONS_JOB,
+                                    enqueue_top=CONNECTIONS_ENQUEUE)
+        log.info("connections for %s: %s", person.get("name") or person["id"], stats)
+    except ScrapeError as e:
+        log.warning("skipped connections for %s: %s", person.get("name") or person["id"], e)
 
 
 def run_job(db, job: dict) -> None:
@@ -67,13 +72,15 @@ def run_job(db, job: dict) -> None:
     if not person:
         raise ScrapeError(f"person {job['person_id']} not found")
     platform = job["platform"]
-    if platform == CONNECTIONS_JOB:
-        return run_connections_job(db, person)
     if platform not in PLATFORMS:
         raise ScrapeError(f"unknown platform {platform!r}")
     url = person.get(URL_COLUMN[platform])
     if not url:
         raise ScrapeError(f"person has no {URL_COLUMN[platform]}")
+    if platform == "linkedin" and person.get("user_id"):
+        # A signed-up user: pull their network first, since the crowd is what the 3D page shows.
+        sync_connections(db, person)
+        person = dbm.get_person(db, person["id"])
     profile = scrape(url)
     dbm.save_profile(db, person, profile)
     log.info("saved %s %s -> %s (%s)", platform, url, profile.name, profile.backend)
@@ -85,6 +92,8 @@ def cmd_run(args) -> None:
     while True:
         job = dbm.claim_next_job(db)
         if not job:
+            if args.once:
+                return
             time.sleep(args.interval)
             continue
         log.info("job %s: %s for person %s", job["id"], job["platform"], job["person_id"])
@@ -137,7 +146,8 @@ def main() -> None:
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     p = sub.add_parser("run", help="poll scrape_jobs and process them")
-    p.add_argument("--interval", type=float, default=2.0)
+    p.add_argument("--interval", type=float, default=1.0)
+    p.add_argument("--once", action="store_true", help="exit when the queue is empty (for tests)")
     p.set_defaults(fn=cmd_run)
 
     p = sub.add_parser("scrape", help="scrape one URL and print JSON (no database)")
@@ -148,7 +158,7 @@ def main() -> None:
 
     p = sub.add_parser("enqueue", help="insert a queued scrape_jobs row")
     p.add_argument("person_id")
-    p.add_argument("platform", choices=(*PLATFORMS, CONNECTIONS_JOB))
+    p.add_argument("platform", choices=PLATFORMS)
     p.set_defaults(fn=cmd_enqueue)
 
     p = sub.add_parser("connections", help="first-degree LinkedIn connections of the signed-in account")

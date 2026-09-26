@@ -1,8 +1,9 @@
 """Traditional backend: a scripted browser-harness run. No LLM in the loop.
 
 browser-harness (https://github.com/browser-use/browser-harness) attaches over CDP
-to a real Chrome that is already signed in (use a SPARE LinkedIn/X account, see
-PLAN.md > Risks). We pipe it a small Python script that opens its own background
+to a real Chrome that is already signed in (the user's own account: LinkedIn's
+User Agreement forbids fake accounts, and a connections list is only visible to
+its owner). We pipe it a small Python script that opens its own background
 tab, visits the profile (for LinkedIn also /details/experience/ and
 /details/education/), runs a fixed JS extractor (extractors/<platform>.js) and
 prints JSON. ~25 s per LinkedIn profile and deterministic, but selectors can break
@@ -283,14 +284,8 @@ _CLICK_MORE_JS = """(() => {
 })()"""
 
 
-def _split_headline(headline: str | None) -> tuple[str | None, str | None]:
-    """'SWE at Acme' / 'SWE @ Acme | ...' -> ('SWE', 'Acme'). Otherwise (None, None)."""
-    m = re.match(r"^\s*(.+?)\s+(?:at|@)\s+([^|·,]+)", headline or "", re.I)
-    return (clean(m.group(1)), clean(m.group(2))) if m else (None, None)
-
-
 def scrape_connections(limit: int = 50) -> tuple[str, list[dict]]:
-    """-> (signed-in owner's handle, [{name, headline, role, company, linkedin_url, photo_url, connected_on}])."""
+    """-> (signed-in owner's handle, [{name, headline, linkedin_url, photo_url, connected_on}])."""
     _throttle("linkedin")
     script = CONNECTIONS_SCRIPT.format(
         limit=limit, extractor=_CONNECTION_CARDS_JS, click_more=_CLICK_MORE_JS, sentinel=SENTINEL,
@@ -307,12 +302,9 @@ def scrape_connections(limit: int = 50) -> tuple[str, list[dict]]:
         lines = c.get("lines") or []
         connected = next((l for l in lines if l.lower().startswith("connected on")), None)
         headline = next((l for l in lines[1:] if l != connected and l.lower() != "message"), None)
-        role, company = _split_headline(headline)
         contacts.append({
             "name": clean(lines[0]) if lines else None,
             "headline": clean(headline),
-            "role": role,
-            "company": company,
             "linkedin_url": linkedin_profile_url(c["url"]),
             "photo_url": c.get("photo_url"),
             "connected_on": connected[len("connected on"):].strip() if connected else None,

@@ -5,8 +5,8 @@ The user gets it from LinkedIn > Settings > Data privacy > Get a copy of your da
 "Connections" (arrives by email in ~10 min). The file starts with a few "Notes:" lines,
 then: First Name,Last Name,URL,Email Address,Company,Position,Connected On
 
-Each connection becomes a people row (is_user=false) plus a follows row
-(follower_id = connection, person_id = the user). Emails are dropped on purpose.
+Each connection becomes a people row plus two follows rows (a connection is
+mutual), via db.upsert_contacts. Emails are dropped on purpose.
 """
 
 from __future__ import annotations

@@ -14,7 +14,9 @@ from . import harness, http, zo
 log = logging.getLogger("scraper")
 
 BACKENDS = {"zo": zo.scrape, "harness": harness.scrape, "http": http.scrape}
-DEFAULT_ORDER = {"linkedin": "zo,harness", "instagram": "http,zo,harness", "x": "zo,harness"}
+# harness is the only verified backend. zo (slow, 1-3 min) and http (Instagram answers
+# 401 logged out) stay opt-in: SCRAPE_ORDER_LINKEDIN=harness,zo
+DEFAULT_ORDER = {"linkedin": "harness", "instagram": "harness", "x": "harness"}
 
 
 def order_for(platform: str) -> list[str]:

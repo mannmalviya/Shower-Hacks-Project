@@ -93,6 +93,8 @@ Next.js API route ◀────────────┘
 
 Schema: `supabase/migrations/`. Helpers: `src/lib/db.ts`. Reads are public. Users write their own rows. The worker and API routes write with the secret key.
 
+Scraper worker (`worker/`, runs on Victor's laptop with `browser-harness`): a signed-up user's `linkedin` job also syncs their first-degree LinkedIn connections (a people row + two follows rows each). Details: `worker/README.md`.
+
 - `people`: id, user_id (set = signed-up user), name, headline, company, role, location, photo_url, linkedin_url, x_url, instagram_url, raw (jsonb)
 - `follows`: follower_id → person_id
 - `scrape_jobs`: id, person_id, platform, status (`queued` | `running` | `done` | `failed`), error, created_at
