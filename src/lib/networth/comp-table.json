@@ -1,0 +1,4746 @@
+{
+ "asOf": "2026-09 (levels.fyi US medians spot-checked 2026-09-26; BLS OEWS May 2024 w/ May 2025 cross-check)",
+ "currency": "USD",
+ "units": "annual median total compensation (base + bonus + annualized stock); intern = monthly pay x 12",
+ "ladder": [
+  "intern",
+  "entry",
+  "mid",
+  "senior",
+  "staff",
+  "principal",
+  "manager",
+  "director",
+  "vp",
+  "exec"
+ ],
+ "companies": {
+  "OpenAI": {
+   "aliases": [
+    "openai",
+    "open ai"
+   ],
+   "tier": "ai_lab",
+   "tc": {
+    "intern": 220000,
+    "entry": 300000,
+    "mid": 450000,
+    "senior": 700000,
+    "staff": 950000,
+    "principal": 1500000,
+    "manager": 800000,
+    "director": 1400000,
+    "vp": 3000000,
+    "exec": 10000000
+   },
+   "note": "PPU/equity valued at tender price; small sample"
+  },
+  "Anthropic": {
+   "aliases": [
+    "anthropic"
+   ],
+   "tier": "ai_lab",
+   "tc": {
+    "intern": 190000,
+    "entry": 330000,
+    "mid": 420000,
+    "senior": 590000,
+    "staff": 870000,
+    "principal": 1400000,
+    "manager": 750000,
+    "director": 1200000,
+    "vp": 2500000,
+    "exec": 8000000
+   },
+   "note": "equity at latest private valuation; small sample"
+  },
+  "Google DeepMind": {
+   "aliases": [
+    "google deepmind",
+    "deepmind",
+    "deep mind"
+   ],
+   "tier": "ai_lab",
+   "tc": {
+    "intern": 120000,
+    "entry": 220000,
+    "mid": 330000,
+    "senior": 500000,
+    "staff": 780000,
+    "principal": 1150000,
+    "manager": 700000,
+    "director": 1300000,
+    "vp": 2500000,
+    "exec": 8000000
+   }
+  },
+  "xAI": {
+   "aliases": [
+    "xai",
+    "x.ai",
+    "x ai"
+   ],
+   "tier": "ai_lab",
+   "tc": {
+    "intern": 145000,
+    "entry": 250000,
+    "mid": 350000,
+    "senior": 500000,
+    "staff": 750000,
+    "principal": 1100000,
+    "manager": 600000,
+    "director": 1000000,
+    "vp": 2000000,
+    "exec": 6000000
+   },
+   "note": "low data; estimate"
+  },
+  "Jane Street": {
+   "aliases": [
+    "jane street",
+    "jane street capital"
+   ],
+   "tier": "quant",
+   "tc": {
+    "intern": 300000,
+    "entry": 385000,
+    "mid": 450000,
+    "senior": 575000,
+    "staff": 800000,
+    "principal": 1200000,
+    "manager": 700000,
+    "director": 1000000,
+    "vp": 2000000,
+    "exec": 10000000
+   },
+   "note": "SWE/trader similar at entry; traders diverge upward later"
+  },
+  "Hudson River Trading": {
+   "aliases": [
+    "hudson river trading",
+    "hrt"
+   ],
+   "tier": "quant",
+   "tc": {
+    "intern": 280000,
+    "entry": 450000,
+    "mid": 500000,
+    "senior": 700000,
+    "staff": 900000,
+    "principal": 1300000,
+    "manager": 800000,
+    "director": 1100000,
+    "vp": 2000000,
+    "exec": 8000000
+   }
+  },
+  "Citadel": {
+   "aliases": [
+    "citadel",
+    "citadel llc",
+    "citadel investment group"
+   ],
+   "tier": "quant",
+   "tc": {
+    "intern": 260000,
+    "entry": 400000,
+    "mid": 450000,
+    "senior": 550000,
+    "staff": 700000,
+    "principal": 1000000,
+    "manager": 650000,
+    "director": 900000,
+    "vp": 1500000,
+    "exec": 10000000
+   }
+  },
+  "Citadel Securities": {
+   "aliases": [
+    "citadel securities"
+   ],
+   "tier": "quant",
+   "tc": {
+    "intern": 260000,
+    "entry": 400000,
+    "mid": 450000,
+    "senior": 550000,
+    "staff": 700000,
+    "principal": 1000000,
+    "manager": 650000,
+    "director": 900000,
+    "vp": 1500000,
+    "exec": 10000000
+   }
+  },
+  "Two Sigma": {
+   "aliases": [
+    "two sigma",
+    "two sigma investments",
+    "2 sigma"
+   ],
+   "tier": "quant",
+   "tc": {
+    "intern": 215000,
+    "entry": 255000,
+    "mid": 310000,
+    "senior": 380000,
+    "staff": 520000,
+    "principal": 750000,
+    "manager": 500000,
+    "director": 700000,
+    "vp": 1200000,
+    "exec": 5000000
+   }
+  },
+  "Jump Trading": {
+   "aliases": [
+    "jump trading",
+    "jump",
+    "jump crypto"
+   ],
+   "tier": "quant",
+   "tc": {
+    "intern": 265000,
+    "entry": 400000,
+    "mid": 475000,
+    "senior": 600000,
+    "staff": 800000,
+    "principal": 1200000,
+    "manager": 750000,
+    "director": 1000000,
+    "vp": 1800000,
+    "exec": 6000000
+   }
+  },
+  "D. E. Shaw": {
+   "aliases": [
+    "d. e. shaw",
+    "de shaw",
+    "d.e. shaw",
+    "d e shaw",
+    "deshaw",
+    "the d. e. shaw group"
+   ],
+   "tier": "quant",
+   "tc": {
+    "intern": 240000,
+    "entry": 350000,
+    "mid": 425000,
+    "senior": 550000,
+    "staff": 700000,
+    "principal": 1000000,
+    "manager": 650000,
+    "director": 900000,
+    "vp": 1500000,
+    "exec": 6000000
+   }
+  },
+  "Optiver": {
+   "aliases": [
+    "optiver"
+   ],
+   "tier": "quant",
+   "tc": {
+    "intern": 230000,
+    "entry": 330000,
+    "mid": 420000,
+    "senior": 480000,
+    "staff": 600000,
+    "principal": 850000,
+    "manager": 550000,
+    "director": 800000,
+    "vp": 1300000,
+    "exec": 4000000
+   }
+  },
+  "IMC Trading": {
+   "aliases": [
+    "imc",
+    "imc trading",
+    "imc financial markets"
+   ],
+   "tier": "quant",
+   "tc": {
+    "intern": 225000,
+    "entry": 300000,
+    "mid": 380000,
+    "senior": 450000,
+    "staff": 580000,
+    "principal": 800000,
+    "manager": 520000,
+    "director": 750000,
+    "vp": 1200000,
+    "exec": 4000000
+   }
+  },
+  "Susquehanna (SIG)": {
+   "aliases": [
+    "sig",
+    "susquehanna",
+    "susquehanna international group",
+    "susquehanna international group, llp"
+   ],
+   "tier": "quant",
+   "tc": {
+    "intern": 170000,
+    "entry": 200000,
+    "mid": 235000,
+    "senior": 260000,
+    "staff": 310000,
+    "principal": 420000,
+    "manager": 320000,
+    "director": 450000,
+    "vp": 800000,
+    "exec": 3000000
+   },
+   "note": "SIG SWE pay is lower than trader pay"
+  },
+  "DRW": {
+   "aliases": [
+    "drw",
+    "drw trading",
+    "drw holdings"
+   ],
+   "tier": "quant",
+   "tc": {
+    "intern": 200000,
+    "entry": 260000,
+    "mid": 330000,
+    "senior": 420000,
+    "staff": 550000,
+    "principal": 750000,
+    "manager": 500000,
+    "director": 700000,
+    "vp": 1200000,
+    "exec": 4000000
+   }
+  },
+  "Millennium": {
+   "aliases": [
+    "millennium",
+    "millennium management"
+   ],
+   "tier": "quant",
+   "tc": {
+    "intern": 180000,
+    "entry": 250000,
+    "mid": 330000,
+    "senior": 450000,
+    "staff": 600000,
+    "principal": 900000,
+    "manager": 550000,
+    "director": 800000,
+    "vp": 1500000,
+    "exec": 6000000
+   }
+  },
+  "Google": {
+   "aliases": [
+    "google",
+    "alphabet",
+    "google llc",
+    "youtube",
+    "google cloud",
+    "x development",
+    "verily"
+   ],
+   "tier": "bigtech",
+   "tc": {
+    "intern": 115000,
+    "entry": 205000,
+    "mid": 305000,
+    "senior": 445000,
+    "staff": 680000,
+    "principal": 1000000,
+    "manager": 600000,
+    "director": 1300000,
+    "vp": 2800000,
+    "exec": 15000000
+   },
+   "note": "L3=entry,L4=mid,L5=senior,L6=staff,L7+=principal"
+  },
+  "Meta": {
+   "aliases": [
+    "meta",
+    "facebook",
+    "meta platforms",
+    "instagram",
+    "whatsapp",
+    "oculus",
+    "reality labs",
+    "meta superintelligence labs"
+   ],
+   "tier": "bigtech",
+   "tc": {
+    "intern": 120000,
+    "entry": 190000,
+    "mid": 300000,
+    "senior": 435000,
+    "staff": 720000,
+    "principal": 1100000,
+    "manager": 650000,
+    "director": 1400000,
+    "vp": 3000000,
+    "exec": 20000000
+   },
+   "note": "E3..E7"
+  },
+  "Apple": {
+   "aliases": [
+    "apple",
+    "apple inc"
+   ],
+   "tier": "bigtech",
+   "tc": {
+    "intern": 105000,
+    "entry": 170000,
+    "mid": 255000,
+    "senior": 345000,
+    "staff": 530000,
+    "principal": 800000,
+    "manager": 500000,
+    "director": 1000000,
+    "vp": 3000000,
+    "exec": 25000000
+   },
+   "note": "ICT2=entry..ICT5=staff,ICT6=principal"
+  },
+  "Amazon": {
+   "aliases": [
+    "amazon",
+    "aws",
+    "amazon web services",
+    "amazon.com",
+    "amazon lab126",
+    "audible",
+    "twitch",
+    "zoox"
+   ],
+   "tier": "bigtech",
+   "tc": {
+    "intern": 110000,
+    "entry": 185000,
+    "mid": 270000,
+    "senior": 385000,
+    "staff": 620000,
+    "principal": 950000,
+    "manager": 420000,
+    "director": 900000,
+    "vp": 2500000,
+    "exec": 20000000
+   },
+   "note": "L4=entry,L5=mid,L6=senior,L7=staff(principal SDE),L8=principal; warehouse/fulfillment titles -> occupations.retail_service"
+  },
+  "Microsoft": {
+   "aliases": [
+    "microsoft",
+    "msft",
+    "microsoft research",
+    "github",
+    "microsoft corporation"
+   ],
+   "tier": "bigtech",
+   "tc": {
+    "intern": 100000,
+    "entry": 165000,
+    "mid": 200000,
+    "senior": 265000,
+    "staff": 360000,
+    "principal": 430000,
+    "manager": 340000,
+    "director": 650000,
+    "vp": 1500000,
+    "exec": 15000000
+   },
+   "note": "59-60=entry,61-62=mid,63-64=senior,65-66=staff,67-68=principal; title 'Principal' spans 65-67 -> use staff unless level 67+"
+  },
+  "Netflix": {
+   "aliases": [
+    "netflix"
+   ],
+   "tier": "bigtech",
+   "tc": {
+    "intern": 120000,
+    "entry": 215000,
+    "mid": 330000,
+    "senior": 520000,
+    "staff": 790000,
+    "principal": 1100000,
+    "manager": 700000,
+    "director": 1100000,
+    "vp": 2500000,
+    "exec": 20000000
+   }
+  },
+  "Nvidia": {
+   "aliases": [
+    "nvidia",
+    "nvidia corporation"
+   ],
+   "tier": "bigtech",
+   "tc": {
+    "intern": 105000,
+    "entry": 175000,
+    "mid": 225000,
+    "senior": 320000,
+    "staff": 400000,
+    "principal": 600000,
+    "manager": 450000,
+    "director": 900000,
+    "vp": 2000000,
+    "exec": 15000000
+   },
+   "note": "grant-date values; realized pay far higher after 2023-25 stock run-up"
+  },
+  "LinkedIn": {
+   "aliases": [
+    "linkedin"
+   ],
+   "tier": "bigtech",
+   "tc": {
+    "intern": 100000,
+    "entry": 205000,
+    "mid": 255000,
+    "senior": 300000,
+    "staff": 445000,
+    "principal": 620000,
+    "manager": 420000,
+    "director": 700000,
+    "vp": 1500000,
+    "exec": 8000000
+   }
+  },
+  "ByteDance / TikTok": {
+   "aliases": [
+    "bytedance",
+    "byte dance",
+    "tiktok",
+    "tik tok",
+    "capcut",
+    "lark",
+    "douyin"
+   ],
+   "tier": "bigtech",
+   "tc": {
+    "intern": 110000,
+    "entry": 200000,
+    "mid": 275000,
+    "senior": 450000,
+    "staff": 620000,
+    "principal": 850000,
+    "manager": 500000,
+    "director": 900000,
+    "vp": 1800000,
+    "exec": 8000000
+   },
+   "note": "US figures; for China offices apply countryMultipliers.china"
+  },
+  "Waymo": {
+   "aliases": [
+    "waymo"
+   ],
+   "tier": "bigtech",
+   "tc": {
+    "intern": 110000,
+    "entry": 200000,
+    "mid": 290000,
+    "senior": 420000,
+    "staff": 600000,
+    "principal": 850000,
+    "manager": 550000,
+    "director": 900000,
+    "vp": 2000000,
+    "exec": 8000000
+   }
+  },
+  "Stripe": {
+   "aliases": [
+    "stripe"
+   ],
+   "tier": "top_private",
+   "tc": {
+    "intern": 125000,
+    "entry": 215000,
+    "mid": 290000,
+    "senior": 445000,
+    "staff": 660000,
+    "principal": 950000,
+    "manager": 520000,
+    "director": 850000,
+    "vp": 1500000,
+    "exec": 5000000
+   }
+  },
+  "Databricks": {
+   "aliases": [
+    "databricks"
+   ],
+   "tier": "top_private",
+   "tc": {
+    "intern": 130000,
+    "entry": 250000,
+    "mid": 380000,
+    "senior": 570000,
+    "staff": 1000000,
+    "principal": 1500000,
+    "manager": 700000,
+    "director": 1200000,
+    "vp": 2500000,
+    "exec": 8000000
+   },
+   "note": "equity at latest private round; tenders make it semi-liquid"
+  },
+  "Scale AI": {
+   "aliases": [
+    "scale ai",
+    "scale",
+    "scale.ai",
+    "scaleai"
+   ],
+   "tier": "top_private",
+   "tc": {
+    "intern": 130000,
+    "entry": 220000,
+    "mid": 340000,
+    "senior": 450000,
+    "staff": 700000,
+    "principal": 1000000,
+    "manager": 500000,
+    "director": 800000,
+    "vp": 1500000,
+    "exec": 5000000
+   }
+  },
+  "Ramp": {
+   "aliases": [
+    "ramp"
+   ],
+   "tier": "top_private",
+   "tc": {
+    "intern": 130000,
+    "entry": 220000,
+    "mid": 290000,
+    "senior": 480000,
+    "staff": 720000,
+    "principal": 1000000,
+    "manager": 550000,
+    "director": 850000,
+    "vp": 1500000,
+    "exec": 4000000
+   }
+  },
+  "Plaid": {
+   "aliases": [
+    "plaid"
+   ],
+   "tier": "top_private",
+   "tc": {
+    "intern": 120000,
+    "entry": 230000,
+    "mid": 320000,
+    "senior": 450000,
+    "staff": 650000,
+    "principal": 850000,
+    "manager": 500000,
+    "director": 750000,
+    "vp": 1200000,
+    "exec": 4000000
+   }
+  },
+  "Notion": {
+   "aliases": [
+    "notion",
+    "notion labs"
+   ],
+   "tier": "top_private",
+   "tc": {
+    "intern": 120000,
+    "entry": 200000,
+    "mid": 300000,
+    "senior": 400000,
+    "staff": 550000,
+    "principal": 750000,
+    "manager": 450000,
+    "director": 700000,
+    "vp": 1200000,
+    "exec": 4000000
+   }
+  },
+  "SpaceX": {
+   "aliases": [
+    "spacex",
+    "space x",
+    "space exploration technologies",
+    "starlink"
+   ],
+   "tier": "top_private",
+   "tc": {
+    "intern": 90000,
+    "entry": 170000,
+    "mid": 225000,
+    "senior": 300000,
+    "staff": 400000,
+    "principal": 520000,
+    "manager": 320000,
+    "director": 500000,
+    "vp": 1000000,
+    "exec": 5000000
+   },
+   "note": "hardware/avionics roles ~20% lower than SWE"
+  },
+  "Anduril": {
+   "aliases": [
+    "anduril",
+    "anduril industries"
+   ],
+   "tier": "top_private",
+   "tc": {
+    "intern": 100000,
+    "entry": 180000,
+    "mid": 240000,
+    "senior": 330000,
+    "staff": 480000,
+    "principal": 650000,
+    "manager": 400000,
+    "director": 650000,
+    "vp": 1200000,
+    "exec": 4000000
+   }
+  },
+  "Rippling": {
+   "aliases": [
+    "rippling"
+   ],
+   "tier": "top_private",
+   "tc": {
+    "intern": 110000,
+    "entry": 190000,
+    "mid": 260000,
+    "senior": 380000,
+    "staff": 520000,
+    "principal": 700000,
+    "manager": 450000,
+    "director": 700000,
+    "vp": 1200000,
+    "exec": 4000000
+   }
+  },
+  "Discord": {
+   "aliases": [
+    "discord"
+   ],
+   "tier": "top_private",
+   "tc": {
+    "intern": 115000,
+    "entry": 200000,
+    "mid": 270000,
+    "senior": 380000,
+    "staff": 520000,
+    "principal": 700000,
+    "manager": 450000,
+    "director": 700000,
+    "vp": 1200000,
+    "exec": 4000000
+   }
+  },
+  "Figma": {
+   "aliases": [
+    "figma"
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 125000,
+    "entry": 215000,
+    "mid": 305000,
+    "senior": 440000,
+    "staff": 700000,
+    "principal": 950000,
+    "manager": 520000,
+    "director": 850000,
+    "vp": 1500000,
+    "exec": 6000000
+   },
+   "note": "IPO'd Jul 2025"
+  },
+  "Uber": {
+   "aliases": [
+    "uber",
+    "uber technologies",
+    "uber eats"
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 115000,
+    "entry": 200000,
+    "mid": 275000,
+    "senior": 400000,
+    "staff": 600000,
+    "principal": 850000,
+    "manager": 480000,
+    "director": 800000,
+    "vp": 1500000,
+    "exec": 10000000
+   },
+   "note": "L3=entry,L4=mid,L5a=senior,L5b=staff,L6=principal; drivers -> occupations.driver_delivery"
+  },
+  "Lyft": {
+   "aliases": [
+    "lyft"
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 105000,
+    "entry": 185000,
+    "mid": 235000,
+    "senior": 340000,
+    "staff": 450000,
+    "principal": 620000,
+    "manager": 400000,
+    "director": 600000,
+    "vp": 1200000,
+    "exec": 6000000
+   }
+  },
+  "Airbnb": {
+   "aliases": [
+    "airbnb"
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 125000,
+    "entry": 180000,
+    "mid": 290000,
+    "senior": 460000,
+    "staff": 640000,
+    "principal": 950000,
+    "manager": 550000,
+    "director": 900000,
+    "vp": 2000000,
+    "exec": 10000000
+   },
+   "note": "G7=entry..G10=staff"
+  },
+  "Snap": {
+   "aliases": [
+    "snap",
+    "snapchat",
+    "snap inc"
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 115000,
+    "entry": 195000,
+    "mid": 310000,
+    "senior": 450000,
+    "staff": 650000,
+    "principal": 900000,
+    "manager": 500000,
+    "director": 800000,
+    "vp": 1500000,
+    "exec": 8000000
+   }
+  },
+  "Pinterest": {
+   "aliases": [
+    "pinterest"
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 115000,
+    "entry": 220000,
+    "mid": 310000,
+    "senior": 480000,
+    "staff": 720000,
+    "principal": 950000,
+    "manager": 520000,
+    "director": 850000,
+    "vp": 1500000,
+    "exec": 8000000
+   }
+  },
+  "DoorDash": {
+   "aliases": [
+    "doordash",
+    "door dash"
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 120000,
+    "entry": 190000,
+    "mid": 285000,
+    "senior": 380000,
+    "staff": 560000,
+    "principal": 800000,
+    "manager": 480000,
+    "director": 750000,
+    "vp": 1500000,
+    "exec": 8000000
+   },
+   "note": "dashers -> occupations.driver_delivery"
+  },
+  "Instacart": {
+   "aliases": [
+    "instacart",
+    "maplebear"
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 115000,
+    "entry": 215000,
+    "mid": 270000,
+    "senior": 350000,
+    "staff": 450000,
+    "principal": 600000,
+    "manager": 420000,
+    "director": 650000,
+    "vp": 1200000,
+    "exec": 6000000
+   }
+  },
+  "Coinbase": {
+   "aliases": [
+    "coinbase"
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 115000,
+    "entry": 205000,
+    "mid": 260000,
+    "senior": 395000,
+    "staff": 510000,
+    "principal": 700000,
+    "manager": 450000,
+    "director": 700000,
+    "vp": 1300000,
+    "exec": 6000000
+   }
+  },
+  "Robinhood": {
+   "aliases": [
+    "robinhood",
+    "robinhood markets"
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 115000,
+    "entry": 205000,
+    "mid": 300000,
+    "senior": 430000,
+    "staff": 560000,
+    "principal": 750000,
+    "manager": 480000,
+    "director": 750000,
+    "vp": 1300000,
+    "exec": 6000000
+   }
+  },
+  "Snowflake": {
+   "aliases": [
+    "snowflake",
+    "snowflake computing"
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 125000,
+    "entry": 225000,
+    "mid": 350000,
+    "senior": 560000,
+    "staff": 850000,
+    "principal": 1100000,
+    "manager": 600000,
+    "director": 900000,
+    "vp": 1800000,
+    "exec": 8000000
+   }
+  },
+  "Palantir": {
+   "aliases": [
+    "palantir",
+    "palantir technologies"
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 110000,
+    "entry": 200000,
+    "mid": 280000,
+    "senior": 380000,
+    "staff": 520000,
+    "principal": 700000,
+    "manager": 450000,
+    "director": 700000,
+    "vp": 1500000,
+    "exec": 10000000
+   },
+   "note": "flat titles; stock run-up inflates realized pay"
+  },
+  "Roblox": {
+   "aliases": [
+    "roblox"
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 130000,
+    "entry": 240000,
+    "mid": 330000,
+    "senior": 385000,
+    "staff": 470000,
+    "principal": 700000,
+    "manager": 480000,
+    "director": 800000,
+    "vp": 1500000,
+    "exec": 8000000
+   }
+  },
+  "Block": {
+   "aliases": [
+    "block",
+    "square",
+    "cash app",
+    "block inc",
+    "afterpay",
+    "tidal"
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 110000,
+    "entry": 165000,
+    "mid": 240000,
+    "senior": 300000,
+    "staff": 420000,
+    "principal": 600000,
+    "manager": 380000,
+    "director": 600000,
+    "vp": 1200000,
+    "exec": 6000000
+   }
+  },
+  "Tesla": {
+   "aliases": [
+    "tesla",
+    "tesla motors"
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 94000,
+    "entry": 145000,
+    "mid": 195000,
+    "senior": 255000,
+    "staff": 420000,
+    "principal": 600000,
+    "manager": 320000,
+    "director": 600000,
+    "vp": 1500000,
+    "exec": 10000000
+   },
+   "note": "P1=entry..P4=staff; factory/production titles -> occupations.skilled_trades"
+  },
+  "Dropbox": {
+   "aliases": [
+    "dropbox"
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 110000,
+    "entry": 190000,
+    "mid": 260000,
+    "senior": 360000,
+    "staff": 480000,
+    "principal": 650000,
+    "manager": 420000,
+    "director": 650000,
+    "vp": 1200000,
+    "exec": 5000000
+   }
+  },
+  "Atlassian": {
+   "aliases": [
+    "atlassian"
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 105000,
+    "entry": 180000,
+    "mid": 240000,
+    "senior": 330000,
+    "staff": 450000,
+    "principal": 600000,
+    "manager": 400000,
+    "director": 600000,
+    "vp": 1100000,
+    "exec": 5000000
+   }
+  },
+  "X (Twitter)": {
+   "aliases": [
+    "x",
+    "twitter",
+    "x corp",
+    "x corp."
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 110000,
+    "entry": 180000,
+    "mid": 250000,
+    "senior": 350000,
+    "staff": 480000,
+    "principal": 650000,
+    "manager": 420000,
+    "director": 650000,
+    "vp": 1200000,
+    "exec": 5000000
+   }
+  },
+  "Palo Alto Networks": {
+   "aliases": [
+    "palo alto networks",
+    "pan",
+    "paloalto networks"
+   ],
+   "tier": "public_tech",
+   "tc": {
+    "intern": 100000,
+    "entry": 160000,
+    "mid": 210000,
+    "senior": 280000,
+    "staff": 370000,
+    "principal": 480000,
+    "manager": 340000,
+    "director": 500000,
+    "vp": 1000000,
+    "exec": 8000000
+   }
+  },
+  "Salesforce": {
+   "aliases": [
+    "salesforce",
+    "salesforce.com",
+    "slack",
+    "tableau",
+    "mulesoft"
+   ],
+   "tier": "enterprise",
+   "tc": {
+    "intern": 95000,
+    "entry": 170000,
+    "mid": 195000,
+    "senior": 265000,
+    "staff": 315000,
+    "principal": 420000,
+    "manager": 330000,
+    "director": 500000,
+    "vp": 900000,
+    "exec": 10000000
+   },
+   "note": "AMTS=entry,MTS=mid,SMTS=senior,LMTS=staff,PMTS=principal"
+  },
+  "Oracle": {
+   "aliases": [
+    "oracle",
+    "oracle america",
+    "oracle cloud",
+    "oci",
+    "netsuite"
+   ],
+   "tier": "enterprise",
+   "tc": {
+    "intern": 90000,
+    "entry": 160000,
+    "mid": 170000,
+    "senior": 210000,
+    "staff": 300000,
+    "principal": 420000,
+    "manager": 280000,
+    "director": 450000,
+    "vp": 900000,
+    "exec": 10000000
+   },
+   "note": "IC2 MTS=mid, IC3 Senior MTS=senior, IC4 Principal MTS=staff, IC5 Consulting MTS=principal"
+  },
+  "Adobe": {
+   "aliases": [
+    "adobe",
+    "adobe inc",
+    "adobe systems"
+   ],
+   "tier": "enterprise",
+   "tc": {
+    "intern": 95000,
+    "entry": 160000,
+    "mid": 190000,
+    "senior": 235000,
+    "staff": 290000,
+    "principal": 400000,
+    "manager": 300000,
+    "director": 450000,
+    "vp": 900000,
+    "exec": 8000000
+   }
+  },
+  "Intel": {
+   "aliases": [
+    "intel",
+    "intel corporation",
+    "intel corp"
+   ],
+   "tier": "enterprise",
+   "tc": {
+    "intern": 72000,
+    "entry": 125000,
+    "mid": 145000,
+    "senior": 175000,
+    "staff": 210000,
+    "principal": 290000,
+    "manager": 230000,
+    "director": 350000,
+    "vp": 700000,
+    "exec": 8000000
+   }
+  },
+  "AMD": {
+   "aliases": [
+    "amd",
+    "advanced micro devices",
+    "xilinx"
+   ],
+   "tier": "enterprise",
+   "tc": {
+    "intern": 75000,
+    "entry": 140000,
+    "mid": 165000,
+    "senior": 190000,
+    "staff": 240000,
+    "principal": 310000,
+    "manager": 250000,
+    "director": 400000,
+    "vp": 800000,
+    "exec": 8000000
+   }
+  },
+  "Qualcomm": {
+   "aliases": [
+    "qualcomm"
+   ],
+   "tier": "enterprise",
+   "tc": {
+    "intern": 80000,
+    "entry": 135000,
+    "mid": 160000,
+    "senior": 210000,
+    "staff": 270000,
+    "principal": 340000,
+    "manager": 260000,
+    "director": 400000,
+    "vp": 800000,
+    "exec": 8000000
+   }
+  },
+  "Cisco": {
+   "aliases": [
+    "cisco",
+    "cisco systems",
+    "meraki",
+    "splunk",
+    "webex"
+   ],
+   "tier": "enterprise",
+   "tc": {
+    "intern": 80000,
+    "entry": 125000,
+    "mid": 150000,
+    "senior": 185000,
+    "staff": 240000,
+    "principal": 320000,
+    "manager": 250000,
+    "director": 400000,
+    "vp": 800000,
+    "exec": 8000000
+   }
+  },
+  "IBM": {
+   "aliases": [
+    "ibm",
+    "international business machines",
+    "red hat"
+   ],
+   "tier": "enterprise",
+   "tc": {
+    "intern": 70000,
+    "entry": 125000,
+    "mid": 160000,
+    "senior": 200000,
+    "staff": 260000,
+    "principal": 330000,
+    "manager": 220000,
+    "director": 320000,
+    "vp": 600000,
+    "exec": 8000000
+   },
+   "note": "IBM Consulting roles ~ consulting_big4 levels"
+  },
+  "ServiceNow": {
+   "aliases": [
+    "servicenow",
+    "service now"
+   ],
+   "tier": "enterprise",
+   "tc": {
+    "intern": 100000,
+    "entry": 155000,
+    "mid": 180000,
+    "senior": 235000,
+    "staff": 310000,
+    "principal": 420000,
+    "manager": 320000,
+    "director": 480000,
+    "vp": 900000,
+    "exec": 8000000
+   }
+  },
+  "Workday": {
+   "aliases": [
+    "workday"
+   ],
+   "tier": "enterprise",
+   "tc": {
+    "intern": 95000,
+    "entry": 140000,
+    "mid": 170000,
+    "senior": 215000,
+    "staff": 305000,
+    "principal": 400000,
+    "manager": 300000,
+    "director": 450000,
+    "vp": 850000,
+    "exec": 6000000
+   }
+  },
+  "Intuit": {
+   "aliases": [
+    "intuit",
+    "turbotax",
+    "credit karma",
+    "mailchimp",
+    "quickbooks"
+   ],
+   "tier": "enterprise",
+   "tc": {
+    "intern": 100000,
+    "entry": 160000,
+    "mid": 205000,
+    "senior": 260000,
+    "staff": 335000,
+    "principal": 450000,
+    "manager": 330000,
+    "director": 500000,
+    "vp": 900000,
+    "exec": 8000000
+   }
+  },
+  "PayPal": {
+   "aliases": [
+    "paypal",
+    "venmo",
+    "braintree"
+   ],
+   "tier": "enterprise",
+   "tc": {
+    "intern": 95000,
+    "entry": 165000,
+    "mid": 210000,
+    "senior": 290000,
+    "staff": 370000,
+    "principal": 470000,
+    "manager": 330000,
+    "director": 500000,
+    "vp": 900000,
+    "exec": 8000000
+   }
+  },
+  "Visa": {
+   "aliases": [
+    "visa",
+    "visa inc"
+   ],
+   "tier": "enterprise",
+   "tc": {
+    "intern": 90000,
+    "entry": 145000,
+    "mid": 175000,
+    "senior": 220000,
+    "staff": 290000,
+    "principal": 380000,
+    "manager": 280000,
+    "director": 420000,
+    "vp": 800000,
+    "exec": 8000000
+   }
+  },
+  "Broadcom": {
+   "aliases": [
+    "broadcom",
+    "vmware",
+    "broadcom inc"
+   ],
+   "tier": "enterprise",
+   "tc": {
+    "intern": 85000,
+    "entry": 160000,
+    "mid": 200000,
+    "senior": 260000,
+    "staff": 340000,
+    "principal": 450000,
+    "manager": 320000,
+    "director": 480000,
+    "vp": 900000,
+    "exec": 10000000
+   }
+  },
+  "Applied Materials": {
+   "aliases": [
+    "applied materials",
+    "amat",
+    "kla",
+    "kla corporation",
+    "lam research"
+   ],
+   "tier": "enterprise",
+   "tc": {
+    "intern": 70000,
+    "entry": 125000,
+    "mid": 150000,
+    "senior": 185000,
+    "staff": 230000,
+    "principal": 300000,
+    "manager": 220000,
+    "director": 330000,
+    "vp": 650000,
+    "exec": 6000000
+   },
+   "note": "also used for KLA / Lam Research"
+  },
+  "Bloomberg": {
+   "aliases": [
+    "bloomberg",
+    "bloomberg lp",
+    "bloomberg l.p."
+   ],
+   "tier": "enterprise",
+   "tc": {
+    "intern": 110000,
+    "entry": 185000,
+    "mid": 220000,
+    "senior": 270000,
+    "staff": 330000,
+    "principal": 420000,
+    "manager": 320000,
+    "director": 450000,
+    "vp": 800000,
+    "exec": 5000000
+   }
+  },
+  "Walmart Global Tech": {
+   "aliases": [
+    "walmart global tech",
+    "walmart labs",
+    "walmart"
+   ],
+   "tier": "enterprise",
+   "tc": {
+    "intern": 90000,
+    "entry": 140000,
+    "mid": 175000,
+    "senior": 230000,
+    "staff": 300000,
+    "principal": 400000,
+    "manager": 280000,
+    "director": 420000,
+    "vp": 800000,
+    "exec": 10000000
+   },
+   "note": "store/warehouse titles -> occupations.retail_service"
+  },
+  "Capital One": {
+   "aliases": [
+    "capital one",
+    "capitalone"
+   ],
+   "tier": "enterprise",
+   "tc": {
+    "intern": 90000,
+    "entry": 135000,
+    "mid": 165000,
+    "senior": 210000,
+    "staff": 270000,
+    "principal": 350000,
+    "manager": 250000,
+    "director": 380000,
+    "vp": 700000,
+    "exec": 8000000
+   }
+  },
+  "Goldman Sachs": {
+   "aliases": [
+    "goldman sachs",
+    "goldman",
+    "gs",
+    "goldman sachs group"
+   ],
+   "tier": "finance_ib",
+   "tc": {
+    "intern": 110000,
+    "entry": 190000,
+    "mid": 310000,
+    "senior": 520000,
+    "staff": 700000,
+    "principal": 1300000,
+    "manager": 520000,
+    "director": 700000,
+    "vp": 1300000,
+    "exec": 20000000
+   },
+   "family": "finance",
+   "note": "Analyst=entry,Associate=mid,VP=senior,ED/Director=staff,MD=principal/vp; tech (Analyst ~$120K, Assoc ~$165K, VP ~$250K) -> tiers.finance_ib.swe"
+  },
+  "Morgan Stanley": {
+   "aliases": [
+    "morgan stanley",
+    "ms"
+   ],
+   "tier": "finance_ib",
+   "tc": {
+    "intern": 110000,
+    "entry": 185000,
+    "mid": 300000,
+    "senior": 500000,
+    "staff": 680000,
+    "principal": 1200000,
+    "manager": 500000,
+    "director": 680000,
+    "vp": 1200000,
+    "exec": 20000000
+   },
+   "family": "finance",
+   "note": "wealth mgmt financial advisors -> occupations.financial_advisor"
+  },
+  "JPMorgan Chase": {
+   "aliases": [
+    "jpmorgan",
+    "jp morgan",
+    "j.p. morgan",
+    "jpmorgan chase",
+    "jpmorgan chase & co.",
+    "chase",
+    "jpmc"
+   ],
+   "tier": "finance_ib",
+   "tc": {
+    "intern": 110000,
+    "entry": 185000,
+    "mid": 300000,
+    "senior": 480000,
+    "staff": 650000,
+    "principal": 1200000,
+    "manager": 480000,
+    "director": 650000,
+    "vp": 1200000,
+    "exec": 20000000
+   },
+   "family": "finance",
+   "note": "Chase retail branch titles -> occupations.retail_service / financial_advisor; tech Analyst ~$111K, Assoc ~$135K, VP ~$220K"
+  },
+  "Bank of America": {
+   "aliases": [
+    "bank of america",
+    "bofa",
+    "bofa securities",
+    "merrill",
+    "merrill lynch",
+    "bank of america merrill lynch"
+   ],
+   "tier": "finance_ib",
+   "tc": {
+    "intern": 105000,
+    "entry": 175000,
+    "mid": 280000,
+    "senior": 450000,
+    "staff": 620000,
+    "principal": 1000000,
+    "manager": 450000,
+    "director": 620000,
+    "vp": 1000000,
+    "exec": 15000000
+   },
+   "family": "finance"
+  },
+  "Citi": {
+   "aliases": [
+    "citi",
+    "citigroup",
+    "citibank"
+   ],
+   "tier": "finance_ib",
+   "tc": {
+    "intern": 105000,
+    "entry": 170000,
+    "mid": 270000,
+    "senior": 440000,
+    "staff": 600000,
+    "principal": 1000000,
+    "manager": 440000,
+    "director": 600000,
+    "vp": 1000000,
+    "exec": 15000000
+   },
+   "family": "finance"
+  },
+  "Evercore": {
+   "aliases": [
+    "evercore",
+    "centerview",
+    "centerview partners",
+    "pjt partners",
+    "lazard",
+    "moelis",
+    "perella weinberg",
+    "qatalyst"
+   ],
+   "tier": "finance_ib",
+   "tc": {
+    "intern": 115000,
+    "entry": 200000,
+    "mid": 340000,
+    "senior": 550000,
+    "staff": 750000,
+    "principal": 1500000,
+    "manager": 550000,
+    "director": 750000,
+    "vp": 1500000,
+    "exec": 10000000
+   },
+   "family": "finance",
+   "note": "elite boutiques pay ~5-10% above bulge bracket"
+  },
+  "Wells Fargo": {
+   "aliases": [
+    "wells fargo",
+    "wells fargo securities"
+   ],
+   "tier": "finance_ib",
+   "tc": {
+    "intern": 100000,
+    "entry": 160000,
+    "mid": 250000,
+    "senior": 400000,
+    "staff": 550000,
+    "principal": 900000,
+    "manager": 400000,
+    "director": 550000,
+    "vp": 900000,
+    "exec": 15000000
+   },
+   "family": "finance",
+   "note": "retail bank branch titles -> occupations.retail_service"
+  },
+  "Blackstone": {
+   "aliases": [
+    "blackstone",
+    "blackstone group",
+    "the blackstone group"
+   ],
+   "tier": "finance_buyside",
+   "tc": {
+    "intern": 120000,
+    "entry": 210000,
+    "mid": 400000,
+    "senior": 650000,
+    "staff": 900000,
+    "principal": 1500000,
+    "manager": 650000,
+    "director": 900000,
+    "vp": 2500000,
+    "exec": 20000000
+   },
+   "family": "finance",
+   "note": "Analyst=entry,Associate=mid,VP=senior,Principal=staff,MD=principal; carry excluded"
+  },
+  "KKR": {
+   "aliases": [
+    "kkr",
+    "kohlberg kravis roberts"
+   ],
+   "tier": "finance_buyside",
+   "tc": {
+    "intern": 120000,
+    "entry": 200000,
+    "mid": 400000,
+    "senior": 650000,
+    "staff": 950000,
+    "principal": 1600000,
+    "manager": 650000,
+    "director": 950000,
+    "vp": 2500000,
+    "exec": 20000000
+   },
+   "family": "finance",
+   "note": "carry excluded"
+  },
+  "BlackRock": {
+   "aliases": [
+    "blackrock"
+   ],
+   "tier": "finance_buyside",
+   "tc": {
+    "intern": 95000,
+    "entry": 115000,
+    "mid": 160000,
+    "senior": 250000,
+    "staff": 350000,
+    "principal": 600000,
+    "manager": 250000,
+    "director": 350000,
+    "vp": 600000,
+    "exec": 10000000
+   },
+   "family": "finance",
+   "note": "asset manager; much lower than PE/HF"
+  },
+  "McKinsey & Company": {
+   "aliases": [
+    "mckinsey",
+    "mckinsey & company",
+    "mckinsey and company",
+    "quantumblack"
+   ],
+   "tier": "consulting_mbb",
+   "tc": {
+    "intern": 120000,
+    "entry": 135000,
+    "mid": 235000,
+    "senior": 320000,
+    "staff": 450000,
+    "principal": 900000,
+    "manager": 320000,
+    "director": 450000,
+    "vp": 900000,
+    "exec": 2000000
+   },
+   "family": "consulting",
+   "note": "BA=entry,Associate=mid,EM=senior/manager,AP=staff/director,Partner=principal/vp"
+  },
+  "Boston Consulting Group": {
+   "aliases": [
+    "bcg",
+    "boston consulting group",
+    "the boston consulting group",
+    "bcg x"
+   ],
+   "tier": "consulting_mbb",
+   "tc": {
+    "intern": 120000,
+    "entry": 135000,
+    "mid": 235000,
+    "senior": 320000,
+    "staff": 450000,
+    "principal": 900000,
+    "manager": 320000,
+    "director": 450000,
+    "vp": 900000,
+    "exec": 2000000
+   },
+   "family": "consulting",
+   "note": "Associate(undergrad)=entry,Consultant=mid,Project Leader=senior,Principal=staff,Partner=principal"
+  },
+  "Bain & Company": {
+   "aliases": [
+    "bain",
+    "bain & company",
+    "bain and company"
+   ],
+   "tier": "consulting_mbb",
+   "tc": {
+    "intern": 120000,
+    "entry": 140000,
+    "mid": 245000,
+    "senior": 330000,
+    "staff": 460000,
+    "principal": 900000,
+    "manager": 330000,
+    "director": 460000,
+    "vp": 900000,
+    "exec": 2000000
+   },
+   "family": "consulting",
+   "note": "AC=entry,Consultant=mid,CTL/Manager=senior,Principal=staff,Partner=principal. Bain Capital -> finance_buyside"
+  },
+  "Deloitte": {
+   "aliases": [
+    "deloitte",
+    "deloitte consulting",
+    "deloitte & touche",
+    "monitor deloitte"
+   ],
+   "tier": "consulting_big4",
+   "tc": {
+    "intern": 80000,
+    "entry": 100000,
+    "mid": 135000,
+    "senior": 200000,
+    "staff": 260000,
+    "principal": 350000,
+    "manager": 200000,
+    "director": 320000,
+    "vp": 650000,
+    "exec": 1500000
+   },
+   "family": "consulting",
+   "note": "audit/tax titles -> tiers.consulting_big4.finance"
+  },
+  "PwC": {
+   "aliases": [
+    "pwc",
+    "pricewaterhousecoopers",
+    "price waterhouse coopers",
+    "strategy&"
+   ],
+   "tier": "consulting_big4",
+   "tc": {
+    "intern": 78000,
+    "entry": 95000,
+    "mid": 125000,
+    "senior": 180000,
+    "staff": 235000,
+    "principal": 320000,
+    "manager": 180000,
+    "director": 300000,
+    "vp": 600000,
+    "exec": 1500000
+   },
+   "family": "consulting"
+  },
+  "EY": {
+   "aliases": [
+    "ey",
+    "ernst & young",
+    "ernst and young",
+    "ey-parthenon"
+   ],
+   "tier": "consulting_big4",
+   "tc": {
+    "intern": 78000,
+    "entry": 92000,
+    "mid": 120000,
+    "senior": 175000,
+    "staff": 230000,
+    "principal": 310000,
+    "manager": 175000,
+    "director": 290000,
+    "vp": 600000,
+    "exec": 1500000
+   },
+   "family": "consulting"
+  },
+  "KPMG": {
+   "aliases": [
+    "kpmg"
+   ],
+   "tier": "consulting_big4",
+   "tc": {
+    "intern": 78000,
+    "entry": 92000,
+    "mid": 120000,
+    "senior": 175000,
+    "staff": 230000,
+    "principal": 310000,
+    "manager": 175000,
+    "director": 290000,
+    "vp": 580000,
+    "exec": 1500000
+   },
+   "family": "consulting"
+  },
+  "Accenture": {
+   "aliases": [
+    "accenture",
+    "accenture federal services",
+    "accenture song"
+   ],
+   "tier": "consulting_big4",
+   "tc": {
+    "intern": 72000,
+    "entry": 90000,
+    "mid": 125000,
+    "senior": 185000,
+    "staff": 240000,
+    "principal": 330000,
+    "manager": 185000,
+    "director": 250000,
+    "vp": 450000,
+    "exec": 1500000
+   },
+   "family": "consulting",
+   "note": "Analyst=entry,Consultant=mid,Manager=senior,Sr Manager=staff,MD=principal/vp"
+  },
+  "Kaiser Permanente": {
+   "aliases": [
+    "kaiser",
+    "kaiser permanente",
+    "the permanente medical group",
+    "tpmg",
+    "kaiser foundation health plan"
+   ],
+   "tier": "healthcare",
+   "tc": {
+    "intern": 60000,
+    "entry": 105000,
+    "mid": 130000,
+    "senior": 175000,
+    "staff": 210000,
+    "principal": 250000,
+    "manager": 190000,
+    "director": 260000,
+    "vp": 450000,
+    "exec": 3000000
+   },
+   "note": "tc = tech/corporate track; physicians/RNs -> occupations (NorCal Kaiser RNs ~$170K+, TPMG physicians ~$350K)"
+  },
+  "Genentech": {
+   "aliases": [
+    "genentech",
+    "roche",
+    "roche genentech"
+   ],
+   "tier": "healthcare",
+   "tc": {
+    "intern": 60000,
+    "entry": 115000,
+    "mid": 145000,
+    "senior": 185000,
+    "staff": 235000,
+    "principal": 300000,
+    "manager": 210000,
+    "director": 310000,
+    "vp": 600000,
+    "exec": 5000000
+   },
+   "note": "scientist track: Research Associate=entry, Scientist=senior, Sr/Principal Scientist=staff/principal"
+  }
+ },
+ "tiers": {
+  "ai_lab": {
+   "swe": {
+    "intern": 180000,
+    "entry": 300000,
+    "mid": 430000,
+    "senior": 600000,
+    "staff": 880000,
+    "principal": 1300000,
+    "manager": 750000,
+    "director": 1250000,
+    "vp": 2500000,
+    "exec": 8000000
+   },
+   "data": {
+    "intern": 165000,
+    "entry": 270000,
+    "mid": 385000,
+    "senior": 540000,
+    "staff": 790000,
+    "principal": 1150000,
+    "manager": 690000,
+    "director": 1150000,
+    "vp": 2400000,
+    "exec": 8000000
+   },
+   "pm": {
+    "intern": 175000,
+    "entry": 285000,
+    "mid": 410000,
+    "senior": 570000,
+    "staff": 835000,
+    "principal": 1250000,
+    "manager": 720000,
+    "director": 1200000,
+    "vp": 2450000,
+    "exec": 8000000
+   },
+   "design": {
+    "intern": 155000,
+    "entry": 240000,
+    "mid": 345000,
+    "senior": 480000,
+    "staff": 705000,
+    "principal": 1050000,
+    "manager": 630000,
+    "director": 1100000,
+    "vp": 2250000,
+    "exec": 8000000
+   },
+   "hardware": {
+    "intern": 165000,
+    "entry": 270000,
+    "mid": 385000,
+    "senior": 540000,
+    "staff": 790000,
+    "principal": 1150000,
+    "manager": 690000,
+    "director": 1150000,
+    "vp": 2400000,
+    "exec": 8000000
+   },
+   "research": {
+    "intern": 210000,
+    "entry": 375000,
+    "mid": 540000,
+    "senior": 750000,
+    "staff": 1100000,
+    "principal": 1600000,
+    "manager": 900000,
+    "director": 1450000,
+    "vp": 2800000,
+    "exec": 8000000
+   },
+   "sales": {
+    "intern": 130000,
+    "entry": 180000,
+    "mid": 260000,
+    "senior": 360000,
+    "staff": 530000,
+    "principal": 780000,
+    "manager": 510000,
+    "director": 900000,
+    "vp": 2000000,
+    "exec": 8000000
+   },
+   "finance": {
+    "intern": 125000,
+    "entry": 165000,
+    "mid": 235000,
+    "senior": 330000,
+    "staff": 485000,
+    "principal": 715000,
+    "manager": 480000,
+    "director": 855000,
+    "vp": 1950000,
+    "exec": 8000000
+   },
+   "consulting": {
+    "intern": 130000,
+    "entry": 180000,
+    "mid": 260000,
+    "senior": 360000,
+    "staff": 530000,
+    "principal": 780000,
+    "manager": 510000,
+    "director": 900000,
+    "vp": 2000000,
+    "exec": 8000000
+   },
+   "ops": {
+    "intern": 115000,
+    "entry": 150000,
+    "mid": 215000,
+    "senior": 300000,
+    "staff": 440000,
+    "principal": 650000,
+    "manager": 450000,
+    "director": 810000,
+    "vp": 1900000,
+    "exec": 8000000
+   },
+   "other": {
+    "intern": 110000,
+    "entry": 135000,
+    "mid": 195000,
+    "senior": 270000,
+    "staff": 395000,
+    "principal": 585000,
+    "manager": 420000,
+    "director": 770000,
+    "vp": 1800000,
+    "exec": 8000000
+   }
+  },
+  "quant": {
+   "swe": {
+    "intern": 250000,
+    "entry": 375000,
+    "mid": 450000,
+    "senior": 575000,
+    "staff": 750000,
+    "principal": 1100000,
+    "manager": 700000,
+    "director": 1000000,
+    "vp": 1800000,
+    "exec": 6000000
+   },
+   "data": {
+    "intern": 230000,
+    "entry": 340000,
+    "mid": 405000,
+    "senior": 520000,
+    "staff": 675000,
+    "principal": 990000,
+    "manager": 645000,
+    "director": 930000,
+    "vp": 1700000,
+    "exec": 6000000
+   },
+   "pm": {
+    "intern": 200000,
+    "entry": 260000,
+    "mid": 315000,
+    "senior": 400000,
+    "staff": 525000,
+    "principal": 770000,
+    "manager": 530000,
+    "director": 790000,
+    "vp": 1550000,
+    "exec": 6000000
+   },
+   "design": {
+    "intern": 160000,
+    "entry": 190000,
+    "mid": 225000,
+    "senior": 290000,
+    "staff": 375000,
+    "principal": 550000,
+    "manager": 420000,
+    "director": 650000,
+    "vp": 1350000,
+    "exec": 6000000
+   },
+   "hardware": {
+    "intern": 250000,
+    "entry": 375000,
+    "mid": 450000,
+    "senior": 575000,
+    "staff": 750000,
+    "principal": 1100000,
+    "manager": 700000,
+    "director": 1000000,
+    "vp": 1800000,
+    "exec": 6000000
+   },
+   "research": {
+    "intern": 280000,
+    "entry": 475000,
+    "mid": 650000,
+    "senior": 900000,
+    "staff": 1300000,
+    "principal": 2200000,
+    "manager": 950000,
+    "director": 1600000,
+    "vp": 3000000,
+    "exec": 10000000
+   },
+   "sales": {
+    "intern": 170000,
+    "entry": 205000,
+    "mid": 250000,
+    "senior": 315000,
+    "staff": 415000,
+    "principal": 605000,
+    "manager": 450000,
+    "director": 685000,
+    "vp": 1400000,
+    "exec": 6000000
+   },
+   "finance": {
+    "intern": 280000,
+    "entry": 450000,
+    "mid": 600000,
+    "senior": 850000,
+    "staff": 1200000,
+    "principal": 2000000,
+    "manager": 900000,
+    "director": 1500000,
+    "vp": 3000000,
+    "exec": 10000000
+   },
+   "consulting": {
+    "intern": 170000,
+    "entry": 205000,
+    "mid": 250000,
+    "senior": 315000,
+    "staff": 415000,
+    "principal": 605000,
+    "manager": 450000,
+    "director": 685000,
+    "vp": 1400000,
+    "exec": 6000000
+   },
+   "ops": {
+    "intern": 155000,
+    "entry": 170000,
+    "mid": 200000,
+    "senior": 260000,
+    "staff": 335000,
+    "principal": 495000,
+    "manager": 390000,
+    "director": 615000,
+    "vp": 1300000,
+    "exec": 6000000
+   },
+   "other": {
+    "intern": 145000,
+    "entry": 150000,
+    "mid": 180000,
+    "senior": 230000,
+    "staff": 300000,
+    "principal": 440000,
+    "manager": 365000,
+    "director": 580000,
+    "vp": 1250000,
+    "exec": 6000000
+   }
+  },
+  "bigtech": {
+   "swe": {
+    "intern": 110000,
+    "entry": 190000,
+    "mid": 275000,
+    "senior": 400000,
+    "staff": 620000,
+    "principal": 950000,
+    "manager": 550000,
+    "director": 1000000,
+    "vp": 2000000,
+    "exec": 10000000
+   },
+   "data": {
+    "intern": 98000,
+    "entry": 160000,
+    "mid": 235000,
+    "senior": 340000,
+    "staff": 525000,
+    "principal": 810000,
+    "manager": 485000,
+    "director": 895000,
+    "vp": 1850000,
+    "exec": 10000000
+   },
+   "pm": {
+    "intern": 105000,
+    "entry": 175000,
+    "mid": 255000,
+    "senior": 370000,
+    "staff": 570000,
+    "principal": 875000,
+    "manager": 515000,
+    "director": 945000,
+    "vp": 1900000,
+    "exec": 10000000
+   },
+   "design": {
+    "intern": 95000,
+    "entry": 150000,
+    "mid": 220000,
+    "senior": 320000,
+    "staff": 495000,
+    "principal": 760000,
+    "manager": 460000,
+    "director": 860000,
+    "vp": 1800000,
+    "exec": 10000000
+   },
+   "hardware": {
+    "intern": 100000,
+    "entry": 165000,
+    "mid": 240000,
+    "senior": 350000,
+    "staff": 545000,
+    "principal": 835000,
+    "manager": 495000,
+    "director": 915000,
+    "vp": 1900000,
+    "exec": 10000000
+   },
+   "research": {
+    "intern": 120000,
+    "entry": 210000,
+    "mid": 300000,
+    "senior": 440000,
+    "staff": 680000,
+    "principal": 1050000,
+    "manager": 595000,
+    "director": 1050000,
+    "vp": 2100000,
+    "exec": 10000000
+   },
+   "sales": {
+    "intern": 81000,
+    "entry": 120000,
+    "mid": 170000,
+    "senior": 250000,
+    "staff": 385000,
+    "principal": 590000,
+    "manager": 385000,
+    "director": 735000,
+    "vp": 1600000,
+    "exec": 10000000
+   },
+   "finance": {
+    "intern": 81000,
+    "entry": 120000,
+    "mid": 170000,
+    "senior": 250000,
+    "staff": 385000,
+    "principal": 590000,
+    "manager": 385000,
+    "director": 735000,
+    "vp": 1600000,
+    "exec": 10000000
+   },
+   "consulting": {
+    "intern": 83000,
+    "entry": 125000,
+    "mid": 180000,
+    "senior": 260000,
+    "staff": 405000,
+    "principal": 620000,
+    "manager": 395000,
+    "director": 755000,
+    "vp": 1650000,
+    "exec": 10000000
+   },
+   "ops": {
+    "intern": 78000,
+    "entry": 110000,
+    "mid": 160000,
+    "senior": 230000,
+    "staff": 360000,
+    "principal": 550000,
+    "manager": 365000,
+    "director": 705000,
+    "vp": 1600000,
+    "exec": 10000000
+   },
+   "other": {
+    "intern": 72000,
+    "entry": 95000,
+    "mid": 140000,
+    "senior": 200000,
+    "staff": 310000,
+    "principal": 475000,
+    "manager": 330000,
+    "director": 650000,
+    "vp": 1500000,
+    "exec": 10000000
+   }
+  },
+  "top_private": {
+   "swe": {
+    "intern": 120000,
+    "entry": 210000,
+    "mid": 295000,
+    "senior": 440000,
+    "staff": 660000,
+    "principal": 950000,
+    "manager": 520000,
+    "director": 800000,
+    "vp": 1400000,
+    "exec": 4000000
+   },
+   "data": {
+    "intern": 105000,
+    "entry": 180000,
+    "mid": 250000,
+    "senior": 375000,
+    "staff": 560000,
+    "principal": 810000,
+    "manager": 460000,
+    "director": 715000,
+    "vp": 1300000,
+    "exec": 4000000
+   },
+   "pm": {
+    "intern": 115000,
+    "entry": 195000,
+    "mid": 270000,
+    "senior": 405000,
+    "staff": 605000,
+    "principal": 875000,
+    "manager": 485000,
+    "director": 755000,
+    "vp": 1350000,
+    "exec": 4000000
+   },
+   "design": {
+    "intern": 105000,
+    "entry": 170000,
+    "mid": 235000,
+    "senior": 350000,
+    "staff": 530000,
+    "principal": 760000,
+    "manager": 435000,
+    "director": 690000,
+    "vp": 1250000,
+    "exec": 4000000
+   },
+   "hardware": {
+    "intern": 105000,
+    "entry": 180000,
+    "mid": 250000,
+    "senior": 375000,
+    "staff": 560000,
+    "principal": 810000,
+    "manager": 460000,
+    "director": 715000,
+    "vp": 1300000,
+    "exec": 4000000
+   },
+   "research": {
+    "intern": 130000,
+    "entry": 230000,
+    "mid": 325000,
+    "senior": 485000,
+    "staff": 725000,
+    "principal": 1050000,
+    "manager": 560000,
+    "director": 855000,
+    "vp": 1450000,
+    "exec": 4000000
+   },
+   "sales": {
+    "intern": 95000,
+    "entry": 145000,
+    "mid": 205000,
+    "senior": 310000,
+    "staff": 460000,
+    "principal": 665000,
+    "manager": 395000,
+    "director": 630000,
+    "vp": 1200000,
+    "exec": 4000000
+   },
+   "finance": {
+    "intern": 86000,
+    "entry": 125000,
+    "mid": 175000,
+    "senior": 265000,
+    "staff": 395000,
+    "principal": 570000,
+    "manager": 355000,
+    "director": 575000,
+    "vp": 1100000,
+    "exec": 4000000
+   },
+   "consulting": {
+    "intern": 91000,
+    "entry": 135000,
+    "mid": 190000,
+    "senior": 285000,
+    "staff": 430000,
+    "principal": 620000,
+    "manager": 375000,
+    "director": 605000,
+    "vp": 1150000,
+    "exec": 4000000
+   },
+   "ops": {
+    "intern": 82000,
+    "entry": 115000,
+    "mid": 160000,
+    "senior": 240000,
+    "staff": 365000,
+    "principal": 525000,
+    "manager": 335000,
+    "director": 550000,
+    "vp": 1100000,
+    "exec": 4000000
+   },
+   "other": {
+    "intern": 78000,
+    "entry": 105000,
+    "mid": 150000,
+    "senior": 220000,
+    "staff": 330000,
+    "principal": 475000,
+    "manager": 310000,
+    "director": 520000,
+    "vp": 1050000,
+    "exec": 4000000
+   }
+  },
+  "public_tech": {
+   "swe": {
+    "intern": 110000,
+    "entry": 190000,
+    "mid": 265000,
+    "senior": 380000,
+    "staff": 540000,
+    "principal": 750000,
+    "manager": 450000,
+    "director": 700000,
+    "vp": 1300000,
+    "exec": 6000000
+   },
+   "data": {
+    "intern": 98000,
+    "entry": 160000,
+    "mid": 225000,
+    "senior": 325000,
+    "staff": 460000,
+    "principal": 640000,
+    "manager": 395000,
+    "director": 625000,
+    "vp": 1200000,
+    "exec": 6000000
+   },
+   "pm": {
+    "intern": 105000,
+    "entry": 175000,
+    "mid": 245000,
+    "senior": 350000,
+    "staff": 495000,
+    "principal": 690000,
+    "manager": 420000,
+    "director": 660000,
+    "vp": 1250000,
+    "exec": 6000000
+   },
+   "design": {
+    "intern": 95000,
+    "entry": 150000,
+    "mid": 210000,
+    "senior": 305000,
+    "staff": 430000,
+    "principal": 600000,
+    "manager": 380000,
+    "director": 600000,
+    "vp": 1150000,
+    "exec": 6000000
+   },
+   "hardware": {
+    "intern": 98000,
+    "entry": 160000,
+    "mid": 225000,
+    "senior": 325000,
+    "staff": 460000,
+    "principal": 640000,
+    "manager": 395000,
+    "director": 625000,
+    "vp": 1200000,
+    "exec": 6000000
+   },
+   "research": {
+    "intern": 120000,
+    "entry": 210000,
+    "mid": 290000,
+    "senior": 420000,
+    "staff": 595000,
+    "principal": 825000,
+    "manager": 485000,
+    "director": 750000,
+    "vp": 1350000,
+    "exec": 6000000
+   },
+   "sales": {
+    "intern": 87000,
+    "entry": 135000,
+    "mid": 185000,
+    "senior": 265000,
+    "staff": 380000,
+    "principal": 525000,
+    "manager": 340000,
+    "director": 555000,
+    "vp": 1100000,
+    "exec": 6000000
+   },
+   "finance": {
+    "intern": 79000,
+    "entry": 115000,
+    "mid": 160000,
+    "senior": 230000,
+    "staff": 325000,
+    "principal": 450000,
+    "manager": 305000,
+    "director": 505000,
+    "vp": 1050000,
+    "exec": 6000000
+   },
+   "consulting": {
+    "intern": 83000,
+    "entry": 125000,
+    "mid": 170000,
+    "senior": 245000,
+    "staff": 350000,
+    "principal": 490000,
+    "manager": 325000,
+    "director": 530000,
+    "vp": 1050000,
+    "exec": 6000000
+   },
+   "ops": {
+    "intern": 75000,
+    "entry": 105000,
+    "mid": 145000,
+    "senior": 210000,
+    "staff": 295000,
+    "principal": 415000,
+    "manager": 290000,
+    "director": 480000,
+    "vp": 1000000,
+    "exec": 6000000
+   },
+   "other": {
+    "intern": 72000,
+    "entry": 95000,
+    "mid": 130000,
+    "senior": 190000,
+    "staff": 270000,
+    "principal": 375000,
+    "manager": 270000,
+    "director": 455000,
+    "vp": 975000,
+    "exec": 6000000
+   }
+  },
+  "startup": {
+   "swe": {
+    "intern": 85000,
+    "entry": 140000,
+    "mid": 170000,
+    "senior": 210000,
+    "staff": 250000,
+    "principal": 290000,
+    "manager": 230000,
+    "director": 270000,
+    "vp": 300000,
+    "exec": 250000
+   },
+   "data": {
+    "intern": 79000,
+    "entry": 125000,
+    "mid": 155000,
+    "senior": 190000,
+    "staff": 225000,
+    "principal": 260000,
+    "manager": 210000,
+    "director": 250000,
+    "vp": 285000,
+    "exec": 250000
+   },
+   "pm": {
+    "intern": 82000,
+    "entry": 135000,
+    "mid": 160000,
+    "senior": 200000,
+    "staff": 240000,
+    "principal": 275000,
+    "manager": 220000,
+    "director": 260000,
+    "vp": 290000,
+    "exec": 250000
+   },
+   "design": {
+    "intern": 76000,
+    "entry": 120000,
+    "mid": 145000,
+    "senior": 180000,
+    "staff": 210000,
+    "principal": 245000,
+    "manager": 200000,
+    "director": 240000,
+    "vp": 280000,
+    "exec": 250000
+   },
+   "hardware": {
+    "intern": 80000,
+    "entry": 130000,
+    "mid": 155000,
+    "senior": 195000,
+    "staff": 230000,
+    "principal": 265000,
+    "manager": 215000,
+    "director": 255000,
+    "vp": 290000,
+    "exec": 250000
+   },
+   "research": {
+    "intern": 88000,
+    "entry": 145000,
+    "mid": 180000,
+    "senior": 220000,
+    "staff": 260000,
+    "principal": 305000,
+    "manager": 240000,
+    "director": 280000,
+    "vp": 310000,
+    "exec": 250000
+   },
+   "sales": {
+    "intern": 73000,
+    "entry": 110000,
+    "mid": 135000,
+    "senior": 170000,
+    "staff": 200000,
+    "principal": 230000,
+    "manager": 195000,
+    "director": 230000,
+    "vp": 270000,
+    "exec": 250000
+   },
+   "finance": {
+    "intern": 67000,
+    "entry": 98000,
+    "mid": 120000,
+    "senior": 145000,
+    "staff": 175000,
+    "principal": 205000,
+    "manager": 175000,
+    "director": 215000,
+    "vp": 255000,
+    "exec": 250000
+   },
+   "consulting": {
+    "intern": 70000,
+    "entry": 105000,
+    "mid": 130000,
+    "senior": 160000,
+    "staff": 190000,
+    "principal": 220000,
+    "manager": 185000,
+    "director": 225000,
+    "vp": 260000,
+    "exec": 250000
+   },
+   "ops": {
+    "intern": 64000,
+    "entry": 91000,
+    "mid": 110000,
+    "senior": 135000,
+    "staff": 160000,
+    "principal": 190000,
+    "manager": 165000,
+    "director": 205000,
+    "vp": 250000,
+    "exec": 250000
+   },
+   "other": {
+    "intern": 61000,
+    "entry": 84000,
+    "mid": 100000,
+    "senior": 125000,
+    "staff": 150000,
+    "principal": 175000,
+    "manager": 155000,
+    "director": 195000,
+    "vp": 240000,
+    "exec": 250000
+   }
+  },
+  "finance_ib": {
+   "swe": {
+    "intern": 90000,
+    "entry": 120000,
+    "mid": 155000,
+    "senior": 225000,
+    "staff": 300000,
+    "principal": 450000,
+    "manager": 240000,
+    "director": 320000,
+    "vp": 500000,
+    "exec": 5000000
+   },
+   "data": {
+    "intern": 90000,
+    "entry": 120000,
+    "mid": 155000,
+    "senior": 225000,
+    "staff": 300000,
+    "principal": 450000,
+    "manager": 240000,
+    "director": 320000,
+    "vp": 500000,
+    "exec": 5000000
+   },
+   "pm": {
+    "intern": 87000,
+    "entry": 115000,
+    "mid": 145000,
+    "senior": 215000,
+    "staff": 285000,
+    "principal": 430000,
+    "manager": 230000,
+    "director": 310000,
+    "vp": 490000,
+    "exec": 5000000
+   },
+   "design": {
+    "intern": 74000,
+    "entry": 90000,
+    "mid": 115000,
+    "senior": 170000,
+    "staff": 225000,
+    "principal": 340000,
+    "manager": 190000,
+    "director": 265000,
+    "vp": 440000,
+    "exec": 5000000
+   },
+   "hardware": {
+    "intern": 84000,
+    "entry": 110000,
+    "mid": 140000,
+    "senior": 200000,
+    "staff": 270000,
+    "principal": 405000,
+    "manager": 220000,
+    "director": 300000,
+    "vp": 475000,
+    "exec": 5000000
+   },
+   "research": {
+    "intern": 99000,
+    "entry": 140000,
+    "mid": 180000,
+    "senior": 260000,
+    "staff": 345000,
+    "principal": 515000,
+    "manager": 270000,
+    "director": 355000,
+    "vp": 540000,
+    "exec": 5000000
+   },
+   "sales": {
+    "intern": 99000,
+    "entry": 140000,
+    "mid": 180000,
+    "senior": 260000,
+    "staff": 345000,
+    "principal": 515000,
+    "manager": 270000,
+    "director": 355000,
+    "vp": 540000,
+    "exec": 5000000
+   },
+   "finance": {
+    "intern": 110000,
+    "entry": 185000,
+    "mid": 300000,
+    "senior": 500000,
+    "staff": 680000,
+    "principal": 1200000,
+    "manager": 500000,
+    "director": 680000,
+    "vp": 1200000,
+    "exec": 5000000
+   },
+   "consulting": {
+    "intern": 81000,
+    "entry": 100000,
+    "mid": 130000,
+    "senior": 190000,
+    "staff": 255000,
+    "principal": 380000,
+    "manager": 210000,
+    "director": 285000,
+    "vp": 460000,
+    "exec": 5000000
+   },
+   "ops": {
+    "intern": 65000,
+    "entry": 72000,
+    "mid": 93000,
+    "senior": 135000,
+    "staff": 180000,
+    "principal": 270000,
+    "manager": 165000,
+    "director": 230000,
+    "vp": 400000,
+    "exec": 5000000
+   },
+   "other": {
+    "intern": 62000,
+    "entry": 66000,
+    "mid": 85000,
+    "senior": 125000,
+    "staff": 165000,
+    "principal": 250000,
+    "manager": 155000,
+    "director": 220000,
+    "vp": 390000,
+    "exec": 5000000
+   }
+  },
+  "finance_buyside": {
+   "swe": {
+    "intern": 110000,
+    "entry": 180000,
+    "mid": 240000,
+    "senior": 320000,
+    "staff": 420000,
+    "principal": 600000,
+    "manager": 400000,
+    "director": 550000,
+    "vp": 800000,
+    "exec": 3000000
+   },
+   "data": {
+    "intern": 110000,
+    "entry": 180000,
+    "mid": 240000,
+    "senior": 320000,
+    "staff": 420000,
+    "principal": 600000,
+    "manager": 400000,
+    "director": 550000,
+    "vp": 800000,
+    "exec": 3000000
+   },
+   "pm": {
+    "intern": 100000,
+    "entry": 160000,
+    "mid": 215000,
+    "senior": 290000,
+    "staff": 380000,
+    "principal": 540000,
+    "manager": 370000,
+    "director": 510000,
+    "vp": 760000,
+    "exec": 3000000
+   },
+   "design": {
+    "intern": 87000,
+    "entry": 125000,
+    "mid": 170000,
+    "senior": 225000,
+    "staff": 295000,
+    "principal": 420000,
+    "manager": 305000,
+    "director": 435000,
+    "vp": 680000,
+    "exec": 3000000
+   },
+   "hardware": {
+    "intern": 100000,
+    "entry": 160000,
+    "mid": 215000,
+    "senior": 290000,
+    "staff": 380000,
+    "principal": 540000,
+    "manager": 370000,
+    "director": 510000,
+    "vp": 760000,
+    "exec": 3000000
+   },
+   "research": {
+    "intern": 135000,
+    "entry": 235000,
+    "mid": 310000,
+    "senior": 415000,
+    "staff": 545000,
+    "principal": 780000,
+    "manager": 495000,
+    "director": 665000,
+    "vp": 920000,
+    "exec": 3000000
+   },
+   "sales": {
+    "intern": 100000,
+    "entry": 160000,
+    "mid": 215000,
+    "senior": 290000,
+    "staff": 380000,
+    "principal": 540000,
+    "manager": 370000,
+    "director": 510000,
+    "vp": 760000,
+    "exec": 3000000
+   },
+   "finance": {
+    "intern": 120000,
+    "entry": 200000,
+    "mid": 380000,
+    "senior": 600000,
+    "staff": 850000,
+    "principal": 1400000,
+    "manager": 600000,
+    "director": 850000,
+    "vp": 2200000,
+    "exec": 8000000
+   },
+   "consulting": {
+    "intern": 100000,
+    "entry": 160000,
+    "mid": 215000,
+    "senior": 290000,
+    "staff": 380000,
+    "principal": 540000,
+    "manager": 370000,
+    "director": 510000,
+    "vp": 760000,
+    "exec": 3000000
+   },
+   "ops": {
+    "intern": 79000,
+    "entry": 110000,
+    "mid": 145000,
+    "senior": 190000,
+    "staff": 250000,
+    "principal": 360000,
+    "manager": 270000,
+    "director": 395000,
+    "vp": 640000,
+    "exec": 3000000
+   },
+   "other": {
+    "intern": 75000,
+    "entry": 99000,
+    "mid": 130000,
+    "senior": 175000,
+    "staff": 230000,
+    "principal": 330000,
+    "manager": 255000,
+    "director": 375000,
+    "vp": 620000,
+    "exec": 3000000
+   }
+  },
+  "consulting_mbb": {
+   "swe": {
+    "intern": 100000,
+    "entry": 150000,
+    "mid": 190000,
+    "senior": 250000,
+    "staff": 330000,
+    "principal": 450000,
+    "manager": 280000,
+    "director": 400000,
+    "vp": 700000,
+    "exec": 1500000
+   },
+   "data": {
+    "intern": 96000,
+    "entry": 140000,
+    "mid": 180000,
+    "senior": 240000,
+    "staff": 315000,
+    "principal": 430000,
+    "manager": 270000,
+    "director": 385000,
+    "vp": 680000,
+    "exec": 1500000
+   },
+   "pm": {
+    "intern": 96000,
+    "entry": 140000,
+    "mid": 180000,
+    "senior": 240000,
+    "staff": 315000,
+    "principal": 430000,
+    "manager": 270000,
+    "director": 385000,
+    "vp": 680000,
+    "exec": 1500000
+   },
+   "design": {
+    "intern": 90000,
+    "entry": 130000,
+    "mid": 160000,
+    "senior": 210000,
+    "staff": 280000,
+    "principal": 380000,
+    "manager": 245000,
+    "director": 360000,
+    "vp": 650000,
+    "exec": 1500000
+   },
+   "hardware": {
+    "intern": 93000,
+    "entry": 135000,
+    "mid": 170000,
+    "senior": 225000,
+    "staff": 295000,
+    "principal": 405000,
+    "manager": 260000,
+    "director": 370000,
+    "vp": 665000,
+    "exec": 1500000
+   },
+   "research": {
+    "intern": 93000,
+    "entry": 135000,
+    "mid": 170000,
+    "senior": 225000,
+    "staff": 295000,
+    "principal": 405000,
+    "manager": 260000,
+    "director": 370000,
+    "vp": 665000,
+    "exec": 1500000
+   },
+   "sales": {
+    "intern": 86000,
+    "entry": 120000,
+    "mid": 150000,
+    "senior": 200000,
+    "staff": 265000,
+    "principal": 360000,
+    "manager": 235000,
+    "director": 345000,
+    "vp": 630000,
+    "exec": 1500000
+   },
+   "finance": {
+    "intern": 72000,
+    "entry": 90000,
+    "mid": 115000,
+    "senior": 150000,
+    "staff": 200000,
+    "principal": 270000,
+    "manager": 190000,
+    "director": 290000,
+    "vp": 560000,
+    "exec": 1500000
+   },
+   "consulting": {
+    "intern": 120000,
+    "entry": 135000,
+    "mid": 235000,
+    "senior": 320000,
+    "staff": 450000,
+    "principal": 900000,
+    "manager": 320000,
+    "director": 450000,
+    "vp": 900000,
+    "exec": 2000000
+   },
+   "ops": {
+    "intern": 65000,
+    "entry": 75000,
+    "mid": 95000,
+    "senior": 125000,
+    "staff": 165000,
+    "principal": 225000,
+    "manager": 170000,
+    "director": 260000,
+    "vp": 525000,
+    "exec": 1500000
+   },
+   "other": {
+    "intern": 62000,
+    "entry": 68000,
+    "mid": 85000,
+    "senior": 110000,
+    "staff": 150000,
+    "principal": 200000,
+    "manager": 155000,
+    "director": 245000,
+    "vp": 510000,
+    "exec": 1500000
+   }
+  },
+  "consulting_big4": {
+   "swe": {
+    "intern": 70000,
+    "entry": 100000,
+    "mid": 125000,
+    "senior": 160000,
+    "staff": 200000,
+    "principal": 260000,
+    "manager": 180000,
+    "director": 280000,
+    "vp": 550000,
+    "exec": 1200000
+   },
+   "data": {
+    "intern": 68000,
+    "entry": 95000,
+    "mid": 120000,
+    "senior": 150000,
+    "staff": 190000,
+    "principal": 245000,
+    "manager": 175000,
+    "director": 270000,
+    "vp": 535000,
+    "exec": 1200000
+   },
+   "pm": {
+    "intern": 68000,
+    "entry": 95000,
+    "mid": 120000,
+    "senior": 150000,
+    "staff": 190000,
+    "principal": 245000,
+    "manager": 175000,
+    "director": 270000,
+    "vp": 535000,
+    "exec": 1200000
+   },
+   "design": {
+    "intern": 63000,
+    "entry": 85000,
+    "mid": 105000,
+    "senior": 135000,
+    "staff": 170000,
+    "principal": 220000,
+    "manager": 160000,
+    "director": 250000,
+    "vp": 510000,
+    "exec": 1200000
+   },
+   "hardware": {
+    "intern": 65000,
+    "entry": 90000,
+    "mid": 110000,
+    "senior": 145000,
+    "staff": 180000,
+    "principal": 235000,
+    "manager": 165000,
+    "director": 260000,
+    "vp": 520000,
+    "exec": 1200000
+   },
+   "research": {
+    "intern": 63000,
+    "entry": 85000,
+    "mid": 105000,
+    "senior": 135000,
+    "staff": 170000,
+    "principal": 220000,
+    "manager": 160000,
+    "director": 250000,
+    "vp": 510000,
+    "exec": 1200000
+   },
+   "sales": {
+    "intern": 65000,
+    "entry": 90000,
+    "mid": 110000,
+    "senior": 145000,
+    "staff": 180000,
+    "principal": 235000,
+    "manager": 165000,
+    "director": 260000,
+    "vp": 520000,
+    "exec": 1200000
+   },
+   "finance": {
+    "intern": 65000,
+    "entry": 75000,
+    "mid": 92000,
+    "senior": 125000,
+    "staff": 160000,
+    "principal": 230000,
+    "manager": 125000,
+    "director": 200000,
+    "vp": 500000,
+    "exec": 1200000
+   },
+   "consulting": {
+    "intern": 78000,
+    "entry": 97000,
+    "mid": 130000,
+    "senior": 180000,
+    "staff": 235000,
+    "principal": 320000,
+    "manager": 180000,
+    "director": 300000,
+    "vp": 620000,
+    "exec": 1500000
+   },
+   "ops": {
+    "intern": 50000,
+    "entry": 60000,
+    "mid": 75000,
+    "senior": 96000,
+    "staff": 120000,
+    "principal": 155000,
+    "manager": 120000,
+    "director": 200000,
+    "vp": 440000,
+    "exec": 1200000
+   },
+   "other": {
+    "intern": 48000,
+    "entry": 55000,
+    "mid": 69000,
+    "senior": 88000,
+    "staff": 110000,
+    "principal": 145000,
+    "manager": 115000,
+    "director": 190000,
+    "vp": 425000,
+    "exec": 1200000
+   }
+  },
+  "enterprise": {
+   "swe": {
+    "intern": 85000,
+    "entry": 150000,
+    "mid": 180000,
+    "senior": 235000,
+    "staff": 305000,
+    "principal": 400000,
+    "manager": 270000,
+    "director": 400000,
+    "vp": 750000,
+    "exec": 8000000
+   },
+   "data": {
+    "intern": 79000,
+    "entry": 135000,
+    "mid": 160000,
+    "senior": 210000,
+    "staff": 275000,
+    "principal": 360000,
+    "manager": 250000,
+    "director": 370000,
+    "vp": 710000,
+    "exec": 8000000
+   },
+   "pm": {
+    "intern": 82000,
+    "entry": 140000,
+    "mid": 170000,
+    "senior": 225000,
+    "staff": 290000,
+    "principal": 380000,
+    "manager": 260000,
+    "director": 385000,
+    "vp": 730000,
+    "exec": 8000000
+   },
+   "design": {
+    "intern": 74000,
+    "entry": 125000,
+    "mid": 150000,
+    "senior": 195000,
+    "staff": 250000,
+    "principal": 330000,
+    "manager": 230000,
+    "director": 350000,
+    "vp": 680000,
+    "exec": 8000000
+   },
+   "hardware": {
+    "intern": 82000,
+    "entry": 140000,
+    "mid": 170000,
+    "senior": 225000,
+    "staff": 290000,
+    "principal": 380000,
+    "manager": 260000,
+    "director": 385000,
+    "vp": 730000,
+    "exec": 8000000
+   },
+   "research": {
+    "intern": 88000,
+    "entry": 160000,
+    "mid": 190000,
+    "senior": 245000,
+    "staff": 320000,
+    "principal": 420000,
+    "manager": 280000,
+    "director": 415000,
+    "vp": 770000,
+    "exec": 8000000
+   },
+   "sales": {
+    "intern": 79000,
+    "entry": 135000,
+    "mid": 160000,
+    "senior": 210000,
+    "staff": 275000,
+    "principal": 360000,
+    "manager": 250000,
+    "director": 370000,
+    "vp": 710000,
+    "exec": 8000000
+   },
+   "finance": {
+    "intern": 68000,
+    "entry": 110000,
+    "mid": 130000,
+    "senior": 170000,
+    "staff": 220000,
+    "principal": 290000,
+    "manager": 210000,
+    "director": 320000,
+    "vp": 645000,
+    "exec": 8000000
+   },
+   "consulting": {
+    "intern": 73000,
+    "entry": 120000,
+    "mid": 145000,
+    "senior": 190000,
+    "staff": 245000,
+    "principal": 320000,
+    "manager": 225000,
+    "director": 345000,
+    "vp": 675000,
+    "exec": 8000000
+   },
+   "ops": {
+    "intern": 62000,
+    "entry": 93000,
+    "mid": 110000,
+    "senior": 145000,
+    "staff": 190000,
+    "principal": 250000,
+    "manager": 190000,
+    "director": 295000,
+    "vp": 610000,
+    "exec": 8000000
+   },
+   "other": {
+    "intern": 58000,
+    "entry": 82000,
+    "mid": 99000,
+    "senior": 130000,
+    "staff": 170000,
+    "principal": 220000,
+    "manager": 175000,
+    "director": 275000,
+    "vp": 580000,
+    "exec": 8000000
+   }
+  },
+  "nonprofit_gov_edu": {
+   "swe": {
+    "intern": 45000,
+    "entry": 90000,
+    "mid": 110000,
+    "senior": 135000,
+    "staff": 160000,
+    "principal": 185000,
+    "manager": 150000,
+    "director": 180000,
+    "vp": 230000,
+    "exec": 350000
+   },
+   "data": {
+    "intern": 43000,
+    "entry": 86000,
+    "mid": 105000,
+    "senior": 130000,
+    "staff": 150000,
+    "principal": 175000,
+    "manager": 145000,
+    "director": 175000,
+    "vp": 225000,
+    "exec": 350000
+   },
+   "pm": {
+    "intern": 42000,
+    "entry": 81000,
+    "mid": 99000,
+    "senior": 120000,
+    "staff": 145000,
+    "principal": 165000,
+    "manager": 140000,
+    "director": 165000,
+    "vp": 220000,
+    "exec": 350000
+   },
+   "design": {
+    "intern": 39000,
+    "entry": 72000,
+    "mid": 88000,
+    "senior": 110000,
+    "staff": 130000,
+    "principal": 150000,
+    "manager": 125000,
+    "director": 155000,
+    "vp": 205000,
+    "exec": 350000
+   },
+   "hardware": {
+    "intern": 45000,
+    "entry": 90000,
+    "mid": 110000,
+    "senior": 135000,
+    "staff": 160000,
+    "principal": 185000,
+    "manager": 150000,
+    "director": 180000,
+    "vp": 230000,
+    "exec": 350000
+   },
+   "research": {
+    "intern": 40000,
+    "entry": 76000,
+    "mid": 94000,
+    "senior": 115000,
+    "staff": 135000,
+    "principal": 155000,
+    "manager": 130000,
+    "director": 160000,
+    "vp": 215000,
+    "exec": 350000
+   },
+   "sales": {
+    "intern": 32000,
+    "entry": 54000,
+    "mid": 66000,
+    "senior": 81000,
+    "staff": 96000,
+    "principal": 110000,
+    "manager": 100000,
+    "director": 130000,
+    "vp": 185000,
+    "exec": 350000
+   },
+   "finance": {
+    "intern": 37000,
+    "entry": 68000,
+    "mid": 82000,
+    "senior": 100000,
+    "staff": 120000,
+    "principal": 140000,
+    "manager": 120000,
+    "director": 150000,
+    "vp": 200000,
+    "exec": 350000
+   },
+   "consulting": {
+    "intern": 39000,
+    "entry": 72000,
+    "mid": 88000,
+    "senior": 110000,
+    "staff": 130000,
+    "principal": 150000,
+    "manager": 125000,
+    "director": 155000,
+    "vp": 205000,
+    "exec": 350000
+   },
+   "ops": {
+    "intern": 34000,
+    "entry": 58000,
+    "mid": 72000,
+    "senior": 88000,
+    "staff": 105000,
+    "principal": 120000,
+    "manager": 110000,
+    "director": 135000,
+    "vp": 190000,
+    "exec": 350000
+   },
+   "other": {
+    "intern": 32000,
+    "entry": 54000,
+    "mid": 66000,
+    "senior": 81000,
+    "staff": 96000,
+    "principal": 110000,
+    "manager": 100000,
+    "director": 130000,
+    "vp": 185000,
+    "exec": 350000
+   }
+  },
+  "healthcare": {
+   "swe": {
+    "intern": 60000,
+    "entry": 110000,
+    "mid": 135000,
+    "senior": 170000,
+    "staff": 205000,
+    "principal": 245000,
+    "manager": 185000,
+    "director": 250000,
+    "vp": 400000,
+    "exec": 2000000
+   },
+   "data": {
+    "intern": 58000,
+    "entry": 105000,
+    "mid": 130000,
+    "senior": 160000,
+    "staff": 195000,
+    "principal": 235000,
+    "manager": 180000,
+    "director": 240000,
+    "vp": 390000,
+    "exec": 2000000
+   },
+   "pm": {
+    "intern": 58000,
+    "entry": 105000,
+    "mid": 130000,
+    "senior": 160000,
+    "staff": 195000,
+    "principal": 235000,
+    "manager": 180000,
+    "director": 240000,
+    "vp": 390000,
+    "exec": 2000000
+   },
+   "design": {
+    "intern": 52000,
+    "entry": 88000,
+    "mid": 110000,
+    "senior": 135000,
+    "staff": 165000,
+    "principal": 195000,
+    "manager": 155000,
+    "director": 215000,
+    "vp": 360000,
+    "exec": 2000000
+   },
+   "hardware": {
+    "intern": 58000,
+    "entry": 105000,
+    "mid": 130000,
+    "senior": 160000,
+    "staff": 195000,
+    "principal": 235000,
+    "manager": 180000,
+    "director": 240000,
+    "vp": 390000,
+    "exec": 2000000
+   },
+   "research": {
+    "intern": 58000,
+    "entry": 105000,
+    "mid": 130000,
+    "senior": 160000,
+    "staff": 195000,
+    "principal": 235000,
+    "manager": 180000,
+    "director": 240000,
+    "vp": 390000,
+    "exec": 2000000
+   },
+   "sales": {
+    "intern": 56000,
+    "entry": 99000,
+    "mid": 120000,
+    "senior": 155000,
+    "staff": 185000,
+    "principal": 220000,
+    "manager": 170000,
+    "director": 230000,
+    "vp": 380000,
+    "exec": 2000000
+   },
+   "finance": {
+    "intern": 50000,
+    "entry": 82000,
+    "mid": 100000,
+    "senior": 130000,
+    "staff": 155000,
+    "principal": 185000,
+    "manager": 150000,
+    "director": 205000,
+    "vp": 350000,
+    "exec": 2000000
+   },
+   "consulting": {
+    "intern": 52000,
+    "entry": 88000,
+    "mid": 110000,
+    "senior": 135000,
+    "staff": 165000,
+    "principal": 195000,
+    "manager": 155000,
+    "director": 215000,
+    "vp": 360000,
+    "exec": 2000000
+   },
+   "ops": {
+    "intern": 45000,
+    "entry": 72000,
+    "mid": 88000,
+    "senior": 110000,
+    "staff": 135000,
+    "principal": 160000,
+    "manager": 135000,
+    "director": 190000,
+    "vp": 330000,
+    "exec": 2000000
+   },
+   "other": {
+    "intern": 43000,
+    "entry": 66000,
+    "mid": 81000,
+    "senior": 100000,
+    "staff": 125000,
+    "principal": 145000,
+    "manager": 125000,
+    "director": 180000,
+    "vp": 320000,
+    "exec": 2000000
+   }
+  },
+  "other": {
+   "swe": {
+    "intern": 65000,
+    "entry": 110000,
+    "mid": 135000,
+    "senior": 170000,
+    "staff": 210000,
+    "principal": 260000,
+    "manager": 185000,
+    "director": 250000,
+    "vp": 380000,
+    "exec": 800000
+   },
+   "data": {
+    "intern": 61000,
+    "entry": 100000,
+    "mid": 125000,
+    "senior": 155000,
+    "staff": 195000,
+    "principal": 240000,
+    "manager": 175000,
+    "director": 235000,
+    "vp": 365000,
+    "exec": 800000
+   },
+   "pm": {
+    "intern": 61000,
+    "entry": 100000,
+    "mid": 125000,
+    "senior": 155000,
+    "staff": 195000,
+    "principal": 240000,
+    "manager": 175000,
+    "director": 235000,
+    "vp": 365000,
+    "exec": 800000
+   },
+   "design": {
+    "intern": 55000,
+    "entry": 86000,
+    "mid": 105000,
+    "senior": 135000,
+    "staff": 165000,
+    "principal": 205000,
+    "manager": 150000,
+    "director": 210000,
+    "vp": 340000,
+    "exec": 800000
+   },
+   "hardware": {
+    "intern": 63000,
+    "entry": 105000,
+    "mid": 130000,
+    "senior": 160000,
+    "staff": 200000,
+    "principal": 245000,
+    "manager": 180000,
+    "director": 240000,
+    "vp": 370000,
+    "exec": 800000
+   },
+   "research": {
+    "intern": 63000,
+    "entry": 105000,
+    "mid": 130000,
+    "senior": 160000,
+    "staff": 200000,
+    "principal": 245000,
+    "manager": 180000,
+    "director": 240000,
+    "vp": 370000,
+    "exec": 800000
+   },
+   "sales": {
+    "intern": 56000,
+    "entry": 88000,
+    "mid": 110000,
+    "senior": 135000,
+    "staff": 170000,
+    "principal": 210000,
+    "manager": 155000,
+    "director": 215000,
+    "vp": 340000,
+    "exec": 800000
+   },
+   "finance": {
+    "intern": 54000,
+    "entry": 82000,
+    "mid": 100000,
+    "senior": 130000,
+    "staff": 160000,
+    "principal": 195000,
+    "manager": 150000,
+    "director": 205000,
+    "vp": 330000,
+    "exec": 800000
+   },
+   "consulting": {
+    "intern": 56000,
+    "entry": 88000,
+    "mid": 110000,
+    "senior": 135000,
+    "staff": 170000,
+    "principal": 210000,
+    "manager": 155000,
+    "director": 215000,
+    "vp": 340000,
+    "exec": 800000
+   },
+   "ops": {
+    "intern": 47000,
+    "entry": 66000,
+    "mid": 81000,
+    "senior": 100000,
+    "staff": 125000,
+    "principal": 155000,
+    "manager": 125000,
+    "director": 180000,
+    "vp": 305000,
+    "exec": 800000
+   },
+   "other": {
+    "intern": 42000,
+    "entry": 55000,
+    "mid": 68000,
+    "senior": 85000,
+    "staff": 105000,
+    "principal": 130000,
+    "manager": 110000,
+    "director": 160000,
+    "vp": 285000,
+    "exec": 800000
+   }
+  }
+ },
+ "occupations": {
+  "teacher_k12": {
+   "keywords": [
+    "teacher",
+    "high school teacher",
+    "middle school teacher",
+    "elementary teacher",
+    "elementary school teacher",
+    "kindergarten teacher",
+    "math teacher",
+    "science teacher",
+    "english teacher",
+    "special education teacher",
+    "substitute teacher",
+    "k-12",
+    "educator"
+   ],
+   "median": 64000,
+   "p90": 104000,
+   "source": "BLS OEWS May 2024 (HS ~$64.6K, elem ~$62.3K; HS mean $73.7K)",
+   "note": "CA avg teacher pay ~$100K (NEA); use regionMultipliers"
+  },
+  "professor": {
+   "keywords": [
+    "professor",
+    "assistant professor",
+    "associate professor",
+    "full professor",
+    "lecturer",
+    "adjunct",
+    "faculty",
+    "instructor (university)"
+   ],
+   "median": 110000,
+   "p90": 230000,
+   "source": "BLS OEWS May 2024 postsecondary teachers median $83,980 (incl. adjuncts); AAUP FCS 2024-25 full-time faculty averages",
+   "note": "R1/UC ladder faculty: asst ~$120-150K, full ~$200-280K"
+  },
+  "postdoc": {
+   "keywords": [
+    "postdoc",
+    "postdoctoral",
+    "post-doctoral",
+    "postdoctoral scholar",
+    "postdoctoral fellow",
+    "research fellow"
+   ],
+   "median": 68000,
+   "p90": 85000,
+   "source": "NIH NRSA FY2025 stipend (yr0 $61,008); UC-UAW postdoc scale (NIH+2 steps)"
+  },
+  "graduate_student": {
+   "keywords": [
+    "phd student",
+    "ph.d. student",
+    "phd candidate",
+    "ph.d. candidate",
+    "doctoral student",
+    "doctoral candidate",
+    "graduate student",
+    "grad student",
+    "graduate student researcher",
+    "gsr",
+    "graduate student instructor",
+    "gsi",
+    "graduate researcher"
+   ],
+   "median": 45000,
+   "p90": 60000,
+   "source": "UC Berkeley dept. PhD stipends ($41K-$50K/yr 2025-27); BLS postsecondary teaching assistants mean $47,560 (May 2024)"
+  },
+  "student": {
+   "keywords": [
+    "student",
+    "undergraduate",
+    "undergrad",
+    "bachelor's student",
+    "b.s. candidate",
+    "b.a. candidate",
+    "masters student",
+    "master's student",
+    "mba candidate",
+    "mba student",
+    "class of",
+    "freshman",
+    "sophomore"
+   ],
+   "median": 8000,
+   "p90": 35000,
+   "source": "estimate: part-time/campus jobs; internships use ladder level 'intern'",
+   "note": "net worth usually ~$0 or negative (loans)"
+  },
+  "nurse_rn": {
+   "keywords": [
+    "registered nurse",
+    "rn",
+    "nurse",
+    "bsn",
+    "icu nurse",
+    "er nurse",
+    "charge nurse",
+    "travel nurse",
+    "nurse manager"
+   ],
+   "median": 93600,
+   "p90": 135000,
+   "source": "BLS OEWS May 2024",
+   "note": "SF Bay Area RNs are the highest paid in US (~$165-190K median); multiply by 1.75 for Bay Area"
+  },
+  "nurse_practitioner": {
+   "keywords": [
+    "nurse practitioner",
+    "np",
+    "fnp",
+    "aprn",
+    "dnp",
+    "nurse anesthetist",
+    "crna",
+    "nurse midwife"
+   ],
+   "median": 129210,
+   "p90": 170000,
+   "source": "BLS OEWS May 2024",
+   "note": "CRNAs ~$215K median"
+  },
+  "physician": {
+   "keywords": [
+    "physician",
+    "doctor",
+    "md",
+    "attending",
+    "internist",
+    "pediatrician",
+    "family medicine",
+    "family physician",
+    "hospitalist",
+    "psychiatrist",
+    "anesthesiologist",
+    "radiologist",
+    "dermatologist",
+    "cardiologist",
+    "oncologist",
+    "neurologist",
+    "emergency medicine",
+    "primary care"
+   ],
+   "median": 310000,
+   "p90": 600000,
+   "source": "BLS OEWS May 2024 (family med $238K, pediatrics $210K, anesthesiology mean $337K; many top-coded >=$239,200); Medscape 2026 report: avg $386K (primary care $298K, specialists $417K)"
+  },
+  "resident_physician": {
+   "keywords": [
+    "resident physician",
+    "medical resident",
+    "pgy-1",
+    "pgy-2",
+    "pgy-3",
+    "chief resident",
+    "clinical fellow"
+   ],
+   "median": 72000,
+   "p90": 92000,
+   "source": "AAMC housestaff survey 2024-25 (PGY1 ~$67K national; UCSF/Stanford PGY1 ~$85K+)"
+  },
+  "surgeon": {
+   "keywords": [
+    "surgeon",
+    "orthopedic surgeon",
+    "neurosurgeon",
+    "cardiothoracic surgeon",
+    "plastic surgeon",
+    "general surgeon",
+    "vascular surgeon"
+   ],
+   "median": 450000,
+   "p90": 800000,
+   "source": "BLS OEWS May 2024 surgeons mean $371K (median top-coded); Medscape 2026 (ortho ~$550K+)"
+  },
+  "dentist": {
+   "keywords": [
+    "dentist",
+    "dds",
+    "dmd",
+    "orthodontist",
+    "oral surgeon",
+    "endodontist",
+    "periodontist"
+   ],
+   "median": 179210,
+   "p90": 320000,
+   "source": "BLS OOH May 2024 (general dentists median ~$172.8K)",
+   "note": "practice owners and specialists earn more"
+  },
+  "pharmacist": {
+   "keywords": [
+    "pharmacist",
+    "pharmd",
+    "clinical pharmacist"
+   ],
+   "median": 137480,
+   "p90": 170000,
+   "source": "BLS OEWS May 2024"
+  },
+  "lawyer": {
+   "keywords": [
+    "attorney",
+    "lawyer",
+    "counsel",
+    "general counsel",
+    "associate attorney",
+    "esq",
+    "litigator",
+    "public defender",
+    "prosecutor",
+    "district attorney",
+    "legal counsel"
+   ],
+   "median": 151160,
+   "p90": 350000,
+   "source": "BLS OEWS May 2024 (p90 top-coded >=$239,200; biglaw/partners above)"
+  },
+  "biglaw_associate": {
+   "keywords": [
+    "skadden",
+    "latham",
+    "latham & watkins",
+    "kirkland",
+    "kirkland & ellis",
+    "cravath",
+    "wachtell",
+    "sullivan & cromwell",
+    "davis polk",
+    "wilson sonsini",
+    "cooley",
+    "fenwick",
+    "gibson dunn",
+    "paul weiss",
+    "simpson thacher",
+    "morrison foerster",
+    "orrick",
+    "goodwin procter"
+   ],
+   "median": 300000,
+   "p90": 800000,
+   "source": "Cravath scale (2025): $225K yr1 -> $435K yr8 base + $20-115K bonus; equity partners $1M+",
+   "note": "match on employer name + attorney title"
+  },
+  "accountant": {
+   "keywords": [
+    "accountant",
+    "cpa",
+    "auditor",
+    "audit associate",
+    "tax associate",
+    "staff accountant",
+    "senior accountant",
+    "bookkeeper",
+    "controller"
+   ],
+   "median": 81680,
+   "p90": 138000,
+   "source": "BLS OEWS May 2024"
+  },
+  "real_estate_agent": {
+   "keywords": [
+    "realtor",
+    "real estate agent",
+    "real estate broker",
+    "realty",
+    "broker associate",
+    "real estate salesperson"
+   ],
+   "median": 56320,
+   "p90": 120000,
+   "source": "BLS OEWS May 2024 (agents $56.3K; brokers $72.3K)"
+  },
+  "small_business_owner": {
+   "keywords": [
+    "small business owner",
+    "proprietor",
+    "owner-operator",
+    "business owner",
+    "restaurant owner",
+    "shop owner",
+    "franchise owner",
+    "co-owner",
+    "owner"
+   ],
+   "median": 70000,
+   "p90": 300000,
+   "source": "estimate: Census ABS / SBA Advocacy self-employment income ranges; very wide variance",
+   "note": "business equity often dominates net worth"
+  },
+  "government_employee": {
+   "keywords": [
+    "government",
+    "federal",
+    "civil servant",
+    "public servant",
+    "gs-",
+    "state of california",
+    "county of",
+    "city of",
+    "department of",
+    "policy analyst",
+    "public administration"
+   ],
+   "median": 75000,
+   "p90": 150000,
+   "source": "OPM FedScope 2024 avg federal salary ~$106K; BLS OEWS state/local government medians ~$60-65K"
+  },
+  "military": {
+   "keywords": [
+    "army",
+    "navy",
+    "air force",
+    "marine corps",
+    "marines",
+    "usmc",
+    "coast guard",
+    "space force",
+    "national guard",
+    "military",
+    "soldier",
+    "sailor",
+    "airman",
+    "military officer",
+    "lieutenant",
+    "sergeant"
+   ],
+   "median": 65000,
+   "p90": 150000,
+   "source": "DoD Regular Military Compensation (basic pay + BAH + BAS + tax adv.), 2025 pay tables",
+   "note": "E-5 RMC ~$70K; O-3 ~$110K; O-6 ~$190K"
+  },
+  "retail_service": {
+   "keywords": [
+    "retail",
+    "cashier",
+    "barista",
+    "waiter",
+    "waitress",
+    "sales associate",
+    "store associate",
+    "warehouse associate",
+    "fulfillment associate",
+    "crew member",
+    "line cook",
+    "hostess",
+    "restaurant server",
+    "bartender",
+    "customer service representative",
+    "receptionist",
+    "store manager"
+   ],
+   "median": 35000,
+   "p90": 52000,
+   "source": "BLS OEWS May 2024/2025: retail salespersons ~$35K, cashiers ~$32K, fast food ~$31K, waiters ~$35K"
+  },
+  "artist_musician": {
+   "keywords": [
+    "artist",
+    "musician",
+    "singer",
+    "painter",
+    "illustrator",
+    "sculptor",
+    "actor",
+    "actress",
+    "dancer",
+    "composer",
+    "photographer",
+    "filmmaker",
+    "animator"
+   ],
+   "median": 45000,
+   "p90": 120000,
+   "source": "BLS OEWS May 2024: fine artists median $60,570 (wage earners only), musicians $42.45/hr typically part-time; most artists are self-employed and earn less"
+  },
+  "content_creator": {
+   "keywords": [
+    "content creator",
+    "youtuber",
+    "influencer",
+    "streamer",
+    "tiktoker",
+    "podcaster",
+    "creator",
+    "twitch streamer",
+    "ugc creator"
+   ],
+   "median": 30000,
+   "p90": 200000,
+   "source": "estimate: creator-economy surveys (Goldman Sachs 2023, Linktree 2022/NeoReach) -- only ~4% of creators earn >$100K",
+   "note": "use creatorBands by follower count instead when follower data exists"
+  },
+  "software_developer_general": {
+   "keywords": [
+    "software developer",
+    "programmer",
+    "web developer",
+    "developer"
+   ],
+   "median": 133080,
+   "p90": 211000,
+   "source": "BLS OEWS May 2024 (all employers, national)"
+  },
+  "engineer_non_software": {
+   "keywords": [
+    "mechanical engineer",
+    "civil engineer",
+    "electrical engineer",
+    "chemical engineer",
+    "structural engineer",
+    "aerospace engineer",
+    "industrial engineer",
+    "manufacturing engineer",
+    "biomedical engineer",
+    "environmental engineer"
+   ],
+   "median": 105000,
+   "p90": 165000,
+   "source": "BLS OEWS May 2024 (civil ~$99.6K, mechanical ~$102K, electrical ~$112K, aerospace ~$135K)"
+  },
+  "data_scientist_general": {
+   "keywords": [
+    "data scientist",
+    "data analyst",
+    "statistician",
+    "business intelligence analyst"
+   ],
+   "median": 108000,
+   "p90": 190000,
+   "source": "BLS OEWS May 2024 (data scientists ~$112.6K; analysts lower)"
+  },
+  "financial_analyst": {
+   "keywords": [
+    "financial analyst",
+    "investment analyst",
+    "credit analyst",
+    "fp&a",
+    "equity research analyst"
+   ],
+   "median": 101350,
+   "p90": 180000,
+   "source": "BLS OEWS May 2024"
+  },
+  "financial_advisor": {
+   "keywords": [
+    "financial advisor",
+    "wealth advisor",
+    "financial planner",
+    "wealth manager",
+    "private banker"
+   ],
+   "median": 102140,
+   "p90": 250000,
+   "source": "BLS OEWS May 2024 (p90 top-coded)"
+  },
+  "management_consultant_general": {
+   "keywords": [
+    "consultant",
+    "management analyst",
+    "strategy consultant",
+    "business consultant"
+   ],
+   "median": 101190,
+   "p90": 180000,
+   "source": "BLS OEWS May 2024"
+  },
+  "marketing_manager": {
+   "keywords": [
+    "marketing manager",
+    "brand manager",
+    "growth marketing manager",
+    "product marketing manager",
+    "marketing director"
+   ],
+   "median": 161030,
+   "p90": 240000,
+   "source": "BLS OEWS May 2024"
+  },
+  "hr_recruiter": {
+   "keywords": [
+    "recruiter",
+    "talent acquisition",
+    "human resources",
+    "hr generalist",
+    "hr manager",
+    "people operations",
+    "hr business partner"
+   ],
+   "median": 72910,
+   "p90": 130000,
+   "source": "BLS OEWS May 2024 (HR specialists; HR managers ~$140K)"
+  },
+  "admin_assistant": {
+   "keywords": [
+    "administrative assistant",
+    "executive assistant",
+    "office manager",
+    "secretary",
+    "office administrator"
+   ],
+   "median": 47000,
+   "p90": 75000,
+   "source": "BLS OEWS May 2024"
+  },
+  "physician_assistant": {
+   "keywords": [
+    "physician assistant",
+    "pa-c",
+    "physician associate"
+   ],
+   "median": 133260,
+   "p90": 175000,
+   "source": "BLS OEWS May 2024"
+  },
+  "physical_therapist": {
+   "keywords": [
+    "physical therapist",
+    "dpt",
+    "occupational therapist",
+    "speech language pathologist"
+   ],
+   "median": 99000,
+   "p90": 130000,
+   "source": "BLS OEWS May 2024 (PT $101K, OT ~$98K, SLP ~$95K)"
+  },
+  "dental_hygienist": {
+   "keywords": [
+    "dental hygienist",
+    "rdh"
+   ],
+   "median": 94260,
+   "p90": 120000,
+   "source": "BLS OEWS May 2024"
+  },
+  "veterinarian": {
+   "keywords": [
+    "veterinarian",
+    "dvm",
+    "vet"
+   ],
+   "median": 125510,
+   "p90": 210000,
+   "source": "BLS OEWS May 2024"
+  },
+  "mental_health": {
+   "keywords": [
+    "psychologist",
+    "therapist",
+    "counselor",
+    "lmft",
+    "lcsw",
+    "mental health counselor",
+    "psychotherapist",
+    "clinical psychologist"
+   ],
+   "median": 72000,
+   "p90": 135000,
+   "source": "BLS OEWS May 2024 (psychologists ~$94K; counselors/LCSW ~$59-61K)"
+  },
+  "social_worker": {
+   "keywords": [
+    "social worker",
+    "case manager",
+    "msw"
+   ],
+   "median": 61330,
+   "p90": 95000,
+   "source": "BLS OEWS May 2024"
+  },
+  "public_safety": {
+   "keywords": [
+    "police officer",
+    "sheriff",
+    "deputy sheriff",
+    "firefighter",
+    "paramedic",
+    "emt",
+    "detective",
+    "correctional officer"
+   ],
+   "median": 72000,
+   "p90": 120000,
+   "source": "BLS OEWS May 2024 (police $76.3K, firefighters ~$59.5K, EMTs ~$41K)",
+   "note": "Bay Area police/fire often $150K+ with overtime"
+  },
+  "skilled_trades": {
+   "keywords": [
+    "electrician",
+    "plumber",
+    "carpenter",
+    "hvac technician",
+    "welder",
+    "mechanic",
+    "technician",
+    "contractor",
+    "construction",
+    "lineman",
+    "machinist"
+   ],
+   "median": 60000,
+   "p90": 100000,
+   "source": "BLS OEWS May 2024 (electricians ~$62K, plumbers ~$63K, construction laborers ~$46K)"
+  },
+  "driver_delivery": {
+   "keywords": [
+    "truck driver",
+    "driver",
+    "rideshare driver",
+    "uber driver",
+    "lyft driver",
+    "delivery driver",
+    "dasher",
+    "courier",
+    "bus driver"
+   ],
+   "median": 50000,
+   "p90": 80000,
+   "source": "BLS OEWS May 2024 (heavy truck ~$57K; gig drivers lower)"
+  },
+  "pilot": {
+   "keywords": [
+    "airline pilot",
+    "pilot",
+    "first officer",
+    "commercial pilot"
+   ],
+   "median": 226600,
+   "p90": 350000,
+   "source": "BLS OEWS May 2024 (airline pilots; p90 top-coded)"
+  },
+  "flight_attendant": {
+   "keywords": [
+    "flight attendant",
+    "cabin crew"
+   ],
+   "median": 67130,
+   "p90": 100000,
+   "source": "BLS OEWS May 2024"
+  },
+  "chef_cook": {
+   "keywords": [
+    "chef",
+    "sous chef",
+    "head chef",
+    "executive chef",
+    "pastry chef"
+   ],
+   "median": 60990,
+   "p90": 95000,
+   "source": "BLS OEWS May 2024"
+  },
+  "personal_care": {
+   "keywords": [
+    "hairstylist",
+    "hairdresser",
+    "barber",
+    "cosmetologist",
+    "nail technician",
+    "esthetician",
+    "personal trainer",
+    "fitness instructor",
+    "yoga instructor"
+   ],
+   "median": 38000,
+   "p90": 70000,
+   "source": "BLS OEWS May 2024"
+  },
+  "journalist_writer": {
+   "keywords": [
+    "journalist",
+    "writer",
+    "reporter",
+    "editor",
+    "author",
+    "copywriter",
+    "columnist"
+   ],
+   "median": 72000,
+   "p90": 140000,
+   "source": "BLS OEWS May 2024 (writers/authors ~$72K; reporters lower)"
+  },
+  "architect": {
+   "keywords": [
+    "licensed architect",
+    "project architect",
+    "architectural designer",
+    "landscape architect"
+   ],
+   "median": 96690,
+   "p90": 160000,
+   "source": "BLS OEWS May 2024"
+  },
+  "clergy": {
+   "keywords": [
+    "pastor",
+    "priest",
+    "rabbi",
+    "imam",
+    "minister",
+    "clergy",
+    "chaplain"
+   ],
+   "median": 58000,
+   "p90": 95000,
+   "source": "BLS OEWS May 2024"
+  },
+  "childcare_caregiver": {
+   "keywords": [
+    "nanny",
+    "childcare",
+    "child care",
+    "caregiver",
+    "home health aide",
+    "daycare",
+    "babysitter",
+    "personal care aide"
+   ],
+   "median": 33000,
+   "p90": 45000,
+   "source": "BLS OEWS May 2024"
+  },
+  "farmer_rancher": {
+   "keywords": [
+    "farmer",
+    "rancher",
+    "farm owner",
+    "grower",
+    "agricultural manager"
+   ],
+   "median": 87980,
+   "p90": 170000,
+   "source": "BLS OEWS May 2024 (farm managers; small farms often far less)"
+  },
+  "insurance_agent": {
+   "keywords": [
+    "insurance agent",
+    "insurance broker",
+    "insurance sales"
+   ],
+   "median": 60370,
+   "p90": 135000,
+   "source": "BLS OEWS May 2024"
+  },
+  "executive_general": {
+   "keywords": [
+    "chief executive",
+    "ceo",
+    "chief operating officer",
+    "coo",
+    "chief financial officer",
+    "cfo"
+   ],
+   "median": 214000,
+   "p90": 500000,
+   "source": "BLS OEWS May 2025 chief executives ($102.88/hr median; p90 top-coded)",
+   "note": "use ladder 'exec' with company/tier when employer known"
+  },
+  "retired": {
+   "keywords": [
+    "retired",
+    "retiree",
+    "emeritus",
+    "professor emeritus"
+   ],
+   "median": 50000,
+   "p90": 150000,
+   "source": "estimate: Census CPS 65+ income (SS + pensions + withdrawals)",
+   "note": "income is a poor proxy -- use age-based wealth priors (Fed SCF) for retirees"
+  },
+  "not_working": {
+   "keywords": [
+    "homemaker",
+    "stay-at-home",
+    "stay at home parent",
+    "unemployed",
+    "between jobs",
+    "career break",
+    "open to work",
+    "sabbatical"
+   ],
+   "median": 0,
+   "p90": 15000,
+   "source": "n/a"
+  }
+ },
+ "regionMultipliers": {
+  "_appliesTo": "occupations (national BLS medians). Company/tier tc already assume SF/NYC/SEA.",
+  "sf_bay_area": 1.35,
+  "nyc": 1.25,
+  "seattle": 1.25,
+  "boston": 1.25,
+  "dc": 1.25,
+  "la": 1.15,
+  "san_diego": 1.1,
+  "austin": 1.05,
+  "us_other_metro": 1.0,
+  "us_rural": 0.85,
+  "_tech_outside_hubs": 0.88,
+  "_rn_sf_bay_area": 1.75
+ },
+ "countryMultipliers": {
+  "_cols": "[techTcVsUS, generalWageVsUS] nominal USD; tech = same company/level on levels.fyi",
+  "us": [
+   1,
+   1
+  ],
+  "canada": [
+   0.55,
+   0.75
+  ],
+  "uk": [
+   0.55,
+   0.72
+  ],
+  "ireland": [
+   0.5,
+   0.8
+  ],
+  "germany": [
+   0.45,
+   0.72
+  ],
+  "netherlands": [
+   0.5,
+   0.75
+  ],
+  "switzerland": [
+   0.8,
+   1.2
+  ],
+  "france": [
+   0.4,
+   0.65
+  ],
+  "spain": [
+   0.3,
+   0.45
+  ],
+  "poland": [
+   0.3,
+   0.35
+  ],
+  "israel": [
+   0.6,
+   0.7
+  ],
+  "uae": [
+   0.55,
+   0.6
+  ],
+  "india": [
+   0.22,
+   0.06
+  ],
+  "china": [
+   0.35,
+   0.2
+  ],
+  "hong_kong": [
+   0.6,
+   0.45
+  ],
+  "singapore": [
+   0.6,
+   0.7
+  ],
+  "japan": [
+   0.35,
+   0.45
+  ],
+  "south_korea": [
+   0.3,
+   0.47
+  ],
+  "taiwan": [
+   0.25,
+   0.3
+  ],
+  "australia": [
+   0.55,
+   0.82
+  ],
+  "brazil": [
+   0.2,
+   0.1
+  ],
+  "mexico": [
+   0.22,
+   0.12
+  ],
+  "vietnam": [
+   0.12,
+   0.05
+  ],
+  "philippines": [
+   0.1,
+   0.05
+  ],
+  "nigeria": [
+   0.1,
+   0.02
+  ]
+ },
+ "creatorBands": {
+  "_units": "annual creator income USD by max follower count across platforms (median, p90) -- rough",
+  "1000": [
+   0,
+   2000
+  ],
+  "10000": [
+   2000,
+   15000
+  ],
+  "100000": [
+   15000,
+   80000
+  ],
+  "500000": [
+   60000,
+   250000
+  ],
+  "1000000": [
+   150000,
+   500000
+  ],
+  "5000000": [
+   400000,
+   1500000
+  ],
+  "inf": [
+   1500000,
+   5000000
+  ]
+ },
+ "_source": "levels.fyi US medians (spot-checked 2026-09-26), street data for IB/MBB, BLS OEWS May 2024 for occupations. Data source: Levels.fyi (https://www.levels.fyi)."
+}

@@ -110,6 +110,15 @@ Schema: `supabase/migrations/`. Helpers: `src/lib/db.ts`. Reads are public. User
 2. **LLM**: Claude reads the work history and the base number. It returns `{ low, high, reasoning }`.
 3. **Always show a range**, never one exact number.
 
+How it is built (`src/lib/networth/`):
+
+- **Input**: `people` + `experiences` + `education` + `social_profiles`. Falls back to scraper output in `people.raw` (harness, Zo, seed shapes) and to "Role at Company" headlines.
+- **Rules** (no keys needed): each job gets a kind (full-time, internship, part-time, club), level, role family and company tier. Pay comes from a built-in table (93 companies, tier fallbacks, BLS occupations), then a year-by-year simulation: taxes, cost of living, savings, real S&P 500 returns, student debt, home equity, founder equity. Low / mid / high scenarios.
+- **Salary evidence**: levels.fyi `.md` pages (levels.fyi publishes them for AI agents), then Firecrawl search snippets if `FIRECRAWL_API_KEY` is set. Never Firecrawl on levels.fyi pages (their robots.txt blocks it).
+- **Claude** (`ANTHROPIC_API_KEY` or `AI_GATEWAY_API_KEY`): parses headline-only people into jobs, then reviews the rules range. Its answer is clamped to a band around the rules range. Scraped text is passed as data, never as instructions.
+- **No data** (no job, school or age) = no row = grey sim.
+- **Run**: `POST /api/net-worth { personId }` after a scrape job is done, or `pnpm networth <id> | --all --missing | --watch | --file seed.json --dry`. `pnpm networth:check` runs the calibration cases.
+
 ## Sims
 
 - Simple, stylized and blocky. The profile photo goes on the face.
