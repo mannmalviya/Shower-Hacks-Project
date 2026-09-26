@@ -8,8 +8,6 @@ export function lineFor(n: Node): string {
   if (n.tie === "aspiration") return pick(n.id, ["You follow me. I don't follow you back.", "Big fan, huh? 😎", "Sorry, who are you again?"]);
   if (n.tie === "audience") return pick(n.id, ["I follow you. You never followed back 🥲", "Still waiting for that follow back…"]);
   if ((n.wealth?.mid ?? 0) > 1_000_000) return pick(n.id, ["Nice pile. Mine's bigger.", "Have you tried buying a house? 🏡", "Money can't buy friends. But look at this hill."]);
-  if (n.isBridge) return pick(n.id, ["Psst… I know people over there.", "I'm the bridge between your two lives 🌉", "I hang out with both sides. Don't tell them."]);
-  if (n.era === "past") return pick(n.id, ["We haven't talked since forever 👀", "Remember me? We used to be close.", "You changed, man.", "Still in San Jose. You?"]);
   if (n.tribe.startsWith("🛹")) return "Wanna skate later? 🛹";
   if (n.tribe.startsWith("💼")) return pick(n.id, ["Let's circle back on that.", "Have you seen my LinkedIn post?"]);
   if (n.tribe.startsWith("💻") || n.tribe.startsWith("🐻")) return pick(n.id, ["Did you finish the CS 61B project?", "Shipping at 3am again 💻", "Go Bears! 🐻"]);

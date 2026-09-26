@@ -133,7 +133,7 @@ export function Crowd({ nodes, links, layout, heights, dim, player, walking, sta
     });
     // group centers (to face each other / sit around), and the family picnic circle
     const center = new Map(layout.groups.map((g) => [g.key, g]));
-    const byTribe = layout.category === "tribe" || layout.category === "lifemap";
+    const byTribe = layout.category === "tribe";
     const picnic = new Map<string, number[]>();
     nodes.forEach((n, i) => {
       const g = center.get(keysOf(n, layout.category)[0]);

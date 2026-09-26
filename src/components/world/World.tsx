@@ -59,7 +59,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
   const crowdNodes = useMemo(() => analysis.nodes.filter((n) => n.degree === 1), [analysis]);
   const ghostNodes = useMemo(() => analysis.nodes.filter((n) => n.degree === 2 && hasData(n)), [analysis]); // N+1 we know something about
   const arcs = useMemo(() => tribeLinks(analysis.nodes, links), [analysis, links]);
-  const byTribe = category === "tribe" || category === "lifemap";
+  const byTribe = category === "tribe";
   const neighbors = useMemo(() => {
     const m = new Map<string, Set<string>>();
     for (const [a, b] of links) {
@@ -98,9 +98,6 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
     const p = playerPos.current;
     m.set("you", () => [p.x, p.y + egoStack + 4.6, p.z]);
     if (ghostStack != null) m.set("future", () => [p.x + 1.7, p.y + ghostStack + 0.7, p.z]);
-    const axis = category === "lifemap" || category === "places";
-    m.set("past", () => (axis ? [-60, 2, 40] : null));
-    m.set("now", () => (axis ? [60, 2, 40] : null));
     chatter.forEach((id, k) => m.set(`b${k}`, () => {
       const c = crowd.current;
       const i = c ? c.ids.indexOf(id) : -1;
@@ -184,10 +181,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
   const near = nearest ? byId.get(nearest) : null;
   const dimKey = FACT_DIM[category];
   const bubble = dimKey ? analysis.bubbles[dimKey] : null;
-  const pp = analysis.pastVsPresent;
-  const fact = category === "lifemap"
-    ? `Past: ${pp.past.size} people (diversity ${pp.past.diversity}). Now: ${pp.present.size} (diversity ${pp.present.diversity}). Only ${pp.bridges} people bridge your two lives.`
-    : bubble?.fact ?? "";
+  const fact = bubble?.fact ?? "";
 
   return (
     <div className="fixed inset-0 select-none bg-[linear-gradient(180deg,#8ec5ff_0%,#b3d8ff_30%,#d9ecff_55%,#e3f6ea_80%,#f1f8e9_100%)]">
@@ -224,7 +218,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
         {layout.groups.map((g, i) => (
           <div key={`${category}-${i}`} ref={bindLabel(`g${i}`)} style={{ borderColor: g.color, visibility: "hidden", background: focus === g.key ? g.color : undefined }}
             onClick={() => focusGroup(focus === g.key ? null : g.key)}
-            className={`pointer-events-auto absolute left-0 top-0 cursor-pointer whitespace-nowrap rounded-full border-2 bg-white/95 font-extrabold shadow transition-opacity hover:!opacity-100 ${g.count >= 25 ? "px-3 py-1 text-sm" : g.count >= 8 ? "px-2.5 py-0.5 text-xs" : "px-2 py-0.5 text-[10px]"} ${focus === g.key ? "text-white" : g.era === "past" && category === "lifemap" ? "text-slate-400" : "text-slate-700"}`}>
+            className={`pointer-events-auto absolute left-0 top-0 cursor-pointer whitespace-nowrap rounded-full border-2 bg-white/95 font-extrabold shadow transition-opacity hover:!opacity-100 ${g.count >= 25 ? "px-3 py-1 text-sm" : g.count >= 8 ? "px-2.5 py-0.5 text-xs" : "px-2 py-0.5 text-[10px]"} ${focus === g.key ? "text-white" : "text-slate-700"}`}>
             {g.key} <span className="text-slate-400">{g.count}</span>
           </div>
         ))}
@@ -242,12 +236,6 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
             future you? {money(analysis.class.projected.mid)}
           </div>
         )}
-        {(["past", "now"] as const).map((side) => (
-          <div key={side} ref={bindLabel(side)} style={{ visibility: "hidden" }}
-            className="absolute left-0 top-0 whitespace-nowrap text-2xl font-black text-indigo-300 drop-shadow-[0_0_8px_rgba(255,255,255,0.9)]">
-            {side === "past" ? "⬅ YOUR PAST" : "NOW ➡"}
-          </div>
-        ))}
         {chatter.map((id, k) => {
           const n = byId.get(id);
           return n && !(follow && near) ? <Bubble key={`${id}-${k}`} bind={bindLabel(`b${k}`)} text={lineFor(n)} /> : null;
@@ -302,7 +290,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
               <button key={t.name} onClick={() => focusGroup(focus === t.name ? null : t.name)}
                 className={`flex w-full items-center gap-2 rounded-lg px-2 py-1 text-left text-xs ${focus === t.name ? "bg-sky-100" : "hover:bg-slate-50"}`}>
                 <span className="flex-1 truncate font-bold text-slate-700">{t.name}{t.name === analysis.egoTribe ? " (you)" : ""}</span>
-                <span className="text-slate-400">{t.era === "past" ? "🕰️" : "✨"} {t.size}</span>
+                <span className="text-slate-400">{t.size}</span>
                 <span className="h-1.5 w-10 overflow-hidden rounded bg-slate-200" title={`confidence ${Math.round(t.confidence * 100)}%`}>
                   <span className="block h-full bg-emerald-400" style={{ width: `${t.confidence * 100}%` }} />
                 </span>
@@ -355,7 +343,6 @@ function PersonCard({ n, links, tribes, onClose }: { n: Node; links: number; tri
       <div className="mb-2 flex flex-wrap gap-1">
         <span className="rounded-full bg-sky-500 px-2 py-0.5 text-[11px] font-bold text-white">{n.tribe}{conf != null ? ` · ${Math.round(conf * 100)}%` : ""}</span>
         {n.tribes.map((t) => <span key={t} className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-bold text-sky-700">{t}</span>)}
-        {n.isBridge && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">🌉 bridge</span>}
       </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
         <dt className="font-bold text-slate-400">Tie</dt><dd>{tie}</dd>
@@ -406,7 +393,7 @@ function TribeCard({ name, analysis, arcs, onPick, onClose }: {
       <button onClick={onClose} className="absolute right-3 top-2 text-xl text-slate-400" aria-label="Close">×</button>
       <h2 className="text-lg font-black text-emerald-600">{t.name}{t.name === analysis.egoTribe ? " (your tribe)" : ""}</h2>
       <p className="mb-2 text-xs text-slate-500">
-        {t.size} people{also ? ` + ${also} half-in` : ""} · {t.era === "past" ? "🕰️ from your past" : "✨ your present"} · confidence {Math.round(t.confidence * 100)}%
+        {t.size} people{also ? ` + ${also} half-in` : ""} · confidence {Math.round(t.confidence * 100)}%
       </p>
       <div className="mb-2 flex flex-wrap gap-1">
         {t.topTraits.map((tr) => <span key={tr} className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">{tr}</span>)}

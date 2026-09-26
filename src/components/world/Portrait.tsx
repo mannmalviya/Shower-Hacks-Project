@@ -1,5 +1,5 @@
 "use client";
-// "My portrait": 4 blocks. Offline templates for now; the Claude route will replace the text
+// "My portrait": 3 blocks. Offline templates for now; the Claude route will replace the text
 // (it gets analysis.portraitInput: aggregates only, no names).
 import type { Analysis } from "@/lib/analysis";
 
@@ -8,11 +8,11 @@ const money = (n: number | null | undefined) =>
   n == null ? "?" : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}k` : `$${n}`;
 
 export function templatePortrait(a: Analysis) {
-  const { bubbles: b, pastVsPresent: pp, class: c, circles } = a;
-  const hobbies = circles.filter((x) => x.era === "past" && /^(⚽|🎹|🎨|🤖)/.test(x.name));
+  const { bubbles: b, class: c, tribes } = a;
+  const hobbies = tribes.filter((x) => /^(⚽|🎹|🎨|🤖|🛹)/.test(x.name));
   const techShare = b.industry.groups.find((g) => g.value === "Tech")?.share ?? 0;
   const archetype = hobbies.length >= 2 && techShare > 0.3
-    ? "The former jack-of-all-trades turned tech bro"
+    ? "The jack-of-all-trades tech bro"
     : techShare > 0.5 ? "The tech monk" : b.circle.diversity > 80 ? "The social butterfly" : "The loyal tribe member";
   const topCircle = b.circle.groups[0];
   return [
@@ -20,7 +20,7 @@ export function templatePortrait(a: Analysis) {
       title: "Who you are",
       big: archetype,
       text: hobbies.length
-        ? `You once had ${hobbies.map((h) => h.name).join(", ")}. Today ${pct(b.interest.groups[0]?.share)} of your people share one thing: ${b.interest.groups[0]?.value}.`
+        ? `Your tribes include ${hobbies.map((h) => h.name).join(", ")}. Yet ${pct(b.interest.groups[0]?.share)} of your people share one thing: ${b.interest.groups[0]?.value}.`
         : `Your crowd's #1 thing is ${b.interest.groups[0]?.value ?? "a mystery"}.`,
     },
     {
@@ -34,12 +34,6 @@ export function templatePortrait(a: Analysis) {
       text: `The working people around you are worth ${money(c.workingMedian)} (median). You: ${money(c.ego?.mid)}. ` +
         (c.projected ? `The ghost stack next to you is who you're heading toward: ${money(c.projected.mid)}. ` : "") +
         `${pct(c.unknownShare)} of your network is invisible to the algorithm.`,
-    },
-    {
-      title: "What you left behind",
-      big: `${pp.past.size} people from before · ${pp.present.size} from now`,
-      text: `Your past (${pp.leftBehind.slice(0, 4).join(", ")}) had a diversity of ${pp.past.diversity}; your present has ${pp.present.diversity} and is mostly ${pp.present.topIndustries.join(" & ")}. ` +
-        `Only ${pp.bridges} people still connect your two lives.`,
     },
   ];
 }

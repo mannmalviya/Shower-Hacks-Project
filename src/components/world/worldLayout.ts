@@ -3,11 +3,10 @@
 //   terrain: altitude = wealth of the people standing there ("the rich live on the hill")
 import type { Analysis, Node } from "@/lib/analysis";
 
-export type Category = "tribe" | "places" | "lifemap" | "wealthTier" | "school" | "city" | "industry" | "platform";
+export type Category = "tribe" | "places" | "wealthTier" | "school" | "city" | "industry" | "platform";
 
 export const CATEGORIES: { key: Category; label: string; hint: string }[] = [
   { key: "tribe", label: "Tribes", hint: "Who you really hang out with" },
-  { key: "lifemap", label: "Life map", hint: "Past on the left, now on the right" },
   { key: "places", label: "Places", hint: "Where you know people from" },
   { key: "wealthTier", label: "Wealth", hint: "Stairs from broke to rich" },
   { key: "school", label: "School", hint: "Where they studied" },
@@ -42,7 +41,7 @@ export const hasData = (n: Node) => !!n.company;
 /** Keys a person belongs to in a category; the first one is primary. */
 export function keysOf(n: Node, c: Category): string[] {
   switch (c) {
-    case "tribe": case "lifemap": return [n.tribe, ...n.tribes];
+    case "tribe": return [n.tribe, ...n.tribes];
     case "places": return [n.circle];
     case "wealthTier": return [n.wealthTier];
     case "school": return [n.school ?? "❔ Unknown"];
@@ -59,7 +58,6 @@ export function coverage(a: Analysis, c: Category): number {
   const ok = (n: Node) => {
     switch (c) {
       case "tribe": case "platform": return true;
-      case "lifemap": return n.era !== "unknown";
       case "places": return !n.circle.startsWith("❔");
       case "wealthTier": return !!n.wealth;
       case "school": return !!n.school;
@@ -103,13 +101,7 @@ export function computeWorld(a: Analysis, links: [string, string][], c: Category
     return e.past > e.present ? "past" : e.present > e.past ? "present" : "unknown";
   };
   const anchors = new Map<string, { x: number; z: number }>();
-  if (c === "lifemap" || c === "places") {
-    // past to the west, present to the east, the rest up north
-    const side = { past: keys.filter((k) => eraOf(k) === "past"), present: keys.filter((k) => eraOf(k) === "present"), unknown: keys.filter((k) => eraOf(k) === "unknown") };
-    side.past.forEach((k, i) => anchors.set(k, { x: -26 - (i % 2) * 16, z: (i - (side.past.length - 1) / 2) * 13 }));
-    side.present.forEach((k, i) => anchors.set(k, { x: 26 + (i % 2) * 16, z: (i - (side.present.length - 1) / 2) * 13 }));
-    side.unknown.forEach((k, i) => anchors.set(k, { x: (i - (side.unknown.length - 1) / 2) * 14, z: -40 }));
-  } else if (c === "wealthTier") {
+  if (c === "wealthTier") {
     // a staircase arc, broke on the left, rich on the right; unknown off in the fog
     keys.forEach((k) => {
       if (k === "❓ Unknown") return anchors.set(k, { x: 0, z: -48 });
@@ -132,7 +124,7 @@ export function computeWorld(a: Analysis, links: [string, string][], c: Category
   const idx = new Map(first.map((n, i) => [n.id, i]));
   const L = links.map(([x, y]) => [idx.get(x), idx.get(y)] as const).filter((l): l is readonly [number, number] => l[0] != null && l[1] != null);
   const pulls = first.map((n) => keysOf(n, c).map((k, j) => ({ a: anchors.get(k), w: j === 0 ? 1 : 0.35 })).filter((p) => p.a));
-  const egoAnchor = c === "lifemap" || c === "places" || c === "wealthTier" ? { x: 0, z: 0 } : anchors.get(keys[0]) ?? { x: 0, z: 0 };
+  const egoAnchor = c === "wealthTier" ? { x: 0, z: 0 } : anchors.get(keys[0]) ?? { x: 0, z: 0 };
   for (let it = 0; it < 140; it++) {
     const cool = 1 - it / 160;
     first.forEach((_, i) => {
