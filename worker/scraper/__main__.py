@@ -25,7 +25,7 @@ load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env.local")  # the
 from . import db as dbm  # noqa: E402
 from .backends import harness, scrape  # noqa: E402
 from .cache import CACHE_DIR  # noqa: E402
-from .models import PLATFORMS, URL_COLUMN, ScrapeError, handle  # noqa: E402
+from .models import PLATFORMS, ScrapeError, handle  # noqa: E402
 
 log = logging.getLogger("scraper")
 
@@ -59,7 +59,7 @@ def sync_connections(db, person: dict) -> None:
     """Best effort: a failure here (e.g. the harness Chrome is signed in as someone
     else) is logged and must not fail the user's own profile job."""
     try:
-        _, contacts = get_connections(CONNECTIONS_LIMIT, expected_owner=handle(person["linkedin_url"]))
+        _, contacts = get_connections(CONNECTIONS_LIMIT, expected_owner=handle(person["urls"]["linkedin"]))
         stats = dbm.upsert_contacts(db, person["id"], contacts, source=CONNECTIONS_JOB,
                                     enqueue_top=CONNECTIONS_ENQUEUE)
         log.info("connections for %s: %s", person.get("name") or person["id"], stats)
@@ -74,9 +74,9 @@ def run_job(db, job: dict) -> None:
     platform = job["platform"]
     if platform not in PLATFORMS:
         raise ScrapeError(f"unknown platform {platform!r}")
-    url = person.get(URL_COLUMN[platform])
+    url = person["urls"].get(platform)
     if not url:
-        raise ScrapeError(f"person has no {URL_COLUMN[platform]}")
+        raise ScrapeError(f"person has no {platform} social_profiles row")
     if platform == "linkedin" and person.get("user_id"):
         # A signed-up user: pull their network first, since the crowd is what the 3D page shows.
         sync_connections(db, person)
@@ -128,7 +128,7 @@ def cmd_connections(args) -> None:
     if not person:
         raise SystemExit(f"person {args.user} not found")
     _, contacts = get_connections(args.limit, use_cache=not args.no_cache,
-                                  expected_owner=handle(person["linkedin_url"]))
+                                  expected_owner=handle(person["urls"]["linkedin"]))
     print(json.dumps(dbm.upsert_contacts(db, person["id"], contacts, CONNECTIONS_JOB, args.enqueue), indent=2))
 
 

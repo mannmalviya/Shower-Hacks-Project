@@ -155,7 +155,8 @@ def contact_row(c: dict, source: str) -> dict:
         "experiences": [{"position_title": role, "institution_name": company, "source": "headline"}] if company else [],
         "educations": [{"institution_name": school, "source": "headline"}] if school else [],
     })
+    # role / company / school reach experiences / education through db.work_rows(raw.linkedin).
     return _drop_empty({
-        "name": c["name"], "headline": c.get("headline"), "role": role, "company": company,
-        "photo_url": c.get("photo_url"), "linkedin_url": c["linkedin_url"], "raw": {"linkedin": entry},
+        "name": c["name"], "headline": c.get("headline"), "photo_url": c.get("photo_url"),
+        "raw": {"linkedin": entry},
     })

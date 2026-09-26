@@ -9,8 +9,8 @@ from urllib.parse import urlparse
 
 PLATFORMS = ("linkedin", "x", "instagram")
 
-# people.<column> that holds each platform's profile URL (see PLAN.md > Data)
-URL_COLUMN = {"linkedin": "linkedin_url", "x": "x_url", "instagram": "instagram_url"}
+# Same URL form as the app's normalizeSocialUrl (src/lib/socials.ts), so social_profiles.url dedupes.
+URL_BASE = {"linkedin": "https://www.linkedin.com/in/", "x": "https://x.com/", "instagram": "https://www.instagram.com/"}
 
 
 class ScrapeError(Exception):
@@ -66,9 +66,13 @@ def handle(url: str) -> str:
 
 
 def linkedin_profile_url(url: str) -> str:
-    """Canonical form used for people.linkedin_url, so the same person dedupes
+    """Canonical form used for social_profiles.url, so the same person dedupes
     whether the URL came from a connections card, an export or user input."""
-    return f"https://www.linkedin.com/in/{handle(url)}/"
+    return profile_url("linkedin", url)
+
+
+def profile_url(platform: str, url: str) -> str:
+    return URL_BASE[platform] + handle(url)
 
 
 def clean(s) -> str | None:

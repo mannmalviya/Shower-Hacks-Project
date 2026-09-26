@@ -15,10 +15,12 @@ Any other job scrapes that one profile.
 
 ## What gets written
 
-- **`people.raw.<platform>`**: shapes from `seed/README.md`, so `src/lib/analysis.ts` reads real and seed data the same way. LinkedIn: `linkedin_url, name, headline, location, photo_url, experiences[{position_title, institution_name, from_date, to_date}], educations[{institution_name, degree, from_date, to_date}]`, plus `follower_count`, `connected_on`, `page_text` (full visible text for the net worth LLM). X: twscrape field names. Instagram: `web_profile_info` field names. Only platform names are keys of `raw`.
-- **Top-level columns** (`name, headline, company, role, location, photo_url`): the first platform with a value in LinkedIn > GitHub > X > Facebook > Instagram.
-- **Connections** carry only a headline. "SWE at Stripe" gives role and company. "Student @ UC Berkeley" gives a school (in `raw.linkedin.educations`), never a company. Schools are spelled like the seed ("University of California, Berkeley" → "UC Berkeley") so circles match.
-- **`linkedin_url`** is stored as `https://www.linkedin.com/in/<handle>/`. It's unique, so the same person is never inserted twice. The app should store the user's URL in the same form.
+- **`people.raw.<platform>`**: shapes from `seed/README.md`. LinkedIn: `linkedin_url, name, headline, location, photo_url, experiences[{position_title, institution_name, from_date, to_date}], educations[{institution_name, degree, from_date, to_date}]`, plus `follower_count`, `connected_on`, `page_text` (full visible text for the net worth LLM). X: twscrape field names. Instagram: `web_profile_info` field names. Only platform names are keys of `raw`.
+- **`people` columns** (`name, headline, location, photo_url`): the first platform with a value in LinkedIn > GitHub > X > Facebook > Instagram.
+- **`social_profiles`**: one row per platform (url, handle, bio, follower_count, avatar_url, raw). The worker reads the URL to scrape from here. The onboarding form writes it.
+- **`experiences` / `education`**: rebuilt from `raw.linkedin` after a LinkedIn scrape. The primary job is the first current one. If the scrape finds no jobs, the onboarding company stays.
+- **Connections** carry only a headline. "SWE at Stripe" gives a job. "Student @ UC Berkeley" gives a school, never a company. Schools are spelled like the seed ("University of California, Berkeley" → "UC Berkeley") so circles match.
+- **URLs** use the app's form (`src/lib/socials.ts`), e.g. `https://www.linkedin.com/in/<handle>`. `social_profiles.url` is unique, so the same person is never inserted twice.
 
 ## Setup
 
@@ -41,6 +43,16 @@ uv run python -m scraper connections --limit 30                # signed-in accou
 uv run python -m scraper connections --user <person_id>        # -> people + follows (+ jobs)
 uv run python -m scraper enqueue <person_id> linkedin          # queue a job by hand
 ```
+
+## Run on Zo
+
+The app never calls the worker. Both talk to Supabase: the app adds `scrape_jobs` rows, the worker polls them. So the worker runs the same on a laptop or on Zo.
+
+1. On the Zo machine: `git clone` the repo, `cd worker`, then run the Setup steps above.
+2. Copy `worker/.env` there (`SUPABASE_URL`, `SUPABASE_SECRET_KEY`).
+3. Open Chrome on Zo, sign in to LinkedIn, and allow remote debugging. Check with `browser-harness --doctor`.
+4. Start the loop in `tmux` so it survives logout: `tmux new -s worker 'uv run python -m scraper run'`.
+5. Test: submit `/onboarding`. The done page shows each job go `queued` → `running` → `done`.
 
 ## Backends
 
