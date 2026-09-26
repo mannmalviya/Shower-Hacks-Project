@@ -187,21 +187,29 @@ export function computeWorld(a: Analysis, links: [string, string][], c: Category
   for (const n of second) (ringGroups.get(ringKey(n)) ?? ringGroups.set(ringKey(n), []).get(ringKey(n))!).push(n);
   const ringList = [...ringGroups].map(([key, members]) => ({ key, members, angle: angleOf(members.flatMap((m) => contactsOf.get(m.id) ?? [])) }))
     .sort((x, y) => x.angle - y.angle);
+  // each group is a little crowd on the ring, facing the side it reaches you through; big companies = big crowds
+  const need = ringList.map((g) => (1.9 * Math.sqrt(g.members.length) + 2.5) / R2); // angular radius of each crowd
+  for (let it = 0; it < 40; it++) {
+    for (let i = 0; i < ringList.length; i++) {
+      const j = (i + 1) % ringList.length;
+      if (ringList.length < 2) break;
+      let gap = ringList[j].angle - ringList[i].angle;
+      if (j === 0) gap += Math.PI * 2;
+      const min = need[i] + need[j];
+      if (gap < min) { ringList[i].angle -= (min - gap) / 2; ringList[j].angle += (min - gap) / 2; }
+    }
+  }
   const ringOut: Group[] = [];
-  let start = ringList[0]?.angle ?? 0;
   ringList.forEach((g, gi) => {
-    const arc = (g.members.length / Math.max(1, second.length)) * Math.PI * 2;
+    const gx = Math.cos(g.angle) * R2, gz = Math.sin(g.angle) * R2;
     const color = PALETTE[(gi + 5) % PALETTE.length];
     g.members.forEach((m, k) => {
-      // spread along the group's arc, in 3 staggered rows across the band
-      const t = (k + 0.5) / g.members.length, row = k % 3;
-      const a2 = start + arc * t, r = R2 + (row - 1) * 2.6 + rand(m.id, 7) * 0.6;
-      pos.set(m.id, { x: Math.cos(a2) * r, z: Math.sin(a2) * r });
+      const rr = 1.9 * Math.sqrt(k + 0.5), aa = k * GOLDEN;
+      pos.set(m.id, { x: gx + Math.cos(aa) * rr, z: gz + Math.sin(aa) * rr });
       colorOf.set(m.id, color);
     });
-    const mid = start + arc / 2;
-    ringOut.push({ key: g.key, count: g.members.length, x: Math.cos(mid) * (R2 + 7), z: Math.sin(mid) * (R2 + 7), color, era: "unknown" });
-    start += arc;
+    const out = R2 + 1.9 * Math.sqrt(g.members.length) + 3;
+    ringOut.push({ key: g.key, count: g.members.length, x: Math.cos(g.angle) * out, z: Math.sin(g.angle) * out, color, era: "unknown" });
   });
 
   // group label spots = centroid of primary members

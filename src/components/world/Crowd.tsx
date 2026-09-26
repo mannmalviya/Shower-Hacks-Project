@@ -33,6 +33,7 @@ const lambert = (color: string) => new THREE.MeshLambertMaterial({ color });
 const white = lambert("#ffffff");
 const dark = new THREE.MeshBasicMaterial({ color: "#212529" });
 const gold = lambert("#ffc800");
+const AURA = new THREE.Color("#f3f0ff");
 
 // one accessory per tribe family, picked from the tribe's emoji
 type Acc = { match: RegExp; geo: THREE.BufferGeometry; mat: THREE.Material; local: THREE.Matrix4 };
@@ -68,9 +69,15 @@ type Props = {
   state: React.RefObject<CrowdState | null>;
   onSelect: (id: string) => void;
   onNearest: (id: string | null) => void;
+  veil?: number; // outer rings are seen through an aura: 0 = crisp (your circle), 1 = almost invisible
 };
 
-export function Crowd({ nodes, links, layout, heights, dim, player, walking, state, onSelect, onNearest }: Props) {
+export function Crowd({ nodes, links, layout, heights, dim, player, walking, state, onSelect, onNearest, veil = 0 }: Props) {
+  const mats = useMemo(() => {
+    if (!veil) return { white, dark, gold };
+    const fade = <M extends THREE.Material>(m: M) => Object.assign(m.clone(), { transparent: true, opacity: 1 - veil * 0.6 });
+    return { white: fade(white), dark: fade(dark), gold: fade(gold) };
+  }, [veil]);
   const N = nodes.length;
   const body = useRef<THREE.InstancedMesh>(null), head = useRef<THREE.InstancedMesh>(null), hair = useRef<THREE.InstancedMesh>(null);
   const eyes = useRef<THREE.InstancedMesh>(null), crown = useRef<THREE.InstancedMesh>(null);
@@ -140,12 +147,12 @@ export function Crowd({ nodes, links, layout, heights, dim, player, walking, sta
     const c = new THREE.Color();
     nodes.forEach((n, i) => {
       const h = hash(n.id);
-      body.current?.setColorAt(i, c.set(layout.colorOf.get(n.id) ?? "#ced4da"));
+      body.current?.setColorAt(i, c.set(layout.colorOf.get(n.id) ?? "#ced4da").lerp(AURA, veil * 0.5));
       head.current?.setColorAt(i, SKIN[h % SKIN.length]);
       hair.current?.setColorAt(i, HAIR[(h >>> 3) % HAIR.length]);
     });
     for (const r of [body, head, hair]) if (r.current?.instanceColor) r.current.instanceColor.needsUpdate = true;
-  }, [layout, nodes, sim]);
+  }, [layout, nodes, sim, veil]);
 
   useEffect(() => {
     nodes.forEach((n, i) => (sim.target[i] = dim && dim.has(n.id) ? 0.5 : 1));
@@ -232,11 +239,11 @@ export function Crowd({ nodes, links, layout, heights, dim, player, walking, sta
   };
   return (
     <group>
-      <instancedMesh ref={body} args={[miiGeo.body, white, N]} castShadow frustumCulled={false} onClick={click} />
-      <instancedMesh ref={head} args={[miiGeo.head, white, N]} castShadow frustumCulled={false} onClick={click} />
-      <instancedMesh ref={hair} args={[miiGeo.hair, white, N]} frustumCulled={false} />
-      <instancedMesh ref={eyes} args={[miiGeo.eye, dark, N * 2]} frustumCulled={false} />
-      <instancedMesh ref={crown} args={[miiGeo.crown, gold, N]} frustumCulled={false} />
+      <instancedMesh ref={body} args={[miiGeo.body, mats.white, N]} castShadow frustumCulled={false} onClick={click} />
+      <instancedMesh ref={head} args={[miiGeo.head, mats.white, N]} castShadow frustumCulled={false} onClick={click} />
+      <instancedMesh ref={hair} args={[miiGeo.hair, mats.white, N]} frustumCulled={false} />
+      <instancedMesh ref={eyes} args={[miiGeo.eye, mats.dark, N * 2]} frustumCulled={false} />
+      <instancedMesh ref={crown} args={[miiGeo.crown, mats.gold, N]} frustumCulled={false} />
       {ACCESSORIES.map((acc, a) => sim.acc[a].length > 0 && (
         <instancedMesh key={a} ref={(el) => { accRefs.current[a] = el; }} args={[acc.geo, acc.mat, sim.acc[a].length]} castShadow frustumCulled={false} />
       ))}

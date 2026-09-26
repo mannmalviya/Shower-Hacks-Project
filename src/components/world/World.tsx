@@ -1,6 +1,6 @@
 "use client";
 // The social mirror: an open Mii world of your network. Walk among your tribes; every category reorganizes the world.
-import { Line, OrbitControls, Sparkles } from "@react-three/drei";
+import { OrbitControls, Sparkles } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
@@ -188,9 +188,6 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
   const fact = category === "lifemap"
     ? `Past: ${pp.past.size} people (diversity ${pp.past.diversity}). Now: ${pp.present.size} (diversity ${pp.present.diversity}). Only ${pp.bridges} people bridge your two lives.`
     : bubble?.fact ?? "";
-  const selLines = sel && layout.pos.has(sel.id)
-    ? [...(neighbors.get(sel.id) ?? [])].filter((id) => layout.pos.has(id) && (showSecond || byId.get(id)?.degree !== 2)).map((id) => layout.pos.get(id)!)
-    : [];
 
   return (
     <div className="fixed inset-0 select-none bg-[linear-gradient(180deg,#8ec5ff_0%,#b3d8ff_30%,#d9ecff_55%,#e3f6ea_80%,#f1f8e9_100%)]">
@@ -210,18 +207,14 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
           state={crowd} onSelect={setSelected} onNearest={setNearest} />
         {showSecond && <>
           <Crowd nodes={ghostNodes} links={links} layout={layout} heights={heights} dim={dim} player={playerPos} walking={false}
-            state={crowd2} onSelect={setSelected} onNearest={noop} />
-          <Halo inner={layout.ring.radius - 6} outer={layout.ring.radius + 6} />
+            state={crowd2} onSelect={setSelected} onNearest={noop} veil={0.55} />
+          <Halo inner={layout.ring.inner + 6} outer={layout.ring.radius + 16} />
         </>}
         <CameraFly flyTo={flyTo} controls={controls} />
         <Player heights={heights} pos={playerPos} walkTo={walkTo} keys={keys} follow={follow} stack={egoStack} ghostStack={ghostStack} />
         <LabelProjector anchors={anchors} els={labelEls} priority={priority} />
 
-        {sel && selLines.map((t, i) => {
-          const s = layout.pos.get(sel.id)!;
-          return <Line key={i} points={[[s.x, heightAt(layout.heights, s.x, s.z) + 1.6, s.z], [t.x, heightAt(layout.heights, t.x, t.z) + 1.6, t.z]]}
-            color="#1d6fb8" lineWidth={1.5} transparent opacity={0.55} />;
-        })}
+        <SelectedLinks selected={selected} neighbors={neighbors} crowds={[crowd, crowd2]} player={playerPos} egoId={analysis.egoId} heights={heights} />
 
         <OrbitControls ref={controls} enabled={!follow} maxPolarAngle={Math.PI / 2.2} minDistance={10} maxDistance={260} enableDamping />
       </Canvas>
@@ -461,7 +454,7 @@ function Halo({ inner, outer }: { inner: number; outer: number }) {
       void main() {
         float r = length(vP), w = (outer - inner) * 0.35;
         float a = smoothstep(inner, inner + w, r) * (1.0 - smoothstep(outer - w, outer, r));
-        gl_FragColor = vec4(1.0, 1.0, 1.0, a * 0.55);
+        gl_FragColor = vec4(0.95, 0.93, 1.0, a * 0.6);
       }`,
   }), [inner, outer]);
   return (
@@ -478,3 +471,52 @@ function Halo({ inner, outer }: { inner: number; outer: number }) {
     </group>
   );
 }
+
+/** Beams from the selected person to ALL their relations (first circle, N+1 if shown, and you), following them live. */
+function SelectedLinks({ selected, neighbors, crowds, player, egoId, heights }: {
+  selected: string | null;
+  neighbors: Map<string, Set<string>>;
+  crowds: React.RefObject<CrowdState | null>[];
+  player: React.RefObject<THREE.Vector3>;
+  egoId: string;
+  heights: React.RefObject<Float32Array>;
+}) {
+  const MAX = 120;
+  const mesh = useRef<THREE.InstancedMesh>(null);
+  const others = useMemo(() => (selected ? [...(neighbors.get(selected) ?? [])] : []), [selected, neighbors]);
+  const tmp = useMemo(() => ({ a: new THREE.Vector3(), b: new THREE.Vector3(), m: new THREE.Matrix4(), q: new THREE.Quaternion(),
+    s: new THREE.Vector3(), up: new THREE.Vector3(0, 1, 0), dir: new THREE.Vector3() }), []);
+  useFrame(() => {
+    const im = mesh.current;
+    if (!im) return;
+    const where = (id: string, out: THREE.Vector3) => {
+      if (id === egoId) {
+        const p = player.current;
+        return out.set(p.x, heightAt(heights.current, p.x, p.z) + 2.2, p.z);
+      }
+      for (const c of crowds) {
+        const st = c.current, i = st ? st.ids.indexOf(id) : -1;
+        if (st && i >= 0) return out.set(st.x[i], st.y[i] + 2.2, st.z[i]);
+      }
+      return null;
+    };
+    let k = 0;
+    if (selected && where(selected, tmp.a)) {
+      for (const id of others) {
+        if (k >= MAX || !where(id, tmp.b)) continue;
+        tmp.dir.subVectors(tmp.b, tmp.a);
+        const len = tmp.dir.length();
+        tmp.q.setFromUnitVectors(tmp.up, tmp.dir.normalize());
+        tmp.m.compose(tmp.s.addVectors(tmp.a, tmp.b).multiplyScalar(0.5), tmp.q, new THREE.Vector3(1, len, 1));
+        im.setMatrixAt(k++, tmp.m);
+      }
+    }
+    im.count = k;
+    im.instanceMatrix.needsUpdate = true;
+  });
+  return (
+    <instancedMesh ref={mesh} args={[BEAM, BEAM_MAT, MAX]} frustumCulled={false} />
+  );
+}
+const BEAM = new THREE.CylinderGeometry(0.07, 0.07, 1, 6);
+const BEAM_MAT = new THREE.MeshBasicMaterial({ color: "#3b82f6", transparent: true, opacity: 0.75 });
