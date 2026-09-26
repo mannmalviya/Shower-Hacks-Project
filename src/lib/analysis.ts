@@ -43,6 +43,7 @@ export type Node = {
   wealthTier: string;
   isStudent: boolean; // students and interns: left out of "what your group earns"
   isBridge: boolean;
+  audience: number; // followers across Instagram + X + GitHub (who a post relayed by them could reach)
 };
 
 export type Dimension = "tribe" | "city" | "country" | "school" | "company" | "industry" | "platform" | "wealthTier" | "circle" | "interest";
@@ -75,6 +76,15 @@ export type Tribe = {
   medianWealth: number | null;
 };
 
+export type NetworkValue = {
+  money: { total: number; median: number | null; knownShare: number; yourPercentile: number | null };
+  reach: { known: number; audience: number };
+  doors: { oneHop: { company: string; count: number }[]; twoHop: { company: string; count: number }[] };
+  byTribe: Record<string, { moneyShare: number; reachShare: number; doors: string[] }>;
+  byPerson: Record<string, { doors: string[] }>; // companies this person brings you closer to
+  top: { money: string[]; reach: string[]; doors: string[] }; // biggest contributors (ids), lit when you click a facet
+};
+
 export type Analysis = {
   egoId: string;
   egoTribe: string | null;
@@ -101,6 +111,7 @@ export type Analysis = {
   secondDegree: { count: number; topCompanies: { value: string; count: number }[] };
   /** Everything Claude gets for the portrait. Aggregates only, no names. */
   portraitInput: Record<string, unknown>;
+  value: NetworkValue;
 };
 
 type EraStat = { size: number; medianWealth: number | null; medianWealthWorking: number | null; diversity: number; topIndustries: string[]; circles: string[] };
@@ -165,6 +176,7 @@ type Features = {
   languages: string[];
   verified: boolean;
   bigAudience: boolean;
+  audience: number;
 };
 
 function features(p: PersonIn): Features {
@@ -175,6 +187,7 @@ function features(p: PersonIn): Features {
   const loc = p.location ?? str(li.location) ?? str(gh.location) ?? str(x.location) ?? place("Current City");
   const parts = (loc ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   const followers = Number(obj(ig.edge_followed_by).count ?? 0) || Number(x.followersCount ?? 0);
+  const audience = Number(obj(ig.edge_followed_by).count ?? 0) + Number(x.followersCount ?? 0) + Number(gh.followers ?? 0);
   const words = p.name.trim().split(/\s+/);
   return {
     platforms: Object.keys(raw).filter((k) => raw[k] && typeof raw[k] === "object"),
@@ -193,6 +206,7 @@ function features(p: PersonIn): Features {
     languages: Array.isArray(gh.top_languages) ? gh.top_languages.filter((l): l is string => typeof l === "string") : [],
     verified: ig.is_verified === true || x.verified === true,
     bigAudience: followers > 50_000,
+    audience,
   };
 }
 
@@ -276,7 +290,7 @@ export function analyze(input: { people: PersonIn[]; follows: FollowIn[]; netWor
       company: [p.company, ...f.companies].find((c) => c && !f.schools.includes(c)) ?? null,
       industry: industryOf(p, f),
       interests: uniq([...INTERESTS.filter(([re]) => re.test(f.bio)).map(([, n]) => n), ...f.languages.map((l) => `💻 ${l}`)]),
-      wealth: w, wealthTier: tierOf(w?.mid ?? null), isBridge: false,
+      wealth: w, wealthTier: tierOf(w?.mid ?? null), isBridge: false, audience: f.audience,
       isStudent: /student|intern|undergrad/i.test(`${p.role ?? ""} ${p.headline ?? ""}`) || industryOf(p, f) === "Student",
     };
   });
@@ -379,7 +393,9 @@ export function analyze(input: { people: PersonIn[]; follows: FollowIn[]; netWor
     pastVsPresent: { past, present, bridges: first.filter((n) => n.isBridge).length, leftBehind: past.circles },
     secondDegree: { count: second.length, topCompanies: secondCompanies },
     portraitInput: {},
+    value: {} as NetworkValue,
   };
+  analysis.value = networkValue(first, second, und, egoW, nodeById);
   analysis.portraitInput = portraitInput(analysis, ego);
   return analysis;
 }
@@ -597,4 +613,66 @@ function detectTribes(first: Node[], feat: Map<string, Features>, und: Map<strin
   }
   tribes.sort((a, b) => b.size - a.size);
   return { tribes, egoTribe };
+}
+
+// ---------- the value of your network: money, reach, doors ----------
+
+const NOTABLE = /google|meta|apple|nvidia|openai|stripe|figma|databricks|tesla|microsoft|amazon|goldman|mckinsey|loopwise/i;
+const isSchool = (c: string) => /university|college|school|\buc\b|stanford|berkeley|conservatory|academy/i.test(c);
+
+function networkValue(first: Node[], second: Node[], und: Map<string, Set<string>>, egoW: { mid: number } | null,
+  byId: Map<string, Node>): NetworkValue {
+  const mids = first.flatMap((n) => (n.wealth ? [n.wealth.mid] : []));
+  const total = mids.reduce((a, b) => a + b, 0);
+  // reach only counts people who would relay you: not the idols you follow who don't follow back
+  const relays = (n: Node) => (n.tie === "aspiration" ? 0 : n.audience);
+  const audience = first.reduce((a, n) => a + relays(n), 0);
+  const job = (n: Node) => (n.company && !isSchool(n.company) ? n.company : null);
+
+  // doors: companies 1 contact away (your circle) and 2 contacts away (N+1), notable ones first
+  const count = (list: Node[]) => {
+    const m = new Map<string, number>();
+    for (const n of list) { const c = job(n); if (c) m.set(c, (m.get(c) ?? 0) + 1); }
+    return [...m].map(([company, c]) => ({ company, count: c }))
+      .sort((a, b) => Number(NOTABLE.test(b.company)) - Number(NOTABLE.test(a.company)) || b.count - a.count);
+  };
+  const oneHop = count(first);
+  const near = new Set(oneHop.map((d) => d.company));
+  const twoHop = count(second).filter((d) => !near.has(d.company));
+
+  // what each person brings: their job + the jobs of the friends of friends they connect you to
+  const byPerson: NetworkValue["byPerson"] = {};
+  for (const n of first) {
+    const doors = new Set<string>();
+    const own = job(n);
+    if (own) doors.add(own);
+    for (const j of und.get(n.id) ?? []) { const m = byId.get(j); const c = m && m.degree === 2 ? job(m) : null; if (c) doors.add(c); }
+    byPerson[n.id] = { doors: [...doors].sort((a, b) => Number(NOTABLE.test(b)) - Number(NOTABLE.test(a))) };
+  }
+
+  const byTribe: NetworkValue["byTribe"] = {};
+  for (const n of first) {
+    const t = (byTribe[n.tribe] ??= { moneyShare: 0, reachShare: 0, doors: [] });
+    t.moneyShare += total ? (n.wealth?.mid ?? 0) / total : 0;
+    t.reachShare += audience ? relays(n) / audience : 0;
+    for (const d of byPerson[n.id].doors) if (!t.doors.includes(d)) t.doors.push(d);
+  }
+  for (const t of Object.values(byTribe)) t.doors.sort((a, b) => Number(NOTABLE.test(b)) - Number(NOTABLE.test(a)));
+
+  const topBy = (score: (n: Node) => number) => [...first].filter((n) => score(n) > 0).sort((a, b) => score(b) - score(a)).slice(0, 15).map((n) => n.id);
+  return {
+    money: {
+      total, median: median(mids), knownShare: first.length ? mids.length / first.length : 0,
+      // mid-rank: people exactly as rich as you count half
+      yourPercentile: egoW && mids.length ? (mids.filter((m) => m < egoW.mid).length + mids.filter((m) => m === egoW.mid).length / 2) / mids.length : null,
+    },
+    reach: { known: first.length + second.filter((n) => job(n)).length, audience },
+    doors: { oneHop, twoHop },
+    byTribe, byPerson,
+    top: {
+      money: topBy((n) => n.wealth?.mid ?? 0),
+      reach: topBy(relays),
+      doors: topBy((n) => byPerson[n.id].doors.filter((d) => NOTABLE.test(d)).length * 10 + byPerson[n.id].doors.length),
+    },
+  };
 }
