@@ -15,7 +15,7 @@ import { TribeProps } from "./TribeProps";
 import { Chamber } from "./Chamber";
 import { TribeArcs, tribeLinks } from "./TribeArcs";
 import { lineFor } from "./speech";
-import { CATEGORIES, TERRAIN_SEG, coverage, getWorld, heightAt, keysOf, type Category } from "./worldLayout";
+import { CATEGORIES, TERRAIN_SEG, coverage, getWorld, hasData, heightAt, keysOf, type Category } from "./worldLayout";
 
 const money = (n: number | null | undefined) =>
   n == null ? "?" : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}k` : `$${n}`;
@@ -57,7 +57,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
   }, [analysis, links]);
 
   const crowdNodes = useMemo(() => analysis.nodes.filter((n) => n.degree === 1), [analysis]);
-  const ghostNodes = useMemo(() => analysis.nodes.filter((n) => n.degree === 2), [analysis]);
+  const ghostNodes = useMemo(() => analysis.nodes.filter((n) => n.degree === 2 && hasData(n)), [analysis]); // N+1 we know something about
   const arcs = useMemo(() => tribeLinks(analysis.nodes, links), [analysis, links]);
   const byTribe = category === "tribe" || category === "lifemap";
   const neighbors = useMemo(() => {
@@ -314,11 +314,12 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
           <button onClick={toggleFollow} className="flex-1 rounded-xl bg-sky-100 py-1.5 text-xs font-bold text-sky-700 hover:bg-sky-200">
             {follow ? "🗺️ Overview" : "🚶 Walk"}
           </button>
-          <label className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xl bg-slate-100 text-xs font-bold text-slate-600">
+          <label title={`Friends of friends, grouped by the part of your world they come through. ${layout.ring.hidden} people with no data at all are hidden.`}
+            className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xl bg-slate-100 text-xs font-bold text-slate-600">
             <input type="checkbox" checked={showSecond} onChange={(e) => {
               setShowSecond(e.target.checked);
               if (e.target.checked && !follow) flyTo.current = { x: 0, y: 0, z: 0, dist: 3.4 };
-            }} /> 🌐 N+1 circle ({analysis.secondDegree.count})
+            }} /> 🌐 N+1 · {ghostNodes.length}
           </label>
         </div>
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search (Stripe, skate, Berkeley…)"

@@ -28,13 +28,16 @@ export type WorldLayout = {
   pos: Map<string, { x: number; z: number }>; // 1st + 2nd degree
   colorOf: Map<string, string>; // body color per person
   ego: { x: number; z: number };
-  ring: { inner: number; radius: number; groups: Group[] }; // the N+1 circle around your world
+  ring: { inner: number; radius: number; groups: Group[]; hidden: number }; // the N+1 circle around your world
   heights: Float32Array; // terrain grid heights (TERRAIN_SEG+1)^2
   tints: Float32Array; // terrain vertex colors rgb
 };
 
 export const TERRAIN_SIZE = 260;
 export const TERRAIN_SEG = 110;
+
+/** An N+1 person we know something about (not just a login from a following list). */
+export const hasData = (n: Node) => !!(n.company || n.city || n.name.trim().includes(" "));
 
 /** Keys a person belongs to in a category; the first one is primary. */
 export function keysOf(n: Node, c: Category): string[] {
@@ -181,10 +184,27 @@ export function computeWorld(a: Analysis, links: [string, string][], c: Category
     for (const id of ids) { const q = pos.get(id)!; const l = Math.hypot(q.x, q.z) || 1; sx += q.x / l; sz += q.z / l; }
     return Math.atan2(sz, sx);
   };
-  const second = a.nodes.filter((n) => n.degree === 2);
-  const ringKey = (n: Node) => (n.company ? `🌐 ${n.company}` : "🌐 Unknown");
+  // N+1 grouped by the group of your world they reach you through ("friends of your Cal friends"); that is always
+  // known, unlike their company. People we know nothing about (just a login) are left out.
+  const allSecond = a.nodes.filter((n) => n.degree === 2);
+  const second = allSecond.filter(hasData);
+  const firstById = new Map(first.map((f) => [f.id, f]));
+  const viaOf = (n: Node) => {
+    const votes = new Map<string, number>();
+    for (const id of contactsOf.get(n.id) ?? []) {
+      const f = firstById.get(id);
+      if (f) { const k = keysOf(f, c)[0]; votes.set(k, (votes.get(k) ?? 0) + 1); }
+    }
+    return [...votes].sort((x, y) => y[1] - x[1])[0]?.[0] ?? null;
+  };
+  const viaKey = new Map<string, string>();
   const ringGroups = new Map<string, Node[]>();
-  for (const n of second) (ringGroups.get(ringKey(n)) ?? ringGroups.set(ringKey(n), []).get(ringKey(n))!).push(n);
+  for (const n of second) {
+    const via = viaOf(n);
+    if (!via) continue;
+    viaKey.set(`↗ ${via}`, via);
+    (ringGroups.get(`↗ ${via}`) ?? ringGroups.set(`↗ ${via}`, []).get(`↗ ${via}`)!).push(n);
+  }
   const ringList = [...ringGroups].map(([key, members]) => ({ key, members, angle: angleOf(members.flatMap((m) => contactsOf.get(m.id) ?? [])) }))
     .sort((x, y) => x.angle - y.angle);
   // each group is a little crowd on the ring, facing the side it reaches you through; big companies = big crowds
@@ -202,7 +222,7 @@ export function computeWorld(a: Analysis, links: [string, string][], c: Category
   const ringOut: Group[] = [];
   ringList.forEach((g, gi) => {
     const gx = Math.cos(g.angle) * R2, gz = Math.sin(g.angle) * R2;
-    const color = PALETTE[(gi + 5) % PALETTE.length];
+    const color = colorFor.get(viaKey.get(g.key)!) ?? PALETTE[gi % PALETTE.length]; // same color as the group it extends
     g.members.forEach((m, k) => {
       const rr = 1.9 * Math.sqrt(k + 0.5), aa = k * GOLDEN;
       pos.set(m.id, { x: gx + Math.cos(aa) * rr, z: gz + Math.sin(aa) * rr });
@@ -219,8 +239,8 @@ export function computeWorld(a: Analysis, links: [string, string][], c: Category
     return { key: k, count: members.length, x, z, color: colorFor.get(k)!, era: eraOf(k) };
   });
 
-  const { heights, tints } = terrain(first, pos, colorOf);
-  return { category: c, groups, pos, colorOf, ego: egoAnchor, ring: { inner: r1, radius: R2, groups: ringOut }, heights, tints };
+  const { heights, tints } = terrain(first, pos, colorOf, r1);
+  return { category: c, groups, pos, colorOf, ego: egoAnchor, ring: { inner: r1, radius: R2, groups: ringOut, hidden: allSecond.length - second.length }, heights, tints };
 }
 
 // ---------- terrain ----------
@@ -229,7 +249,7 @@ const hexRgb = (h: string) => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.sli
 
 const toLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
 
-function terrain(first: Node[], pos: Map<string, { x: number; z: number }>, colorOf: Map<string, string>) {
+function terrain(first: Node[], pos: Map<string, { x: number; z: number }>, colorOf: Map<string, string>, r1: number) {
   const S = TERRAIN_SEG + 1, half = TERRAIN_SIZE / 2, step = TERRAIN_SIZE / TERRAIN_SEG;
   const rich = first.filter((n) => n.wealth).map((n) => ({ ...pos.get(n.id)!, w: Math.max(0, Math.min(1.3, (Math.log10(n.wealth!.mid + 1) - 3.5) / 2.5)) }));
   const people = first.map((n) => ({ ...pos.get(n.id)!, rgb: hexRgb(colorOf.get(n.id)!) }));
@@ -246,7 +266,8 @@ function terrain(first: Node[], pos: Map<string, { x: number; z: number }>, colo
         const g = Math.exp(-d2 / s2h);
         kw += g * r.w; k += g;
       }
-      const h = k > 0 ? (kw / (k + 0.35)) * 7 : 0;
+      const rad = Math.hypot(x, z), edge = Math.min(1, Math.max(0, (rad - (r1 - 2)) / 10));
+      const h = k > 0 ? (kw / (k + 0.35)) * 7 * (1 - edge * edge * (3 - 2 * edge)) : 0; // smoothstep falloff at your circle's edge
       heights[v] = h;
       // ground tint = color of the group standing there, over grass that turns golden uphill
       let cr = 0, cg = 0, cb = 0, ck = 0;
