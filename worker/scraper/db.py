@@ -63,3 +63,39 @@ def enqueue(db: Client, person_id, platform: str) -> dict:
     return db.table("scrape_jobs").insert(
         {"person_id": person_id, "platform": platform, "status": "queued"}
     ).execute().data[0]
+
+
+def upsert_contacts(db: Client, user_id, contacts: list[dict], source: str, enqueue_top: int = 0) -> dict:
+    """Add a user's first-degree contacts: one people row per contact (deduped on
+    linkedin_url) and a follows row (follower_id = contact, person_id = user).
+    contacts: [{name, headline, role, company, linkedin_url, photo_url, connected_on}] in
+    the order LinkedIn lists them (most recent first); the first `enqueue_top` get a
+    full-profile scrape job (30-90 s each, so keep it small)."""
+    contacts = list({c["linkedin_url"]: c for c in contacts if c.get("linkedin_url")}.values())
+    urls = [c["linkedin_url"] for c in contacts]
+
+    existing: dict[str, object] = {}
+    for i in range(0, len(urls), 200):  # keep the IN (...) filter short
+        for p in db.table("people").select("id, linkedin_url").in_("linkedin_url", urls[i:i + 200]).execute().data:
+            existing[p["linkedin_url"]] = p["id"]
+
+    new = [{
+        "name": c["name"], "headline": c.get("headline"), "role": c.get("role"), "company": c.get("company"),
+        "photo_url": c.get("photo_url"), "linkedin_url": c["linkedin_url"], "is_user": False,
+        "raw": {source: {"connected_on": c.get("connected_on")}},
+    } for c in contacts if c["linkedin_url"] not in existing]
+    for i in range(0, len(new), 500):
+        for p in db.table("people").insert(new[i:i + 500]).execute().data:
+            existing[p["linkedin_url"]] = p["id"]
+
+    have = {f["follower_id"] for f in db.table("follows").select("follower_id").eq("person_id", user_id).execute().data}
+    follows = [{"follower_id": existing[u], "person_id": user_id}
+               for u in urls if existing[u] not in have and existing[u] != user_id]
+    for i in range(0, len(follows), 500):
+        db.table("follows").insert(follows[i:i + 500]).execute()
+
+    jobs = [{"person_id": existing[u], "platform": "linkedin", "status": "queued"} for u in urls[:enqueue_top]]
+    if jobs:
+        db.table("scrape_jobs").insert(jobs).execute()
+
+    return {"contacts": len(contacts), "new_people": len(new), "new_follows": len(follows), "jobs_queued": len(jobs)}

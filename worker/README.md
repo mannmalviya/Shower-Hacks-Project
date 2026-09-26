@@ -14,7 +14,15 @@ Each platform tries backends in order until one works (`SCRAPE_ORDER_<PLATFORM>`
 
 Defaults: LinkedIn `zo,harness` · X `zo,harness` · Instagram `http,zo,harness`.
 
-LinkedIn contacts come from the official export (no scraping): `import-linkedin-csv`.
+## First-degree connections
+
+`connections` reads the LinkedIn connections list of **the account signed in to the harness Chrome** (LinkedIn only shows a connections list to its owner). It checks `/in/me/` first and refuses to attach the list to a different person. It clicks "Load more" (10 cards per click) up to `CONNECTIONS_LIMIT` (default 50), which takes about 20 s for 30 connections.
+
+Each connection becomes a `people` row (name, headline, role/company parsed from "X at Y" headlines, photo, `linkedin_url`) plus a `follows` row (`follower_id = connection, person_id = user`). The `CONNECTIONS_ENQUEUE` most recent connections (default 15) also get a full-profile `linkedin` scrape job. Results are cached in `.cache/linkedin_connections/<handle>.json`.
+
+In the app, queue it like any job: `scrape_jobs` row with `platform = 'linkedin_connections'` for the user's `people.id`.
+
+Backup with no scraping: `import-linkedin-csv` loads LinkedIn's official `Connections.csv` export the same way.
 
 ## Setup
 
@@ -43,6 +51,8 @@ uv run python -m scraper scrape https://www.linkedin.com/in/<handle>/ -b harness
 uv run python -m scraper scrape https://www.linkedin.com/in/<handle>/ -b zo --no-cache
 uv run python -m scraper run                                   # the worker loop
 uv run python -m scraper enqueue <person_id> linkedin          # queue a job by hand
+uv run python -m scraper connections --limit 30                 # signed-in account's connections -> JSON, no DB
+uv run python -m scraper connections --user <person_id>         # -> people + follows + 15 scrape jobs
 uv run python -m scraper import-linkedin-csv Connections.csv --user <person_id> --enqueue 15
 ```
 

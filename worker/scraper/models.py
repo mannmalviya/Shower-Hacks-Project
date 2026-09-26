@@ -65,6 +65,12 @@ def handle(url: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]", "", parts[0]).lower()
 
 
+def linkedin_profile_url(url: str) -> str:
+    """Canonical form used for people.linkedin_url, so the same person dedupes
+    whether the URL came from a connections card, an export or user input."""
+    return f"https://www.linkedin.com/in/{handle(url)}/"
+
+
 def clean(s) -> str | None:
     if s is None:
         return None
