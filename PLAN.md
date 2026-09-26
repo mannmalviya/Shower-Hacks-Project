@@ -91,16 +91,15 @@ Next.js API route ◀────────────┘
 
 ## Data
 
-Schema: `supabase/migrations/`. Helpers: `src/lib/db.ts`. Reads are public. Users write their own rows. The worker and API routes write with the secret key.
+Schema: `supabase/migrations/`. Helpers: `src/lib/db.ts`. Reads are public. v1 has no sign-in: onboarding (`src/app/onboarding/actions.ts`), the worker and API routes write with the secret key.
 
-- `people`: id, user_id (set = signed-up user), name, headline, location, country, photo_url, raw (jsonb)
+- `people`: id, user_id (set = signed-up user), name, headline, location, country, photo_url, net_worth_guess (USD, from onboarding), raw (jsonb)
 - `social_profiles`: id, person_id, platform (linkedin | x | instagram | github), url (unique), handle, bio, follower_count, avatar_url, raw (jsonb). One row per platform per person.
 - `experiences`: id, person_id, company, title, start_date, end_date (empty = current), is_primary (max one per person; used for "group by company")
 - `education`: id, person_id, school, degree, field, start_date, end_date
 - `follows`: follower_id → person_id
 - `scrape_jobs`: id, person_id, platform, status (`queued` | `running` | `done` | `failed`), error, created_at
 - `net_worth`: person_id, low, high (USD), reasoning, sources (jsonb)
-- `onboarding_answers`: user_id, answers (jsonb)
 
 **Proposed additions** (for Platforms / Second degree / Visualizations; agree as a team first):
 

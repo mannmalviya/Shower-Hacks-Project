@@ -159,24 +159,6 @@ export type Database = {
           },
         ]
       }
-      onboarding_answers: {
-        Row: {
-          answers: Json
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          answers?: Json
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          answers?: Json
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       people: {
         Row: {
           country: string | null
@@ -185,6 +167,7 @@ export type Database = {
           id: string
           location: string | null
           name: string
+          net_worth_guess: number | null
           photo_url: string | null
           raw: Json
           updated_at: string
@@ -197,6 +180,7 @@ export type Database = {
           id?: string
           location?: string | null
           name: string
+          net_worth_guess?: number | null
           photo_url?: string | null
           raw?: Json
           updated_at?: string
@@ -209,6 +193,7 @@ export type Database = {
           id?: string
           location?: string | null
           name?: string
+          net_worth_guess?: number | null
           photo_url?: string | null
           raw?: Json
           updated_at?: string

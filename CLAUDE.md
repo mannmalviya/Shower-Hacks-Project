@@ -14,6 +14,7 @@ Hackathon project. ~8 hours, 3 people, all using Claude. Read `PLAN.md` first. I
 
 ### Database
 - Hosted Cloud Supabase
+- Schema explained in words: `DB_SCHEMA.md`. Source of truth is `supabase/migrations/`.
 
 ## Rules
 

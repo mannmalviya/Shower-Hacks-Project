@@ -4,7 +4,7 @@
 //   server:    await createClient() from "@/lib/supabase/server"
 //   admin:     createAdminClient() from "@/lib/supabase/admin" (skips RLS, server only)
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, Json, Tables, TablesInsert } from "./supabase/database.types";
+import type { Database, Tables, TablesInsert } from "./supabase/database.types";
 
 type DB = SupabaseClient<Database>;
 
@@ -80,14 +80,6 @@ export async function upsertMyPerson(db: DB, fields: Omit<TablesInsert<"people">
     .single();
   if (error) throw error;
   return data;
-}
-
-export async function saveOnboarding(db: DB, answers: Json) {
-  const { data: claims } = await db.auth.getClaims();
-  const uid = claims?.claims.sub;
-  if (!uid) throw new Error("Not signed in");
-  const { error } = await db.from("onboarding_answers").upsert({ user_id: uid, answers });
-  if (error) throw error;
 }
 
 /** Save the user's social URLs (one per platform). Pass the user's own person id. */
