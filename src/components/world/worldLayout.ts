@@ -203,7 +203,7 @@ function terrain(first: Node[], pos: Map<string, { x: number; z: number }>, colo
   const rich = first.filter((n) => n.wealth).map((n) => ({ ...pos.get(n.id)!, w: Math.max(0, Math.min(1.3, (Math.log10(n.wealth!.mid + 1) - 3.5) / 2.5)) }));
   const people = first.map((n) => ({ ...pos.get(n.id)!, rgb: hexRgb(colorOf.get(n.id)!) }));
   const heights = new Float32Array(S * S), tints = new Float32Array(S * S * 3);
-  const s2h = 2 * 6 * 6, s2c = 2 * 3.2 * 3.2;
+  const s2h = 2 * 8.5 * 8.5, s2c = 2 * 3.2 * 3.2; // wide, soft hills
   for (let iz = 0; iz < S; iz++) {
     for (let ix = 0; ix < S; ix++) {
       const x = -half + ix * step, z = -half + iz * step, v = iz * S + ix;
@@ -211,11 +211,11 @@ function terrain(first: Node[], pos: Map<string, { x: number; z: number }>, colo
       let kw = 0, k = 0;
       for (const r of rich) {
         const d2 = (x - r.x) ** 2 + (z - r.z) ** 2;
-        if (d2 > 400) continue;
+        if (d2 > 900) continue;
         const g = Math.exp(-d2 / s2h);
         kw += g * r.w; k += g;
       }
-      const h = k > 0 ? (kw / (k + 0.25)) * 6 : 0;
+      const h = k > 0 ? (kw / (k + 0.35)) * 7 : 0;
       heights[v] = h;
       // ground tint = color of the group standing there, over grass that turns golden uphill
       let cr = 0, cg = 0, cb = 0, ck = 0;
@@ -225,7 +225,7 @@ function terrain(first: Node[], pos: Map<string, { x: number; z: number }>, colo
         const g = Math.exp(-d2 / s2c);
         cr += g * p.rgb[0]; cg += g * p.rgb[1]; cb += g * p.rgb[2]; ck += g;
       }
-      const t = Math.min(1, h / 6);
+      const t = Math.min(1, h / 7);
       const base = [0.92 + 0.07 * t, 0.93 - 0.01 * t, 1.0 - 0.2 * t]; // Soul's soft lavender floor, peach-gold uphill
       const m = Math.min(0.22, ck * 0.15); // just a hint of the group color
       // vertex colors are linear in three.js: convert from sRGB or everything looks washed out

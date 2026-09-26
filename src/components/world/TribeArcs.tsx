@@ -27,8 +27,8 @@ export function TribeArcs({ layout, arcs, focus }: { layout: WorldLayout; arcs: 
     <group>
       {arcs.slice(0, 24).map(({ a, b, count }) => {
         const ga = at.get(a), gb = at.get(b);
-        if (!ga || !gb || count < 2) return null;
         const lit = !focus || focus === a || focus === b;
+        if (!ga || !gb || count < 2 || !lit) return null;
         const ya = heightAt(layout.heights, ga.x, ga.z) + 3, yb = heightAt(layout.heights, gb.x, gb.z) + 3;
         const d = Math.hypot(ga.x - gb.x, ga.z - gb.z);
         return (

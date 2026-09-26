@@ -1,6 +1,6 @@
 "use client";
 // The social mirror: an open Mii world of your network. Walk among your tribes; every category reorganizes the world.
-import { Grid, Line, OrbitControls, Sparkles } from "@react-three/drei";
+import { Line, OrbitControls, Sparkles } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
@@ -95,7 +95,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
       m.set(`g${i}`, () => [g.x, y, g.z]);
     });
     const p = playerPos.current;
-    m.set("you", () => [p.x, p.y + egoStack + 4.6, p.z]);
+    m.set("you", () => [p.x, p.y + egoStack + 3.8, p.z]);
     if (ghostStack != null) m.set("future", () => [p.x + 1.7, p.y + ghostStack + 0.7, p.z]);
     const axis = category === "lifemap" || category === "places";
     m.set("past", () => (axis ? [-60, 2, 40] : null));
@@ -103,7 +103,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
     chatter.forEach((id, k) => m.set(`b${k}`, () => {
       const c = crowd.current;
       const i = c ? c.ids.indexOf(id) : -1;
-      return c && i >= 0 ? [c.x[i], c.y[i] + 4.9, c.z[i]] : null;
+      return c && i >= 0 ? [c.x[i], c.y[i] + 4.0, c.z[i]] : null;
     }));
     const pr = new Map<string, number>();
     layout.groups.forEach((g, i) => pr.set(`g${i}`, g.key === focus ? 1e6 : g.count));
@@ -111,7 +111,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
     m.set("near", () => {
       const c = crowd.current;
       const i = c && nearest ? c.ids.indexOf(nearest) : -1;
-      return c && i >= 0 ? [c.x[i], c.y[i] + 4, c.z[i]] : null;
+      return c && i >= 0 ? [c.x[i], c.y[i] + 3.3, c.z[i]] : null;
     });
     anchors.current = m;
   }, [layout, category, nearest, egoStack, ghostStack, chatter, focus]);
@@ -194,11 +194,9 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
           shadow-camera-left={-110} shadow-camera-right={110} shadow-camera-top={110} shadow-camera-bottom={-110} />
 
         <Terrain layout={layout} heights={heights} onGround={onGround} />
-        <Grid position={[0, 0.03, 0]} args={[10, 10]} infiniteGrid cellSize={4} cellThickness={0.9} cellColor="#c3c8f4"
-          sectionSize={20} sectionThickness={1.6} sectionColor="#9fa9ee" fadeDistance={300} fadeStrength={1} />
         <Sparkles count={260} scale={[280, 50, 280]} position={[0, 22, 0]} size={5} speed={0.35} opacity={0.8} color="#ffffff" />
         <Chamber />
-        {byTribe && !follow && <TribeArcs layout={layout} arcs={arcs} focus={focus} />}
+        {byTribe && !follow && focus && <TribeArcs layout={layout} arcs={arcs} focus={focus} />}
         {category === "places" && <Landmarks layout={layout} />}
         <Crowd nodes={crowdNodes} links={links} layout={layout} heights={heights} dim={dim} player={playerPos} walking={follow}
           state={crowd} onSelect={setSelected} onNearest={setNearest} />
