@@ -47,7 +47,7 @@ export function templatePortrait(a: Analysis) {
 export function Portrait({ analysis, onClose }: { analysis: Analysis; onClose: () => void }) {
   const blocks = templatePortrait(analysis);
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
+    <div className="absolute inset-0 z-[200] flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
       <div className="max-h-full w-full max-w-2xl overflow-y-auto rounded-3xl border-4 border-rose-400 bg-white p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-start justify-between">
