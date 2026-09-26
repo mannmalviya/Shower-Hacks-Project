@@ -93,6 +93,8 @@ Next.js API route ◀────────────┘
 
 Schema: `supabase/migrations/`. Helpers: `src/lib/db.ts`. Reads are public. v1 has no sign-in: onboarding (`src/app/onboarding/actions.ts`), the worker and API routes write with the secret key.
 
+Scraper worker (`worker/`, runs locally or on Zo with `browser-harness`): a signed-up user's `linkedin` job also syncs their first-degree LinkedIn connections (a people row + social_profiles row + two follows rows each). Details: `worker/README.md`.
+
 - `people`: id, user_id (set = signed-up user), name, headline, location, country, photo_url, net_worth_guess (USD, from onboarding), raw (jsonb)
 - `social_profiles`: id, person_id, platform (linkedin | x | instagram | github), url (unique), handle, bio, follower_count, avatar_url, raw (jsonb). One row per platform per person.
 - `experiences`: id, person_id, company, title, start_date, end_date (empty = current), is_primary (max one per person; used for "group by company")

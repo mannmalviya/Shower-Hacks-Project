@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { findProfiles, submitOnboarding, type Candidate, type OnboardingInput, type OnboardingResult } from "./actions";
 import type { Platform } from "@/lib/db";
 import { normalizeSocialUrl } from "@/lib/socials";
+import { ScrapeStatus } from "./ScrapeStatus";
 
 const PLATFORMS: Platform[] = ["linkedin", "x", "instagram", "github"];
 
@@ -102,9 +103,7 @@ export function OnboardingForm() {
       <div className="flex flex-col items-center gap-3 py-6 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-600">✓</div>
         <p className="text-lg font-medium text-slate-900">You are all set</p>
-        <p className="text-sm text-slate-500">
-          {result.jobsQueued > 0 ? `Scraping ${result.jobsQueued} profile(s) now.` : "Already scraping."}
-        </p>
+        <ScrapeStatus personId={result.personId} />
         <code className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">{result.personId}</code>
       </div>
     );
