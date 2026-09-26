@@ -186,10 +186,10 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
     : [];
 
   return (
-    <div className="fixed inset-0 select-none bg-[linear-gradient(180deg,#b9a8ff_0%,#d3d0ff_28%,#e7e9ff_52%,#d8f5ef_78%,#fbe3f0_100%)]">
+    <div className="fixed inset-0 select-none bg-[linear-gradient(180deg,#8ec5ff_0%,#b3d8ff_30%,#d9ecff_55%,#e3f6ea_80%,#f1f8e9_100%)]">
       <Canvas shadows gl={{ alpha: true }} camera={{ position: [0, 70, 95], fov: 50 }} onPointerMissed={() => setSelected(null)}>
-        <fog attach="fog" args={["#e7e9ff", 120, 330]} />
-        <hemisphereLight args={["#f4efff", "#bfeee6", 1.25]} />
+        <fog attach="fog" args={["#dcecfb", 120, 330]} />
+        <hemisphereLight args={["#eef6ff", "#c4e6b8", 1.25]} />
         <directionalLight position={[50, 90, 40]} intensity={0.95} color="#fff6ee" castShadow shadow-mapSize={[2048, 2048]}
           shadow-camera-left={-110} shadow-camera-right={110} shadow-camera-top={110} shadow-camera-bottom={-110} />
 

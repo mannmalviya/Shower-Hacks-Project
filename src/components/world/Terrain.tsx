@@ -33,7 +33,7 @@ float gridLine(vec2 p, float size) {
       .replace("#include <color_fragment>", `#include <color_fragment>
         float fade = 1.0 - smoothstep(70.0, 125.0, length(vWPos.xz));
         float lines = max(gridLine(vWPos.xz, 4.0) * 0.35, gridLine(vWPos.xz, 20.0) * 0.7) * fade;
-        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.58, 0.62, 0.92), lines);`);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.55, 0.75, 0.6), lines);`);
   };
   return m;
 }
@@ -79,7 +79,7 @@ export function Terrain({ layout, heights, onGround }: Props) {
       </mesh>
       <mesh rotation-x={-Math.PI / 2} position-y={-0.05}>
         <circleGeometry args={[600, 48]} />
-        <meshLambertMaterial color="#e9ebff" />
+        <meshLambertMaterial color="#d2ecc9" />
       </mesh>
     </group>
   );
