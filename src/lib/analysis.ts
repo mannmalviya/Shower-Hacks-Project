@@ -26,6 +26,8 @@ export type Tie = "self" | "mutual" | "aspiration" | "audience" | "indirect";
 export type Node = {
   id: string;
   name: string;
+  tribe: string; // primary tribe (color, main pull)
+  tribes: string[]; // secondary tribes (badges, extra pull -> you end up between groups)
   degree: 0 | 1 | 2;
   tie: Tie;
   circle: string;
@@ -43,7 +45,7 @@ export type Node = {
   isBridge: boolean;
 };
 
-export type Dimension = "city" | "country" | "school" | "company" | "industry" | "platform" | "wealthTier" | "circle" | "interest";
+export type Dimension = "tribe" | "city" | "country" | "school" | "company" | "industry" | "platform" | "wealthTier" | "circle" | "interest";
 
 export type Bubble = {
   dimension: Dimension;
@@ -64,8 +66,19 @@ export type CircleStat = {
   topTraits: string[]; // aggregates only: used to let Claude name unlabeled groups
 };
 
+export type Tribe = {
+  name: string;
+  size: number;
+  confidence: number; // 0-1: graph density + trait purity + number of platforms backing it
+  era: Era;
+  topTraits: string[];
+  medianWealth: number | null;
+};
+
 export type Analysis = {
   egoId: string;
+  egoTribe: string | null;
+  tribes: Tribe[];
   nodes: Node[];
   bubbles: Record<Dimension, Bubble>;
   circles: CircleStat[];
@@ -106,8 +119,11 @@ const WEALTH_TIERS: [number, string][] = [
 const INTERESTS: [RegExp, string][] = [
   [/⚽|soccer|futbol|football/i, "⚽ Soccer"], [/🎹|piano|pianist|music|conservatory/i, "🎹 Music"],
   [/✏️|illustrat|\bart\b|draw|design/i, "🎨 Art"], [/🤖|robot|\bfrc\b/i, "🤖 Robotics"],
+  [/🛹|skate|sk8/i, "🛹 Skate"],
+  [/📈|finance|\bvc\b|consult|startup|haas|econ|business/i, "💼 Business"],
   [/\bcs\b|eecs|swe|software|engineer|hack|shipping|build|indie|dev\b|agi|code/i, "💻 Tech"],
 ];
+const PRESENT_INTERESTS = new Set(["💻 Tech", "💼 Business"]);
 const TECH_COMPANIES = /stripe|google|meta|apple|nvidia|openai|tesla|figma|databricks|loopwise|microsoft|amazon/i;
 const INDUSTRIES: [RegExp, string][] = [
   [/nurse|kaiser|health|hospital|medical/i, "Health"], [/pwc|account|bank|finance|capital/i, "Finance"],
@@ -125,6 +141,10 @@ const obj = (v: Json | undefined): Obj => (v && typeof v === "object" && !Array.
 const arr = (v: Json | undefined): Obj[] => (Array.isArray(v) ? v.map(obj) : []);
 const str = (v: Json | undefined): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
 const uniq = <T,>(xs: (T | null | undefined)[]) => [...new Set(xs.filter((x): x is T => x != null))];
+const uniqBy = (key: (s: string) => string, xs: (string | null | undefined)[]) => {
+  const seen = new Set<string>();
+  return xs.filter((x): x is string => !!x && !seen.has(key(x)) && !!seen.add(key(x)));
+};
 const median = (xs: number[]) => {
   if (!xs.length) return null;
   const s = [...xs].sort((a, b) => a - b);
@@ -159,7 +179,7 @@ function features(p: PersonIn): Features {
   return {
     platforms: Object.keys(raw).filter((k) => raw[k] && typeof raw[k] === "object"),
     schools: uniq([...arr(li.educations).map((e) => str(e.institution_name)), ...arr(fb.Education).map((e) => str(e.text))]),
-    companies: uniq([
+    companies: uniqBy(norm, [
       p.company,
       ...arr(li.experiences).map((e) => str(e.institution_name)),
       str(gh.company)?.replace(/^@/, "") ?? null,
@@ -231,7 +251,7 @@ export function analyze(input: { people: PersonIn[]; follows: FollowIn[]; netWor
     const job = f.companies.find((c) => egoCompanies.some((e) => norm(e) === norm(c)));
     if (job) return { circle: `💼 Colleagues · ${job}`, era: presentPlaces.has(norm(job)) ? "present" : "past" };
     const hobby = INTERESTS.find(([re]) => re.test(f.bio));
-    if (hobby && hobby[1] !== "💻 Tech") return { circle: hobby[1], era: "past" };
+    if (hobby && !PRESENT_INTERESTS.has(hobby[1])) return { circle: hobby[1], era: "past" };
     const school = f.schools.find((s) => egoSchools.some((e) => norm(e) === norm(s)))
       ?? egoSchools.find((e) => f.bio.toLowerCase().includes(e.split(" ")[0].toLowerCase()));
     if (school) return { circle: `🎓 ${shortName(school)}`, era: presentPlaces.has(norm(school)) ? "present" : "past" };
@@ -250,7 +270,7 @@ export function analyze(input: { people: PersonIn[]; follows: FollowIn[]; netWor
     const { circle, era } = d === 1 ? circleOf(p, f, tie) : d === 0 ? { circle: "🙋 You", era: "present" as Era } : { circle: "🌫️ 2nd degree", era: "unknown" as Era };
     const w = wealthOf.get(p.id) ?? null;
     return {
-      id: p.id, name: p.name, degree: d, tie, circle, era,
+      id: p.id, name: p.name, degree: d, tie, circle, era, tribe: d === 0 ? "🙋 You" : "🌫️ 2nd degree", tribes: [],
       platforms: f.platforms, city: f.city, country: f.country,
       school: f.schools[0] ?? null,
       company: [p.company, ...f.companies].find((c) => c && !f.schools.includes(c)) ?? null,
@@ -268,6 +288,9 @@ export function analyze(input: { people: PersonIn[]; follows: FollowIn[]; netWor
     const eras = new Set([...nb(n.id)].map((j) => nodeById.get(j)).filter((m) => m?.degree === 1).map((m) => m!.era));
     n.isBridge = (eras.has("past") || n.era === "past") && (eras.has("present") || n.era === "present") && eras.size > 0;
   }
+
+  // ---------- tribes ----------
+  const { tribes, egoTribe } = detectTribes(first, feat, und, egoF);
 
   // ---------- bubbles ----------
   const valuesOf = (n: Node, dim: Dimension): string[] => {
@@ -293,7 +316,7 @@ export function analyze(input: { people: PersonIn[]; follows: FollowIn[]; netWor
     const topShare = groups[0]?.share ?? 0, top2Share = (groups[0]?.share ?? 0) + (groups[1]?.share ?? 0);
     return { dimension: dim, groups, topShare, top2Share, diversity, unknownShare: pool.length ? 1 - known / pool.length : 0, fact: factFor(dim, groups, top2Share, pool.length ? 1 - known / pool.length : 0) };
   };
-  const DIMS: Dimension[] = ["city", "country", "school", "company", "industry", "platform", "wealthTier", "circle", "interest"];
+  const DIMS: Dimension[] = ["tribe", "city", "country", "school", "company", "industry", "platform", "wealthTier", "circle", "interest"];
   const bubbles = Object.fromEntries(DIMS.map((d) => [d, bubble(d, first)])) as Record<Dimension, Bubble>;
 
   // ---------- circles ----------
@@ -352,7 +375,7 @@ export function analyze(input: { people: PersonIn[]; follows: FollowIn[]; netWor
   const secondCompanies = bubble("company", second).groups.slice(0, 5).map(({ value, count }) => ({ value, count }));
 
   const analysis: Analysis = {
-    egoId, nodes, bubbles, circles, ties, class: klass,
+    egoId, egoTribe, tribes, nodes, bubbles, circles, ties, class: klass,
     pastVsPresent: { past, present, bridges: first.filter((n) => n.isBridge).length, leftBehind: past.circles },
     secondDegree: { count: second.length, topCompanies: secondCompanies },
     portraitInput: {},
@@ -377,6 +400,7 @@ function factFor(dim: Dimension, groups: { value: string; share: number }[], top
     case "platform": return `${pct(g.share)} of your people are on ${g.value}.`;
     case "wealthTier": return `Most of your network is "${g.value}". ${pct(unknown)} are invisible to the algorithm.`;
     case "circle": return `Your biggest circle is ${g.value} (${pct(g.share)}).`;
+    case "tribe": return `${groups.length} tribes. The biggest: ${g.value} (${pct(g.share)}).${groups[1] ? ` Then ${groups[1].value} (${pct(groups[1].share)}).` : ""}`;
     case "interest": return `Your crowd's #1 thing: ${g.value} (${pct(g.share)}).`;
   }
 }
@@ -403,10 +427,174 @@ function portraitInput(a: Analysis, ego: PersonIn): Record<string, unknown> {
       percentileInNetwork: a.class.percentileInNetwork, networkVsUsMedian: a.class.vsUsMedian,
     },
     circles: a.circles.map((c) => ({ name: c.name, era: c.era, size: c.size, traits: c.topTraits })),
+    tribes: a.tribes.map((t) => ({ name: t.name, era: t.era, size: t.size, confidence: t.confidence, traits: t.topTraits })),
+    yourTribe: a.egoTribe,
     pastVsPresent: {
       past: { size: a.pastVsPresent.past.size, diversity: a.pastVsPresent.past.diversity, medianWealthWorking: a.pastVsPresent.past.medianWealthWorking, industries: a.pastVsPresent.past.topIndustries },
       present: { size: a.pastVsPresent.present.size, diversity: a.pastVsPresent.present.diversity, medianWealthWorking: a.pastVsPresent.present.medianWealthWorking, industries: a.pastVsPresent.present.topIndustries },
       bridges: a.pastVsPresent.bridges,
     },
   };
+}
+
+// ---------- tribes: graph communities, named by their traits ----------
+
+const TRIBE_NAMES: Record<string, string> = {
+  "🛹 Skate": "🛹 Skaters", "💻 Tech": "💻 Hackers", "💼 Business": "💼 Business", "⚽ Soccer": "⚽ Soccer",
+  "🎹 Music": "🎹 Music", "🎨 Art": "🎨 Art", "🤖 Robotics": "🤖 Robotics",
+};
+
+function tokensOf(city: string | null, f: Features): [string, number][] {
+  const t: [string, number][] = [];
+  for (const s of f.schools) t.push([`school:${s}`, 1]);
+  for (const c of f.companies) if (!f.schools.includes(c)) t.push([`company:${c}`, 1]);
+  for (const [re, name] of INTERESTS) if (re.test(f.bio)) t.push([`kw:${name}`, 1.3]);
+  if (f.hometown) t.push([`home:${f.hometown}`, 0.5]);
+  if (f.lastName) t.push([`last:${f.lastName}`, 0.4]);
+  if (city) t.push([`city:${city}`, 0.2]);
+  return t;
+}
+
+function tokenLabel(tok: string): string {
+  const kind = tok.slice(0, tok.indexOf(":")), value = tok.slice(tok.indexOf(":") + 1);
+  if (kind === "school") return value === "UC Berkeley" ? "🐻 Cal" : `🎓 ${value.replace(/ High School$/i, " HS")}`;
+  if (kind === "company") return `💼 ${value} crew`;
+  if (kind === "kw") return TRIBE_NAMES[value] ?? value;
+  if (kind === "last") return "🏠 Family";
+  if (kind === "home") return `🏡 From ${value}`;
+  return `📍 ${value} crew`;
+}
+
+function hashStr(s: string) {
+  let h = 7;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+function detectTribes(first: Node[], feat: Map<string, Features>, und: Map<string, Set<string>>, egoF: Features) {
+  const N = first.length;
+  const idx = new Map(first.map((n, i) => [n.id, i]));
+  const toks = first.map((n) => tokensOf(n.city, feat.get(n.id)!));
+  const df = new Map<string, number>();
+  toks.forEach((ts) => new Set(ts.map(([t]) => t)).forEach((t) => df.set(t, (df.get(t) ?? 0) + 1)));
+
+  // weights = social links + shared traits (a rarer trait is a stronger signal)
+  const W = new Map<number, Map<number, number>>();
+  const bump = (a: number, b: number, w: number) => {
+    const m = W.get(a) ?? W.set(a, new Map()).get(a)!;
+    m.set(b, (m.get(b) ?? 0) + w);
+  };
+  const addW = (a: number, b: number, w: number) => {
+    if (a === b) return;
+    bump(a, b, w);
+    bump(b, a, w);
+  };
+  first.forEach((n, i) => (und.get(n.id) ?? new Set<string>()).forEach((j) => {
+    const k = idx.get(j);
+    if (k != null && k > i) addW(i, k, 1.5);
+  }));
+  const byTok = new Map<string, [number, number][]>();
+  toks.forEach((ts, i) => ts.forEach(([t, w]) => (byTok.get(t) ?? byTok.set(t, []).get(t)!).push([i, w])));
+  for (const [t, members] of byTok) {
+    const d = df.get(t)!;
+    if (d < 2 || d / N > 0.45) continue;
+    const idf = Math.log(N / d);
+    for (let a = 0; a < members.length; a++)
+      for (let b = a + 1; b < members.length; b++) addW(members[a][0], members[b][0], idf * Math.min(members[a][1], members[b][1]));
+  }
+
+  // keep each person's 8 strongest neighbors, so big groups don't swallow small ones
+  const knn = first.map((_, i) => [...(W.get(i) ?? new Map<number, number>())].sort((a, b) => b[1] - a[1]).slice(0, 8));
+  const idol = first.map((n) => n.circle === "⭐ Idols");
+
+  // label propagation, deterministic order
+  const label = first.map((_, i) => i);
+  const order = first.map((_, i) => i).sort((a, b) => hashStr(first[a].id) - hashStr(first[b].id));
+  for (let it = 0; it < 30; it++) {
+    let changed = 0;
+    for (const i of order) {
+      if (idol[i]) continue;
+      const score = new Map<number, number>();
+      for (const [j, w] of knn[i]) if (!idol[j]) score.set(label[j], (score.get(label[j]) ?? 0) + w);
+      let best = label[i], bestS = score.get(label[i]) ?? 0;
+      for (const [l, sc] of score) if (sc > bestS || (sc === bestS && l < best)) { best = l; bestS = sc; }
+      if (best !== label[i]) { label[i] = best; changed++; }
+    }
+    if (!changed) break;
+  }
+
+  // merge tiny groups into their strongest neighbor group
+  const sizeOf = () => label.reduce((m, l) => m.set(l, (m.get(l) ?? 0) + 1), new Map<number, number>());
+  const sizes = sizeOf();
+  first.forEach((_, i) => {
+    if (idol[i] || sizes.get(label[i])! >= 3) return;
+    const score = new Map<number, number>();
+    for (const [j, w] of W.get(i) ?? []) if (!idol[j] && sizes.get(label[j])! >= 3) score.set(label[j], (score.get(label[j]) ?? 0) + w);
+    const best = [...score].sort((a, b) => b[1] - a[1])[0];
+    if (best) label[i] = best[0];
+  });
+
+  // name each group by its most characteristic trait (lift), then score confidence
+  const groups = new Map<number, number[]>();
+  first.forEach((_, i) => { if (!idol[i]) (groups.get(label[i]) ?? groups.set(label[i], []).get(label[i])!).push(i); });
+  const used = new Set<string>(["⭐ Idols"]);
+  const tribes: Tribe[] = [];
+  const nameOf = new Map<number, string>();
+  for (const [l, members] of [...groups].sort((a, b) => b[1].length - a[1].length)) {
+    const cnt = new Map<string, number>();
+    members.forEach((i) => new Set(toks[i].map(([t]) => t)).forEach((t) => cnt.set(t, (cnt.get(t) ?? 0) + 1)));
+    const lift = [...cnt].map(([t, c]) => {
+      const share = c / members.length, base = df.get(t)! / N;
+      const bonus = (t.startsWith("kw:") ? 0.15 : 0) - (t.startsWith("city:") ? 0.2 : 0);
+      return { t, share, score: share * Math.log(share / base + 1e-9) + bonus };
+    }).filter((x) => x.share >= 0.35 && !(x.t.startsWith("last:") && x.share < 0.5))
+      .sort((a, b) => Number(b.share >= 0.5) - Number(a.share >= 0.5) || b.score - a.score);
+    let name = members.length < 3 ? "❔ Loners" : lift[0] ? tokenLabel(lift[0].t) : "❔ Mystery crew";
+    if (used.has(name) && lift[1]) name = `${name} · ${tokenLabel(lift[1].t).replace(/^\S+ /, "")}`;
+    while (used.has(name)) name += "'";
+    used.add(name);
+    nameOf.set(l, name);
+
+    const set = new Set(members);
+    let internal = 0;
+    members.forEach((i) => (und.get(first[i].id) ?? new Set<string>()).forEach((j) => {
+      const k = idx.get(j);
+      if (k != null && set.has(k)) internal++;
+    }));
+    const density = members.length > 1 ? internal / (members.length * (members.length - 1)) : 0;
+    const platforms = new Set(members.flatMap((i) => first[i].platforms));
+    const eras = members.map((i) => first[i].era);
+    const past = eras.filter((e) => e === "past").length, present = eras.filter((e) => e === "present").length;
+    tribes.push({
+      name, size: members.length,
+      era: past > present ? "past" : present > 0 ? "present" : "unknown",
+      confidence: Math.round(((Math.min(1, density * 3) + (lift[0]?.share ?? 0) + Math.min(1, platforms.size / 3)) / 3) * 100) / 100,
+      topTraits: lift.slice(0, 3).map((x) => `${tokenLabel(x.t)} ${Math.round(x.share * 100)}%`),
+      medianWealth: median(members.flatMap((i) => (first[i].wealth ? [first[i].wealth!.mid] : []))),
+    });
+  }
+  const idolCount = idol.filter(Boolean).length;
+  if (idolCount) tribes.push({ name: "⭐ Idols", size: idolCount, era: "present", confidence: 1, topTraits: ["you follow them, no follow back"], medianWealth: null });
+
+  first.forEach((n, i) => { n.tribe = idol[i] ? "⭐ Idols" : nameOf.get(label[i]) ?? "❔ Loners"; });
+  // secondary tribes: >= 25% of your ties and traits point there
+  first.forEach((n, i) => {
+    const by = new Map<string, number>();
+    let total = 0;
+    for (const [j, w] of W.get(i) ?? []) { by.set(first[j].tribe, (by.get(first[j].tribe) ?? 0) + w); total += w; }
+    n.tribes = [...by].filter(([t, w]) => t !== n.tribe && total > 0 && w / total >= 0.25).map(([t]) => t);
+  });
+
+  // your own tribe: the one that shares the most of your traits
+  const egoToks = new Set(tokensOf(null, egoF).map(([t]) => t));
+  let egoTribe: string | null = null, bestScore = 0;
+  for (const t of tribes) {
+    if (t.name === "⭐ Idols") continue;
+    const members = first.filter((n) => n.tribe === t.name);
+    const share = members.filter((m) => tokensOf(null, feat.get(m.id)!).some(([k]) => egoToks.has(k))).length / members.length;
+    const score = share * Math.sqrt(members.length);
+    if (score > bestScore) { bestScore = score; egoTribe = t.name; }
+  }
+  tribes.sort((a, b) => b.size - a.size);
+  return { tribes, egoTribe };
 }

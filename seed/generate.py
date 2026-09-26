@@ -40,7 +40,8 @@ COMP = {"Stripe": 310_000, "Google": 290_000, "Meta": 330_000, "Apple": 260_000,
         "OpenAI": 520_000, "Tesla": 200_000, "Kaiser Permanente": 135_000, "PwC": 115_000,
         "County of Santa Clara": 98_000, "Safeway": 42_000, "Target": 38_000, "Starbucks": 33_000,
         "Chen's Kitchen": 58_000, "San Jose Unified School District": 82_000, "Loopwise": 240_000,
-        "Figma": 280_000, "Databricks": 320_000}
+        "Figma": 280_000, "Databricks": 320_000, "Goldman Sachs": 250_000, "McKinsey & Company": 230_000,
+        "Deloitte": 140_000}
 
 # Circles = ground truth for generation only. The analysis must re-infer them from raw data.
 #   n, platform odds, where they are now (school / job options), follow-back odds
@@ -52,7 +53,7 @@ CIRCLES = {
     "soccer": dict(n=14, era="past", p=dict(instagram=.8, facebook=.6, linkedin=.2), back=.8,
                    schools=["San Jose State University", "De Anza College", "Evergreen Valley College"],
                    jobs=[("Barista", "Starbucks"), ("Sales Associate", "Target")], loc=["sj"] * 4 + ["sc"],
-                   bio=["⚽ {school}", "SJ ⚽ | {school}", "futbol > everything"]),
+                   bio=["⚽ {school}", "SJ ⚽ | {school} #futbol", "futbol > everything ⚽"]),
     "piano": dict(n=8, era="past", p=dict(instagram=.7, facebook=.5), back=.9,
                   schools=["San Francisco Conservatory of Music", "San Jose State University", "UCLA"],
                   loc=["sj", "sf", "la"], bio=["🎹 {school}", "pianist • {school}", "music is my love language"]),
@@ -80,12 +81,22 @@ CIRCLES = {
     "hackathon": dict(n=15, era="present", p=dict(x=.75, github=.85, linkedin=.7), back=.75,
                       schools=["UC Berkeley", "Stanford University", "San Jose State University"], loc=["sf", "berkeley", "sf"],
                       roles=["Founder (stealth)", "Hacker in residence", "Computer Science Student"],
-                      bio=["building something new 🚀", "cal hacks organizer", "shipping at 3am"]),
+                      bio=["building something new 🚀 #buildinpublic", "cal hacks organizer 💻", "shipping at 3am #hackathon"]),
     "internship": dict(n=12, era="present", p=dict(linkedin=1.0, github=.35, x=.25), back=1.0,
                        jobs=[("Software Engineer", "Stripe"), ("Senior Software Engineer", "Stripe"),
                              ("Staff Engineer", "Stripe"), ("Engineering Manager", "Stripe"),
                              ("Product Manager", "Stripe"), ("Software Engineer Intern", "Stripe")],
                        loc=["sf"] * 4 + ["seattle", "ny"]),
+    "skaters": dict(n=10, era="past", p=dict(instagram=.95, x=.15), back=.8,
+                    schools=["De Anza College", "San Jose State University", "Evergreen Valley College"],
+                    loc=["sj"] * 3 + ["sc"], bio=["🛹 #skate | {school}", "sk8 or die 🛹", "#skateboarding every day",
+                                                  "🛹 SJ skate crew"]),
+    "business": dict(n=11, era="present", p=dict(linkedin=.95, instagram=.6), back=.85,
+                     schools=["UC Berkeley"], loc=["berkeley"] * 3 + ["sf"],
+                     roles=["Business Administration Student", "Economics Student"],
+                     interns=["Goldman Sachs", "McKinsey & Company", "Deloitte"], intern_role="Summer Analyst",
+                     bio=["haas '27 📈 #finance", "future founder 💼 #startup", "consulting club @ cal 💼",
+                          "#finance #vc | cal"]),
     "idols": dict(n=10, era="present", p=dict(x=.8, instagram=.6), back=0.0, loc=["sf", "ny", "la"],
                   bio=["dev youtuber 📹 1M subs", "founder @ Loopwise (YC W24)", "ex-OpenAI. writing about AGI",
                        "indie hacker, $40k MRR", "10x engineer memes"]),
@@ -250,7 +261,7 @@ for circle, c in CIRCLES.items():
             role = random.choice(c["roles"])
             company = random.choice(c["interns"]) if "interns" in c and random.random() < 0.4 else school
             if company != school:
-                role = "Software Engineer Intern"
+                role = c.get("intern_role", "Software Engineer Intern")
         if circle == "idols":
             role, company = (("Founder & CEO", "Loopwise") if i == 1 else
                              ("Member of Technical Staff", "OpenAI") if i == 2 else (None, None))
@@ -264,8 +275,8 @@ for circle, c in CIRCLES.items():
             if not role and school:
                 role, company = "Student", school
             exps = [(role, company, "Jan 2022", "Present")] if role and company and company != school else []
-            if circle == "berkeley" and company in COMP:
-                exps = [("Software Engineer Intern", company, "Jun 2026", "Aug 2026")]
+            if circle in ("berkeley", "business") and company in COMP:
+                exps = [(role, company, "Jun 2026", "Aug 2026")]
             edus = [(school, "BS", "2023", "2027")] if school else []
             if circle in ("highschool", "robotics"):
                 edus.append(("Lynbrook High School", "High School Diploma", "2019", "2023"))
@@ -327,14 +338,16 @@ ids_by_circle = {c: [pid(f"{c}-{i}") for i in range(v["n"])] for c, v in CIRCLES
 for circle, ids in ids_by_circle.items():
     if circle == "idols":
         continue
-    for a in ids:
-        for b in random.sample(ids, min(3, len(ids))):
-            if a < b and random.random() < 0.5:
+    for a in ids:  # dense communities: each member knows ~half of their circle
+        for b in random.sample(ids, min(7, len(ids))):
+            if a != b and random.random() < 0.6:
                 link(a, b)
-# the bridge: robotics friends know some high school + berkeley people
-for a in ids_by_circle["robotics"]:
-    link(a, random.choice(ids_by_circle["highschool"]))
-    link(a, random.choice(ids_by_circle["berkeley"]))
+# bridges between tribes (the interesting people at the border of two groups)
+for x, y, n in [("robotics", "highschool", 8), ("robotics", "berkeley", 8), ("skaters", "soccer", 5),
+                ("skaters", "highschool", 4), ("business", "berkeley", 7), ("hackathon", "berkeley", 6),
+                ("family", "scouts", 2), ("piano", "highschool", 3), ("art", "highschool", 3)]:
+    for _ in range(n):
+        link(random.choice(ids_by_circle[x]), random.choice(ids_by_circle[y]))
 
 # ---------- 2nd degree: who the scraped contacts follow ----------
 second = 0
