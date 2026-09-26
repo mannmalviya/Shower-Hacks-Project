@@ -8,8 +8,8 @@ import * as THREE from "three";
 import type { Node } from "@/lib/analysis";
 import { heightAt, keysOf, type WorldLayout } from "./worldLayout";
 
-const SKIN = ["#ffe0bd", "#f1c27d", "#e0ac69", "#c68642", "#8d5524", "#5c3a1e"].map((c) => new THREE.Color(c));
-const HAIR = ["#2b1b0e", "#5a3825", "#d9a441", "#111111", "#a0522d", "#e8e0d0"].map((c) => new THREE.Color(c));
+export const SKIN = ["#ffe0bd", "#f1c27d", "#e0ac69", "#c68642", "#8d5524", "#5c3a1e"].map((c) => new THREE.Color(c));
+export const HAIR = ["#2b1b0e", "#5a3825", "#d9a441", "#111111", "#a0522d", "#e8e0d0"].map((c) => new THREE.Color(c));
 export const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
 // V1 Mii: round head, flared cylinder body, hair cap tilted back

@@ -15,7 +15,7 @@ export const CATEGORIES: { key: Category; label: string; hint: string }[] = [
   { key: "platform", label: "Platform", hint: "Where you follow them" },
 ];
 
-const PALETTE = ["#1d9bf0", "#ff6b6b", "#51cf66", "#fcc419", "#9775fa", "#ff922b", "#22b8cf", "#f06595",
+export const PALETTE = ["#1d9bf0", "#ff6b6b", "#51cf66", "#fcc419", "#9775fa", "#ff922b", "#22b8cf", "#f06595",
   "#5c7cfa", "#94d82d", "#e64980", "#20c997", "#fab005", "#7950f2", "#15aabf", "#fd7e14"];
 export const WEALTH_ORDER = ["💸 Broke", "🙂 Getting by", "💼 Comfortable", "💰 Well-off", "🏝️ Rich", "👑 Ultra-rich", "❓ Unknown"];
 const GOLDEN = Math.PI * (3 - Math.sqrt(5));

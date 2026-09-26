@@ -1,7 +1,7 @@
 "use client";
 // The open world (/world): everyone we scraped stands on a grid in sign-up order, their audience around them
 // (real scraped followers first, NPCs up to 300). Walk around, click anyone. Click a person to open their world.
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, Sparkles } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -12,10 +12,11 @@ import { LabelProjector, type Anchor } from "./Labels";
 import { Player } from "./Player";
 import { Gear, NpcCard, PersonDetailCard } from "./SimCard";
 import { SimpleCrowd } from "./SimpleCrowd";
-import { TERRAIN_SEG } from "./worldLayout";
+import { hash } from "./Crowd";
+import { PALETTE, TERRAIN_SEG } from "./worldLayout";
 
 const NPC_CAP = 300; // most sims per person here (their own world shows up to 5,000)
-const HUB = "#ff3366", REAL = "#4dabf7";
+const HUB = "#ff3366"; // same as your own Mii
 
 type Sim = { kind: "hub" | "real"; id: string } | { kind: "npc"; hub: string; platform: string };
 type Hub = { p: PersonRow; x: number; z: number; total: number };
@@ -23,7 +24,7 @@ type Hub = { p: PersonRow; x: number; z: number; total: number };
 /** backdrop: scenery only (behind the onboarding form): no panel, no clicks, no walking, the camera slowly circles. */
 export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: WorldRows; onVisit?: (id: string) => void; backdrop?: boolean }) {
   const [grouped, setGrouped] = useState(false);
-  const [follow, setFollow] = useState(!backdrop); // walking is the point here
+  const [follow, setFollow] = useState(false); // orbit camera by default, walking is opt-in (like the ego world)
   const [sel, setSel] = useState<number | null>(null);
 
   const world = useMemo(() => {
@@ -57,7 +58,7 @@ export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: W
       const real = followersOf.get(h.p.id)!.slice(0, NPC_CAP);
       real.forEach((id, k) => {
         const r = Math.sqrt(INNER * INNER + (k * AREA) / Math.PI), a = k * GOLDEN;
-        xs.push(h.x + Math.cos(a) * r); zs.push(h.z + Math.sin(a) * r); colors.push(REAL); scales.push(1); sims.push({ kind: "real", id });
+        xs.push(h.x + Math.cos(a) * r); zs.push(h.z + Math.sin(a) * r); colors.push(PALETTE[hash(id) % PALETTE.length]); scales.push(1); sims.push({ kind: "real", id });
       });
       const npc = npcLayout(h.x, h.z, outerOf(real.length), npcSplit(audienceOf(h.p), real.length, NPC_CAP), grouped, h.p.id);
       for (let k = 0; k < npc.x.length; k++) {
@@ -111,16 +112,20 @@ export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: W
 
   return (
     <div className="fixed inset-0 select-none bg-[linear-gradient(180deg,#8ec5ff_0%,#b3d8ff_30%,#d9ecff_55%,#e3f6ea_80%,#f1f8e9_100%)]">
-      <Canvas shadows gl={{ alpha: true }} camera={{ position: backdrop ? [world.cx, 32, world.cz + 62] : [start.x, 70, start.z + 95], fov: 50 }} onPointerMissed={() => setSel(null)}>
+      <Canvas shadows gl={{ alpha: true }} camera={{ position: backdrop ? [world.cx, 32, world.cz + 62] : [start.x, 34, start.z + 48], fov: 50 }} onPointerMissed={() => setSel(null)}>
         <fog attach="fog" args={["#dcecfb", 120, 380]} />
         <hemisphereLight args={["#eef6ff", "#9ed98a", 1.2]} />
-        <directionalLight position={[50, 90, 40]} intensity={0.95} color="#fff6ee" />
+        <directionalLight position={[world.cx + 50, 90, world.cz + 40]} intensity={0.95} color="#fff6ee" castShadow shadow-mapSize={[2048, 2048]}
+          shadow-camera-left={-110} shadow-camera-right={110} shadow-camera-top={110} shadow-camera-bottom={-110}>
+          <object3D attach="target" position={[world.cx, 0, world.cz]} />
+        </directionalLight>
+        <Sparkles count={260} scale={[280, 50, 280]} position={[world.cx, 22, world.cz]} size={5} speed={0.35} opacity={0.8} color="#ffffff" />
         <mesh rotation-x={-Math.PI / 2} position={[mid, 0, mid]} receiveShadow
           onClick={(e) => { e.stopPropagation(); walkTo.current = e.point.clone(); }}>
           <planeGeometry args={[world.extent + 2000, world.extent + 2000]} />
-          <meshLambertMaterial color="#b7e4a7" />
+          <meshLambertMaterial color="#8fd675" />
         </mesh>
-        <SimpleCrowd x={world.x} z={world.z} colors={world.colors} scales={world.scales} onSelect={backdrop ? undefined : setSel} />
+        <SimpleCrowd x={world.x} z={world.z} colors={world.colors} scales={world.scales} seed="open" onSelect={backdrop ? undefined : setSel} />
         <LabelProjector anchors={anchors} els={labelEls} priority={priority} />
         {!backdrop && <Player heights={heights} pos={playerPos} walkTo={walkTo} keys={keys} follow={follow} stack={0.15} ghostStack={null} />}
         {backdrop
