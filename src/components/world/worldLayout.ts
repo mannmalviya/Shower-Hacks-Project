@@ -278,7 +278,7 @@ function terrain(first: Node[], pos: Map<string, { x: number; z: number }>, colo
         cr += g * p.rgb[0]; cg += g * p.rgb[1]; cb += g * p.rgb[2]; ck += g;
       }
       const t = Math.min(1, h / 7);
-      const base = [0.8 + 0.18 * t, 0.93 - 0.02 * t, 0.78 - 0.02 * t]; // soft pale green floor, golden uphill
+      const base = [0.56 + 0.4 * t, 0.84 + 0.04 * t, 0.46 + 0.1 * t]; // fresh grass green, golden uphill
       const m = Math.min(0.22, ck * 0.15); // just a hint of the group color
       // vertex colors are linear in three.js: convert from sRGB or everything looks washed out
       tints[v * 3] = toLinear(ck ? base[0] * (1 - m) + (cr / ck) * m : base[0]);
