@@ -137,26 +137,3 @@ def merged_top(raw: dict) -> dict:
                 out[f] = v
                 break
     return out
-
-
-# ---------- one LinkedIn connection (card or export row) -> people row ----------
-
-def contact_row(c: dict, source: str) -> dict:
-    """c: {name, headline, linkedin_url, photo_url?, connected_on?, role?, company?}.
-    Export rows carry role/company; connection cards only have a headline."""
-    role, company, school = split_headline(c.get("headline"))
-    if c.get("company"):  # the export's Company column is authoritative
-        role, company = c.get("role") or role, c["company"]
-        if SCHOOL_RE.search(company):
-            company, school = None, canon_school(company)
-    entry = _drop_empty({
-        "linkedin_url": c["linkedin_url"], "name": c["name"], "headline": c.get("headline"),
-        "photo_url": c.get("photo_url"), "connected_on": c.get("connected_on"), "source": source,
-        "experiences": [{"position_title": role, "institution_name": company, "source": "headline"}] if company else [],
-        "educations": [{"institution_name": school, "source": "headline"}] if school else [],
-    })
-    # role / company / school reach experiences / education through db.work_rows(raw.linkedin).
-    return _drop_empty({
-        "name": c["name"], "headline": c.get("headline"), "photo_url": c.get("photo_url"),
-        "raw": {"linkedin": entry},
-    })

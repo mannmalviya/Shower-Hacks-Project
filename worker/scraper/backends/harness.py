@@ -2,8 +2,7 @@
 
 browser-harness (https://github.com/browser-use/browser-harness) attaches over CDP
 to a real Chrome that is already signed in (the user's own account: LinkedIn's
-User Agreement forbids fake accounts, and a connections list is only visible to
-its owner). We pipe it a small Python script that opens its own background
+User Agreement forbids fake accounts). We pipe it a small Python script that opens its own background
 tab, visits the profile (for LinkedIn also /details/experience/ and
 /details/education/), runs a fixed JS extractor (extractors/<platform>.js) and
 prints JSON. ~25 s per LinkedIn profile and deterministic, but selectors can break
@@ -26,7 +25,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from ..models import LoginRequired, Profile, ScrapeError, clean, handle, linkedin_profile_url
+from ..models import LoginRequired, Profile, ScrapeError, clean, handle
 
 EXTRACTORS = Path(__file__).resolve().parent.parent / "extractors"
 SENTINEL = "__SCRAPE_RESULT__"
@@ -215,50 +214,45 @@ def scrape(platform: str, url: str) -> Profile:
     return PARSERS[platform](url, pages if platform == "linkedin" else pages["top"])
 
 
-# ---------- LinkedIn connections (the signed-in account's first-degree network) ----------
+# ---------- Instagram followers (list data only: username, name, photo) ----------
 
-# LinkedIn only shows a connections list to its owner, so this reads the connections
-# of whoever is signed in to the harness Chrome. The script first resolves /in/me/
-# to the signed-in handle, so the caller can refuse to attach one person's network
-# to someone else. The list shows 10 cards and grows via a "Load more" button.
-CONNECTIONS_SCRIPT = """
+# Opens the profile, clicks "N followers" (the /followers/ URL alone does not open
+# the list), and scrolls the dialog until it holds `limit` people or stops growing. Instagram only
+# shows the list to a signed-in account, and a private account's list only to its
+# followers.
+FOLLOWERS_SCRIPT = """
 import json
 LIMIT = {limit!r}
 EXTRACTOR = {extractor!r}
-CLICK_MORE = {click_more!r}
+SCROLL = {scroll!r}
+OPEN = {open_list!r}
 tid = cdp("Target.createTarget", url="about:blank", background=True)["targetId"]
 switch_tab(tid)
 cdp("Emulation.setFocusEmulationEnabled", enabled=True)
-out = {{"owner": None, "cards": [], "blocked": None}}
+out = {{"rows": [], "blocked": None}}
 try:
-    goto_url("https://www.linkedin.com/in/me/")
+    goto_url({url!r})
     wait_for_load(timeout=25)
-    wait(2)
-    out["owner"] = js("location.href")
-    goto_url("https://www.linkedin.com/mynetwork/invite-connect/connections/")
-    wait_for_load(timeout=25)
-    cards = []
+    rows = []
     for _ in range(8):
         wait(1.5)
-        cards = json.loads(js(EXTRACTOR))
-        if cards:
+        js(OPEN)
+        if "/accounts/login" in js("location.href"):
+            out["blocked"] = "login wall: sign in to Instagram in the harness Chrome"
             break
-    if not cards:
-        out["blocked"] = "no connection cards (logged out, or the page layout changed): " + js("location.href")
-    while cards and len(cards) < LIMIT:
-        if not js(CLICK_MORE):
+        rows = json.loads(js(EXTRACTOR))
+        if rows:
             break
-        grown = cards
-        for _ in range(10):
-            wait(1.2)
-            grown = json.loads(js(EXTRACTOR))
-            if len(grown) > len(cards):
-                break
-        if len(grown) <= len(cards):
-            break
-        cards = grown
-        wait(0.8)
-    out["cards"] = cards[:LIMIT]
+    if not rows and not out["blocked"]:
+        out["blocked"] = "followers list not visible (private account, or the page layout changed)"
+    stale = 0
+    while rows and len(rows) < LIMIT and stale < 3:
+        js(SCROLL)
+        wait(1.5)
+        grown = json.loads(js(EXTRACTOR))
+        stale = stale + 1 if len(grown) <= len(rows) else 0
+        rows = grown if len(grown) > len(rows) else rows
+    out["rows"] = rows[:LIMIT]
 finally:
     try:
         close_tab(tid)
@@ -267,46 +261,49 @@ finally:
 print({sentinel!r} + json.dumps(out))
 """
 
-_CONNECTION_CARDS_JS = """JSON.stringify([...document.querySelectorAll('[componentkey^="ConnectionCard_"]')].map(c => {
-  const a = c.querySelector('a[href*="/in/"]');
-  const img = [...c.querySelectorAll('img')].find(i => /media\\.licdn\\.com/.test(i.src));
-  return {url: a ? a.href.split('?')[0] : null,
-          lines: c.innerText.split('\\n').map(s => s.trim()).filter(Boolean).slice(0, 4),
-          photo_url: img ? img.src : null};
-}).filter(c => c.url))"""
+# One row per profile link in the dialog. The row is the biggest box around the
+# link that holds no other profile. Its text lines: username, full name, buttons.
+_FOLLOWER_ROWS_JS = """JSON.stringify((() => {
+  const dlg = document.querySelector('div[role="dialog"]');
+  if (!dlg) return [];
+  const skip = /^(follow|following|remove|message|requested|verified|·)$/i;
+  const seen = new Map();
+  for (const a of dlg.querySelectorAll('a[href^="/"]')) {
+    const m = a.getAttribute('href').match(/^\\/([A-Za-z0-9_.]+)\\/?$/);
+    if (!m || seen.has(m[1])) continue;
+    let row = a;
+    while (row.parentElement && row.parentElement !== dlg &&
+           new Set([...row.parentElement.querySelectorAll('a[href^="/"]')].map(x => x.getAttribute('href'))).size <= 1) row = row.parentElement;
+    const lines = row.innerText.split('\\n').map(s => s.trim()).filter(s => s && !skip.test(s) && s !== m[1]);
+    const img = row.querySelector('img');
+    seen.set(m[1], {username: m[1], full_name: lines[0] || null, photo_url: img ? img.src : null});
+  }
+  return [...seen.values()];
+})())"""
 
-_CLICK_MORE_JS = """(() => {
-  const b = [...document.querySelectorAll('main button')].find(b => /^(load|show) more/i.test(b.innerText.trim()));
-  if (!b) return false;
-  b.scrollIntoView({block: 'center'});
-  b.click();
-  return true;
+_OPEN_FOLLOWERS_JS = """(() => {
+  if (document.querySelector('div[role="dialog"]')) return true;
+  const a = [...document.querySelectorAll('header a, main a')].find(a => /followers$/i.test(a.innerText.trim()));
+  if (a) a.click();
+  return !!a;
+})()"""
+
+_SCROLL_DIALOG_JS = """(() => {
+  const dlg = document.querySelector('div[role="dialog"]');
+  const box = dlg && [...dlg.querySelectorAll('div')].find(d => d.scrollHeight > d.clientHeight + 20 && /auto|scroll/.test(getComputedStyle(d).overflowY));
+  if (box) box.scrollTop = box.scrollHeight;
+  return !!box;
 })()"""
 
 
-def scrape_connections(limit: int = 50) -> tuple[str, list[dict]]:
-    """-> (signed-in owner's handle, [{name, headline, linkedin_url, photo_url, connected_on}])."""
-    _throttle("linkedin")
-    script = CONNECTIONS_SCRIPT.format(
-        limit=limit, extractor=_CONNECTION_CARDS_JS, click_more=_CLICK_MORE_JS, sentinel=SENTINEL,
+def scrape_followers(url: str, limit: int = 100) -> list[dict]:
+    """-> [{username, full_name, photo_url}] in the order Instagram lists them."""
+    _throttle("instagram")
+    script = FOLLOWERS_SCRIPT.format(
+        url=f"https://www.instagram.com/{handle(url)}/", limit=limit,
+        extractor=_FOLLOWER_ROWS_JS, scroll=_SCROLL_DIALOG_JS, open_list=_OPEN_FOLLOWERS_JS, sentinel=SENTINEL,
     )
-    data = _run_script(script, timeout=60 + limit * 3)
-    owner = data.get("owner") or ""
-    if "/in/" not in owner:
-        raise LoginRequired(f"not signed in to LinkedIn in the harness Chrome ({owner or 'no page'})")
+    data = _run_script(script, timeout=90 + limit)
     if data.get("blocked"):
-        raise ScrapeError(data["blocked"])
-
-    contacts = []
-    for c in data["cards"]:
-        lines = c.get("lines") or []
-        connected = next((l for l in lines if l.lower().startswith("connected on")), None)
-        headline = next((l for l in lines[1:] if l != connected and l.lower() != "message"), None)
-        contacts.append({
-            "name": clean(lines[0]) if lines else None,
-            "headline": clean(headline),
-            "linkedin_url": linkedin_profile_url(c["url"]),
-            "photo_url": c.get("photo_url"),
-            "connected_on": connected[len("connected on"):].strip() if connected else None,
-        })
-    return handle(owner), [c for c in contacts if c["name"]]
+        raise LoginRequired(data["blocked"]) if "login" in data["blocked"] else ScrapeError(data["blocked"])
+    return [{**r, "full_name": clean(r.get("full_name"))} for r in data["rows"]]

@@ -14,7 +14,7 @@ import re
 from supabase import Client, create_client
 
 from .models import Profile, handle, profile_url
-from .shapes import contact_row, merged_top, raw_entry
+from .shapes import merged_top, raw_entry
 
 # people columns the worker fills from raw (the rest come from onboarding)
 PEOPLE_TOP = ("name", "headline", "location", "photo_url")
@@ -125,53 +125,33 @@ def enqueue(db: Client, person_id, platform: str) -> dict:
     ).execute().data[0]
 
 
-def upsert_contacts(db: Client, user_id, contacts: list[dict], source: str, enqueue_top: int = 0) -> dict:
-    """Add a user's first-degree LinkedIn contacts: one people row each (deduped on the
-    unique social_profiles.url) and two follows rows (a connection is mutual). contacts
-    are in LinkedIn's order (most recent first); the first `enqueue_top` get a
-    full-profile `linkedin` scrape job (~25 s each, so keep it small)."""
-    def url_of(row: dict) -> str:
-        return row["raw"]["linkedin"]["linkedin_url"]
-
-    rows = list({url_of(r): r for r in (contact_row(c, source) for c in contacts
-                                        if c.get("linkedin_url") and c.get("name"))}.values())
-    urls = [url_of(r) for r in rows]
-
-    def ids_for(batch: list[str]) -> dict:
-        return {s["url"]: s["person_id"] for s in
-                db.table("social_profiles").select("person_id, url").in_("url", batch).execute().data}
-
+def upsert_followers(db: Client, person_id, followers: list[dict]) -> dict:
+    """Add a person's Instagram followers: one people row each (deduped on the unique
+    social_profiles.url) and one follows row (they follow the person). followers:
+    [{username, full_name, photo_url}] from the list. -> {url: people.id}, list order."""
+    rows = {profile_url("instagram", f"https://www.instagram.com/{f['username']}"): f for f in followers}
+    urls = list(rows)
     existing: dict = {}
     for i in range(0, len(urls), 200):  # keep the IN (...) filter short
-        existing.update(ids_for(urls[i:i + 200]))
-    new = [r for r in rows if url_of(r) not in existing]
-    for i in range(0, len(new), 500):
-        people = db.table("people").insert(new[i:i + 500]).execute().data
+        existing.update({s["url"]: s["person_id"] for s in db.table("social_profiles").select("person_id, url")
+                         .in_("url", urls[i:i + 200]).execute().data})
+    new = [u for u in urls if u not in existing]
+    if new:
+        # raw.instagram uses web_profile_info field names, like the full scrape (shapes.raw_entry)
+        people = db.table("people").insert([{
+            "name": rows[u]["full_name"] or rows[u]["username"], "photo_url": rows[u]["photo_url"],
+            "raw": {"instagram": {"username": rows[u]["username"], "full_name": rows[u]["full_name"],
+                                  "profile_pic_url": rows[u]["photo_url"], "source": "followers"}},
+        } for u in new]).execute().data
+        ids = [p["id"] for p in people]  # PostgREST returns rows in insert order
         # ignore_duplicates: another worker may add the same profile meanwhile (url is unique)
-        db.table("social_profiles").upsert(
-            [{"person_id": p["id"], "platform": "linkedin", "url": url_of(p), "handle": handle(url_of(p)),
-              "avatar_url": p.get("photo_url"), "raw": p["raw"]["linkedin"]} for p in people],
-            on_conflict="url", ignore_duplicates=True).execute()
-        exps, edus = [], []
-        for p in people:
-            e, s = work_rows(p["id"], p["raw"]["linkedin"])
-            exps += e
-            edus += s
-        if exps:
-            db.table("experiences").insert(exps).execute()
-        if edus:
-            db.table("education").insert(edus).execute()
-        existing.update({url_of(p): p["id"] for p in people})
-
-    ids = [existing[u] for u in urls if u in existing and existing[u] != user_id]
-    follows = [row for pid in ids for row in ({"follower_id": pid, "person_id": user_id},
-                                              {"follower_id": user_id, "person_id": pid})]
-    for i in range(0, len(follows), 500):
-        db.table("follows").upsert(follows[i:i + 500], on_conflict="follower_id,person_id",
-                                   ignore_duplicates=True).execute()
-
-    jobs = [{"person_id": pid, "platform": "linkedin", "status": "queued"} for pid in ids[:enqueue_top]]
-    if jobs:
-        db.table("scrape_jobs").insert(jobs).execute()
-
-    return {"contacts": len(rows), "new_people": len(new), "follow_rows": len(follows), "jobs_queued": len(jobs)}
+        db.table("social_profiles").upsert([{
+            "person_id": pid, "platform": "instagram", "url": u, "handle": rows[u]["username"],
+            "avatar_url": rows[u]["photo_url"], "raw": {"source": "followers"},
+        } for u, pid in zip(new, ids)], on_conflict="url", ignore_duplicates=True).execute()
+        existing.update(zip(new, ids))
+    ids = {u: existing[u] for u in urls if existing[u] != person_id}
+    if ids:
+        db.table("follows").upsert([{"follower_id": pid, "person_id": person_id} for pid in ids.values()],
+                                   on_conflict="follower_id,person_id", ignore_duplicates=True).execute()
+    return ids
