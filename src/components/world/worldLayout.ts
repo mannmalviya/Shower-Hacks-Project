@@ -28,6 +28,7 @@ export type WorldLayout = {
   pos: Map<string, { x: number; z: number }>; // 1st + 2nd degree
   colorOf: Map<string, string>; // body color per person
   ego: { x: number; z: number };
+  ring: { inner: number; radius: number; groups: Group[] }; // the N+1 circle around your world
   heights: Float32Array; // terrain grid heights (TERRAIN_SEG+1)^2
   tints: Float32Array; // terrain vertex colors rgb
 };
@@ -164,22 +165,49 @@ export function computeWorld(a: Analysis, links: [string, string][], c: Category
   const colorOf = new Map<string, string>();
   first.forEach((n, i) => { pos.set(n.id, P[i]); colorOf.set(n.id, colorFor.get(keysOf(n, c)[0])!); });
 
-  // 2nd degree: just outside the contact they hang off, away from that contact's group center
-  const anchorOf = new Map<string, string>();
+  // ---------- N+1 circle: friends of friends on a ring around your world ----------
+  // grouped by company (the only thing we usually know about them), each group facing the people it reaches you through
+  let r1 = 0;
+  for (const p of pos.values()) r1 = Math.max(r1, Math.hypot(p.x, p.z));
+  const R2 = Math.min(118, r1 + 24);
+  const contactsOf = new Map<string, string[]>();
   for (const [x, y] of links) {
-    if (pos.has(x) && !pos.has(y)) anchorOf.set(y, anchorOf.get(y) ?? x);
-    if (pos.has(y) && !pos.has(x)) anchorOf.set(x, anchorOf.get(x) ?? y);
+    if (pos.has(x) && !pos.has(y)) (contactsOf.get(y) ?? contactsOf.set(y, []).get(y)!).push(x);
+    if (pos.has(y) && !pos.has(x)) (contactsOf.get(x) ?? contactsOf.set(x, []).get(x)!).push(y);
   }
-  for (const n of a.nodes) {
-    if (n.degree !== 2) continue;
-    const contact = first.find((f) => f.id === anchorOf.get(n.id));
-    const cp = contact ? pos.get(contact.id)! : { x: rand(n.id, 3) * 90, z: rand(n.id, 4) * 90 };
-    const an = contact ? anchors.get(keysOf(contact, c)[0])! : { x: 0, z: 0 };
-    const dx = cp.x - an.x, dz = cp.z - an.z, d = Math.hypot(dx, dz) || 1;
-    const out = 5 + (hash(n.id) % 50) / 10;
-    pos.set(n.id, { x: cp.x + (dx / d) * out + rand(n.id, 5) * 2.5, z: cp.z + (dz / d) * out + rand(n.id, 6) * 2.5 });
-    colorOf.set(n.id, "#ced4da");
+  const angleOf = (ids: string[]) => {
+    let sx = 0, sz = 0;
+    for (const id of ids) { const q = pos.get(id)!; const l = Math.hypot(q.x, q.z) || 1; sx += q.x / l; sz += q.z / l; }
+    return Math.atan2(sz, sx);
+  };
+  const second = a.nodes.filter((n) => n.degree === 2);
+  const ringKey = (n: Node) => (n.company ? `👻 ${n.company}` : "👻 Unknown");
+  const ringGroups = new Map<string, Node[]>();
+  for (const n of second) (ringGroups.get(ringKey(n)) ?? ringGroups.set(ringKey(n), []).get(ringKey(n))!).push(n);
+  const ringList = [...ringGroups].map(([key, members]) => ({ key, members, angle: angleOf(members.flatMap((m) => contactsOf.get(m.id) ?? [])) }))
+    .sort((x, y) => x.angle - y.angle);
+  // spread groups so they don't overlap: each takes an arc proportional to its size
+  const need = ringList.map((g) => Math.max(0.18, Math.sqrt(g.members.length) * 0.09));
+  const total = need.reduce((s2, x) => s2 + x, 0), scaleArc = total > Math.PI * 2 ? (Math.PI * 2) / total : 1;
+  for (let it = 0; it < 30; it++) {
+    for (let i = 0; i < ringList.length; i++) {
+      const j = (i + 1) % ringList.length;
+      let gap = ringList[j].angle - ringList[i].angle;
+      if (j === 0) gap += Math.PI * 2;
+      const min = ((need[i] + need[j]) / 2) * scaleArc;
+      if (ringList.length > 1 && gap < min) { ringList[i].angle -= (min - gap) / 2; ringList[j].angle += (min - gap) / 2; }
+    }
   }
+  const ringOut: Group[] = [];
+  ringList.forEach((g) => {
+    const gx = Math.cos(g.angle) * R2, gz = Math.sin(g.angle) * R2;
+    g.members.forEach((m, k) => {
+      const rr = 1.8 * Math.sqrt(k + 0.5), aa = k * GOLDEN;
+      pos.set(m.id, { x: gx + Math.cos(aa) * rr, z: gz + Math.sin(aa) * rr });
+      colorOf.set(m.id, "#ced4da");
+    });
+    ringOut.push({ key: g.key, count: g.members.length, x: gx * 1.06, z: gz * 1.06, color: "#9aa5c9", era: "unknown" });
+  });
 
   // group label spots = centroid of primary members
   const groups: Group[] = keys.map((k) => {
@@ -189,7 +217,7 @@ export function computeWorld(a: Analysis, links: [string, string][], c: Category
   });
 
   const { heights, tints } = terrain(first, pos, colorOf);
-  return { category: c, groups, pos, colorOf, ego: egoAnchor, heights, tints };
+  return { category: c, groups, pos, colorOf, ego: egoAnchor, ring: { inner: r1, radius: R2, groups: ringOut }, heights, tints };
 }
 
 // ---------- terrain ----------

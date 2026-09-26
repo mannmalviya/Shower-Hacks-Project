@@ -16,7 +16,7 @@ import { TribeProps } from "./TribeProps";
 import { Chamber } from "./Chamber";
 import { TribeArcs, tribeLinks } from "./TribeArcs";
 import { lineFor } from "./speech";
-import { CATEGORIES, TERRAIN_SEG, coverage, getWorld, heightAt, keysOf, type Category } from "./worldLayout";
+import { CATEGORIES, TERRAIN_SEG, coverage, getWorld, heightAt, keysOf, type Category, type WorldLayout } from "./worldLayout";
 
 const money = (n: number | null | undefined) =>
   n == null ? "?" : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}k` : `$${n}`;
@@ -77,7 +77,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
   const keys = useRef(new Set<string>());
   const crowd = useRef<CrowdState | null>(null);
   const controls = useRef<React.ComponentRef<typeof OrbitControls>>(null);
-  const flyTo = useRef<{ x: number; y: number; z: number } | null>(null);
+  const flyTo = useRef<{ x: number; y: number; z: number; dist?: number } | null>(null);
   const labelEls = useRef(new Map<string, HTMLElement>());
   const anchors = useRef(new Map<string, Anchor>());
   const priority = useRef(new Map<string, number>());
@@ -106,8 +106,10 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
       const i = c ? c.ids.indexOf(id) : -1;
       return c && i >= 0 ? [c.x[i], c.y[i] + 4.9, c.z[i]] : null;
     }));
+    layout.ring.groups.forEach((g, i) => m.set(`r${i}`, () => (showSecond ? [g.x, 2.5, g.z] : null)));
     const pr = new Map<string, number>();
     layout.groups.forEach((g, i) => pr.set(`g${i}`, g.key === focus ? 1e6 : g.count));
+    layout.ring.groups.forEach((g, i) => pr.set(`r${i}`, g.count * 0.5));
     priority.current = pr;
     m.set("near", () => {
       const c = crowd.current;
@@ -115,7 +117,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
       return c && i >= 0 ? [c.x[i], c.y[i] + 4, c.z[i]] : null;
     });
     anchors.current = m;
-  }, [layout, category, nearest, egoStack, ghostStack, chatter, focus]);
+  }, [layout, category, nearest, egoStack, ghostStack, chatter, focus, showSecond]);
 
   // ambient chatter: one Mii at a time says something (in walk mode, only the one next to you talks)
   useEffect(() => {
@@ -206,7 +208,14 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
         {byTribe && <TribeProps layout={layout} />}
         <Crowd nodes={crowdNodes} links={links} layout={layout} heights={heights} dim={dim} player={playerPos} walking={follow}
           state={crowd} onSelect={setSelected} onNearest={setNearest} />
-        {showSecond && <Ghosts nodes={ghostNodes} layout={layout} heights={heights} onSelect={setSelected} />}
+        {showSecond && <>
+          <Ghosts nodes={ghostNodes} layout={layout} heights={heights} onSelect={setSelected} />
+          <RingLinks layout={layout} links={links} />
+          <mesh rotation-x={-Math.PI / 2} position-y={0.25}>
+            <ringGeometry args={[(layout.ring.inner + layout.ring.radius) / 2 - 0.3, (layout.ring.inner + layout.ring.radius) / 2 + 0.3, 128]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.7} />
+          </mesh>
+        </>}
         <CameraFly flyTo={flyTo} controls={controls} />
         <Player heights={heights} pos={playerPos} walkTo={walkTo} keys={keys} follow={follow} stack={egoStack} ghostStack={ghostStack} />
         <LabelProjector anchors={anchors} els={labelEls} priority={priority} />
@@ -226,6 +235,12 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
           <div key={`${category}-${i}`} ref={bindLabel(`g${i}`)} style={{ borderColor: g.color, visibility: "hidden", background: focus === g.key ? g.color : undefined }}
             onClick={() => focusGroup(focus === g.key ? null : g.key)}
             className={`pointer-events-auto absolute left-0 top-0 cursor-pointer whitespace-nowrap rounded-full border-2 bg-white/95 font-extrabold shadow transition-opacity hover:!opacity-100 ${g.count >= 25 ? "px-3 py-1 text-sm" : g.count >= 8 ? "px-2.5 py-0.5 text-xs" : "px-2 py-0.5 text-[10px]"} ${focus === g.key ? "text-white" : g.era === "past" && category === "lifemap" ? "text-slate-400" : "text-slate-700"}`}>
+            {g.key} <span className="text-slate-400">{g.count}</span>
+          </div>
+        ))}
+        {layout.ring.groups.map((g, i) => (
+          <div key={`ring-${category}-${i}`} ref={bindLabel(`r${i}`)} style={{ visibility: "hidden" }}
+            className="absolute left-0 top-0 whitespace-nowrap rounded-full border-2 border-dashed border-slate-300 bg-white/70 px-2 py-0.5 text-[10px] font-bold italic text-slate-500 hover:!opacity-100">
             {g.key} <span className="text-slate-400">{g.count}</span>
           </div>
         ))}
@@ -310,7 +325,10 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
             {follow ? "🗺️ Overview" : "🚶 Walk"}
           </button>
           <label className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xl bg-slate-100 text-xs font-bold text-slate-600">
-            <input type="checkbox" checked={showSecond} onChange={(e) => setShowSecond(e.target.checked)} /> 👻 {analysis.secondDegree.count} friends of friends
+            <input type="checkbox" checked={showSecond} onChange={(e) => {
+              setShowSecond(e.target.checked);
+              if (e.target.checked && !follow) flyTo.current = { x: 0, y: 0, z: 0, dist: 3.4 };
+            }} /> 👻 N+1 circle ({analysis.secondDegree.count})
           </label>
         </div>
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search (Stripe, skate, Berkeley…)"
@@ -363,12 +381,12 @@ function PersonCard({ n, links, tribes, onClose }: { n: Node; links: number; tri
 
 /** Smoothly flies the orbit camera to a group when you click it. */
 function CameraFly({ flyTo, controls }: {
-  flyTo: React.RefObject<{ x: number; y: number; z: number } | null>;
+  flyTo: React.RefObject<{ x: number; y: number; z: number; dist?: number } | null>;
   controls: React.RefObject<React.ComponentRef<typeof OrbitControls> | null>;
 }) {
   const goal = useMemo(() => new THREE.Vector3(), []);
   const frames = useRef(0);
-  const last = useRef<{ x: number; y: number; z: number } | null>(null);
+  const last = useRef<{ x: number; y: number; z: number; dist?: number } | null>(null);
   useFrame(({ camera }) => {
     const f = flyTo.current, c = controls.current;
     if (!f || !c) return;
@@ -376,7 +394,8 @@ function CameraFly({ flyTo, controls }: {
     if (frames.current <= 0) return;
     frames.current--;
     c.target.lerp(goal.set(f.x, f.y, f.z), 0.08);
-    camera.position.lerp(goal.set(f.x, f.y + 30, f.z + 36), 0.06);
+    const k = f.dist ?? 1;
+    camera.position.lerp(goal.set(f.x, f.y + 30 * k, f.z + 36 * k), 0.06);
     c.update();
   });
   return null;
@@ -430,5 +449,28 @@ function Bubble({ bind, text, who }: { bind: (el: HTMLElement | null) => void; t
         <div className="absolute -bottom-2 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-b-2 border-r-2 border-slate-200 bg-white" />
       </div>
     </div>
+  );
+}
+
+/** Thin lines from each friend of a friend (N+1 ring) to the people of your first circle they know. */
+function RingLinks({ layout, links }: { layout: WorldLayout; links: [string, string][] }) {
+  const geo = useMemo(() => {
+    const pts: number[] = [];
+    const inner = layout.ring.inner + 2;
+    for (const [a, b] of links) {
+      const pa = layout.pos.get(a), pb = layout.pos.get(b);
+      if (!pa || !pb) continue;
+      const ra = Math.hypot(pa.x, pa.z), rb = Math.hypot(pb.x, pb.z);
+      if ((ra > inner) === (rb > inner)) continue; // only ring <-> first circle
+      pts.push(pa.x, heightAt(layout.heights, pa.x, pa.z) + 1.4, pa.z, pb.x, heightAt(layout.heights, pb.x, pb.z) + 1.4, pb.z);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+    return g;
+  }, [layout, links]);
+  return (
+    <lineSegments geometry={geo}>
+      <lineBasicMaterial color="#7c86b8" transparent opacity={0.28} depthWrite={false} />
+    </lineSegments>
   );
 }
