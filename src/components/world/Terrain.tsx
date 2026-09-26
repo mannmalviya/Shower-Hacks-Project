@@ -52,7 +52,7 @@ export function Terrain({ layout, heights, onGround }: Props) {
       </mesh>
       <mesh rotation-x={-Math.PI / 2} position-y={-0.05}>
         <circleGeometry args={[600, 48]} />
-        <meshLambertMaterial color="#9be07a" />
+        <meshLambertMaterial color="#f4f5f7" />
       </mesh>
     </group>
   );

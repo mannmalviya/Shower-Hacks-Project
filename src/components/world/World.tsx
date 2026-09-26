@@ -1,6 +1,6 @@
 "use client";
 // The social mirror: an open Mii world of your network. Walk among your tribes; every category reorganizes the world.
-import { Line, OrbitControls } from "@react-three/drei";
+import { Grid, Line, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
@@ -12,12 +12,9 @@ import { Landmarks } from "./Landmarks";
 import { Player, stackHeight } from "./Player";
 import { Portrait } from "./Portrait";
 import { Terrain } from "./Terrain";
-import { tribeLinks } from "./TribeArcs";
-import { Decor } from "./Decor";
-import { GroundPaths, groupPaths } from "./GroundPaths";
+import { Chamber } from "./Chamber";
+import { TribeArcs, tribeLinks } from "./TribeArcs";
 import { lineFor } from "./speech";
-import { Wrapped } from "./Wrapped";
-import { jingle, pop, setMuted, startAudio, stopAudio } from "./audio";
 import { CATEGORIES, TERRAIN_SEG, computeWorld, coverage, heightAt, keysOf, type Category } from "./worldLayout";
 
 const money = (n: number | null | undefined) =>
@@ -35,8 +32,6 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
   const [focus, setFocus] = useState<string | null>(null); // a group (tribe, school...) the camera flew to
   const [query, setQuery] = useState("");
   const [portrait, setPortrait] = useState(false);
-  const [wrapped, setWrapped] = useState(false);
-  const [muted, setMute] = useState(false);
   const [chatter, setChatter] = useState<string[]>([]); // ids of Miis currently saying something
 
   const byId = useMemo(() => new Map(analysis.nodes.map((n) => [n.id, n])), [analysis]);
@@ -45,8 +40,6 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
   const crowdNodes = useMemo(() => analysis.nodes.filter((n) => n.degree === 1), [analysis]);
   const ghostNodes = useMemo(() => analysis.nodes.filter((n) => n.degree === 2), [analysis]);
   const arcs = useMemo(() => tribeLinks(analysis.nodes, links), [analysis, links]);
-  const paths = useMemo(() => groupPaths(analysis.nodes, links, layout, category), [analysis, links, layout, category]);
-  const focusPaths = useMemo(() => (focus ? paths.filter((pa) => pa.a === focus || pa.b === focus) : []), [paths, focus]);
   const byTribe = category === "tribe" || category === "lifemap";
   const neighbors = useMemo(() => {
     const m = new Map<string, Set<string>>();
@@ -93,10 +86,6 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
       const i = c ? c.ids.indexOf(id) : -1;
       return c && i >= 0 ? [c.x[i], c.y[i] + 4.9, c.z[i]] : null;
     }));
-    focusPaths.forEach((pa, k) => {
-      const y = heightAt(layout.heights, pa.mid.x, pa.mid.z) + 1.2;
-      m.set(`p${k}`, () => [pa.mid.x, y, pa.mid.z]);
-    });
     const pr = new Map<string, number>();
     layout.groups.forEach((g, i) => pr.set(`g${i}`, g.key === focus ? 1e6 : g.count));
     priority.current = pr;
@@ -106,7 +95,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
       return c && i >= 0 ? [c.x[i], c.y[i] + 4, c.z[i]] : null;
     });
     anchors.current = m;
-  }, [layout, category, nearest, egoStack, ghostStack, chatter, focusPaths, focus]);
+  }, [layout, category, nearest, egoStack, ghostStack, chatter, focus]);
 
   // ambient chatter: a few Miis say something, rotating every few seconds
   useEffect(() => {
@@ -117,10 +106,6 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
     return () => clearInterval(t);
   }, [analysis]);
 
-  // sound: starts on the first click (browser rule), jingle on category change
-  useEffect(() => () => stopAudio(), []);
-  useEffect(() => { jingle(); }, [category]);
-  useEffect(() => { setMuted(muted); }, [muted]);
 
   // on a new category, walk back to your spot in it
   useEffect(() => {
@@ -158,7 +143,6 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
   const onGround = useCallback((p: THREE.Vector3) => { walkTo.current = p.clone(); }, []);
   const focusGroup = (key: string | null) => {
     setFocus(key);
-    if (key) pop();
     setSelected(null);
     const g = key ? layout.groups.find((x) => x.key === key) : null;
     if (!g) return;
@@ -183,20 +167,22 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
     : [];
 
   return (
-    <div className="fixed inset-0 select-none bg-sky-200" onPointerDown={startAudio}>
+    <div className="fixed inset-0 select-none bg-slate-50">
       <Canvas shadows camera={{ position: [0, 70, 95], fov: 50 }} onPointerMissed={() => setSelected(null)}>
-        <color attach="background" args={["#bfe6ff"]} />
-        <fog attach="fog" args={["#bfe6ff", 120, 320]} />
-        <hemisphereLight args={["#ffffff", "#88bb77", 1.1]} />
-        <directionalLight position={[50, 90, 40]} intensity={1.4} castShadow shadow-mapSize={[2048, 2048]}
+        <color attach="background" args={["#f7f8fa"]} />
+        <fog attach="fog" args={["#f7f8fa", 110, 300]} />
+        <hemisphereLight args={["#ffffff", "#dfe3e8", 1.25]} />
+        <directionalLight position={[50, 90, 40]} intensity={1.1} castShadow shadow-mapSize={[2048, 2048]}
           shadow-camera-left={-110} shadow-camera-right={110} shadow-camera-top={110} shadow-camera-bottom={-110} />
 
         <Terrain layout={layout} heights={heights} onGround={onGround} />
-        <Decor layout={layout} heights={heights} />
-        <GroundPaths paths={paths} layout={layout} focus={focus} />
+        <Grid position={[0, 0.03, 0]} args={[10, 10]} infiniteGrid cellSize={4} cellThickness={0.6} cellColor="#e3e6ea"
+          sectionSize={20} sectionThickness={1} sectionColor="#d5dae0" fadeDistance={260} fadeStrength={1.2} />
+        <Chamber />
+        {byTribe && !follow && <TribeArcs layout={layout} arcs={arcs} focus={focus} />}
         {category === "places" && <Landmarks layout={layout} />}
         <Crowd nodes={crowdNodes} links={links} layout={layout} heights={heights} dim={dim} player={playerPos} walking={follow}
-          state={crowd} onSelect={(id) => { setSelected(id); pop(3); }} onNearest={setNearest} />
+          state={crowd} onSelect={setSelected} onNearest={setNearest} />
         {showSecond && <Ghosts nodes={ghostNodes} layout={layout} heights={heights} onSelect={setSelected} />}
         <CameraFly flyTo={flyTo} controls={controls} />
         <Player heights={heights} pos={playerPos} walkTo={walkTo} keys={keys} follow={follow} stack={egoStack} ghostStack={ghostStack} />
@@ -230,7 +216,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
         )}
         {(["past", "now"] as const).map((side) => (
           <div key={side} ref={bindLabel(side)} style={{ visibility: "hidden" }}
-            className="absolute left-0 top-0 whitespace-nowrap text-2xl font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]">
+            className="absolute left-0 top-0 whitespace-nowrap text-2xl font-black text-slate-300">
             {side === "past" ? "⬅ YOUR PAST" : "NOW ➡"}
           </div>
         ))}
@@ -238,12 +224,6 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
           const n = byId.get(id);
           return n && (!follow || id !== nearest) ? <Bubble key={`${id}-${k}`} bind={bindLabel(`b${k}`)} text={lineFor(n)} /> : null;
         })}
-        {focusPaths.map((pa, k) => (
-          <div key={`${pa.a}|${pa.b}`} ref={bindLabel(`p${k}`)} style={{ visibility: "hidden" }}
-            className="absolute left-0 top-0 whitespace-nowrap rounded-md border-2 border-amber-700/40 bg-amber-50 px-1.5 text-[11px] font-black text-amber-800 shadow">
-            🤝 {pa.count}
-          </div>
-        ))}
         {follow && near
           ? <Bubble key={`near-${near.id}`} bind={bindLabel("near")} text={lineFor(near)} who={near.name} />
           : <div ref={bindLabel("near")} style={{ visibility: "hidden" }}
@@ -294,7 +274,6 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
           </div>
         )}
         <div className="mb-2 flex gap-2">
-          <button onClick={() => setMute(!muted)} title={muted ? "Sound on" : "Mute"} className="rounded-xl bg-slate-100 px-2 text-xs hover:bg-slate-200">{muted ? "🔇" : "🔊"}</button>
           <button onClick={toggleFollow} className="flex-1 rounded-xl bg-sky-100 py-1.5 text-xs font-bold text-sky-700 hover:bg-sky-200">
             {follow ? "🗺️ Overview" : "🚶 Walk"}
           </button>
@@ -304,7 +283,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
         </div>
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search (Stripe, skate, Berkeley…)"
           className="mb-2 w-full rounded-xl border-2 border-sky-100 px-3 py-1.5 text-sm" />
-        <button onClick={() => { setWrapped(true); jingle(); }} className="w-full rounded-2xl bg-rose-500 py-2 text-sm font-black text-white shadow hover:bg-rose-600">
+        <button onClick={() => setPortrait(true)} className="w-full rounded-2xl bg-rose-500 py-2 text-sm font-black text-white shadow hover:bg-rose-600">
           🪞 My portrait
         </button>
         <p className="mt-2 text-center text-[10px] text-slate-400">{follow ? "WASD / ZQSD / arrows to walk · click the ground to go · E to meet someone" : "Drag to rotate · scroll to zoom · click a Mii"}</p>
@@ -319,7 +298,6 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
         <TribeCard name={focus} analysis={analysis} arcs={arcs} onPick={focusGroup} onClose={() => focusGroup(null)} />
       )}
       {sel && <PersonCard n={sel} links={neighbors.get(sel.id)?.size ?? 0} tribes={analysis.tribes} onClose={() => setSelected(null)} />}
-      {wrapped && <Wrapped analysis={analysis} onDone={() => setWrapped(false)} onPortrait={() => { setWrapped(false); setPortrait(true); }} />}
       {portrait && <Portrait analysis={analysis} onClose={() => setPortrait(false)} />}
     </div>
   );

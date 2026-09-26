@@ -105,7 +105,7 @@ export function computeWorld(a: Analysis, links: [string, string][], c: Category
     });
   } else {
     keys.forEach((k, i) => {
-      const d = i === 0 ? 0 : 12 + 11.5 * Math.sqrt(i);
+      const d = i === 0 ? 0 : 14 + 13 * Math.sqrt(i);
       anchors.set(k, { x: Math.cos(i * GOLDEN) * d, z: Math.sin(i * GOLDEN) * d });
     });
   }
@@ -217,7 +217,7 @@ function terrain(first: Node[], pos: Map<string, { x: number; z: number }>, colo
         cr += g * p.rgb[0]; cg += g * p.rgb[1]; cb += g * p.rgb[2]; ck += g;
       }
       const t = Math.min(1, h / 6);
-      const base = [0.61 + 0.3 * t, 0.88 - 0.08 * t, 0.48 - 0.2 * t]; // V1 grass #9be07a, golden uphill
+      const base = [0.97, 0.97 - 0.05 * t, 0.98 - 0.25 * t]; // white training-room floor, pale gold uphill
       const m = Math.min(0.22, ck * 0.15); // just a hint of the group color
       // vertex colors are linear in three.js: convert from sRGB or everything looks washed out
       tints[v * 3] = toLinear(ck ? base[0] * (1 - m) + (cr / ck) * m : base[0]);
