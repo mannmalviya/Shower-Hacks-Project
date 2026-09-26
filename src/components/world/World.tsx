@@ -12,6 +12,7 @@ import { Landmarks } from "./Landmarks";
 import { Player, stackHeight } from "./Player";
 import { Portrait } from "./Portrait";
 import { Terrain } from "./Terrain";
+import { TribeProps } from "./TribeProps";
 import { Chamber } from "./Chamber";
 import { TribeArcs, tribeLinks } from "./TribeArcs";
 import { lineFor } from "./speech";
@@ -116,13 +117,17 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
     anchors.current = m;
   }, [layout, category, nearest, egoStack, ghostStack, chatter, focus]);
 
-  // ambient chatter: a few Miis say something, rotating every few seconds
+  // ambient chatter: one Mii at a time says something (in walk mode, only the one next to you talks)
   useEffect(() => {
     const first = analysis.nodes.filter((n) => n.degree === 1);
-    const shuffle = () => setChatter(Array.from({ length: 3 }, () => first[Math.floor(Math.random() * first.length)].id));
-    shuffle();
-    const t = setInterval(shuffle, 4500);
-    return () => clearInterval(t);
+    let hide: ReturnType<typeof setTimeout> | undefined;
+    const show = () => {
+      setChatter([first[Math.floor(Math.random() * first.length)].id]);
+      hide = setTimeout(() => setChatter([]), 3000); // one bubble at a time, 3 s
+    };
+    show();
+    const t = setInterval(show, 4200);
+    return () => { clearInterval(t); clearTimeout(hide); };
   }, [analysis]);
 
 
@@ -198,6 +203,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
         <Chamber />
         {byTribe && !follow && focus && <TribeArcs layout={layout} arcs={arcs} focus={focus} />}
         {category === "places" && <Landmarks layout={layout} />}
+        {byTribe && <TribeProps layout={layout} />}
         <Crowd nodes={crowdNodes} links={links} layout={layout} heights={heights} dim={dim} player={playerPos} walking={follow}
           state={crowd} onSelect={setSelected} onNearest={setNearest} />
         {showSecond && <Ghosts nodes={ghostNodes} layout={layout} heights={heights} onSelect={setSelected} />}
@@ -239,7 +245,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
         ))}
         {chatter.map((id, k) => {
           const n = byId.get(id);
-          return n && (!follow || id !== nearest) ? <Bubble key={`${id}-${k}`} bind={bindLabel(`b${k}`)} text={lineFor(n)} /> : null;
+          return n && !(follow && near) ? <Bubble key={`${id}-${k}`} bind={bindLabel(`b${k}`)} text={lineFor(n)} /> : null;
         })}
         {follow && near
           ? <Bubble key={`near-${near.id}`} bind={bindLabel("near")} text={lineFor(near)} who={near.name} />
