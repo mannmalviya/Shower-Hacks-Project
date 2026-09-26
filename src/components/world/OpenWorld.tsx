@@ -20,9 +20,10 @@ const HUB = "#ff3366", REAL = "#4dabf7";
 type Sim = { kind: "hub" | "real"; id: string } | { kind: "npc"; hub: string; platform: string };
 type Hub = { p: PersonRow; x: number; z: number; total: number };
 
-export default function OpenWorld({ rows, onVisit }: { rows: WorldRows; onVisit: (id: string) => void }) {
+/** backdrop: scenery only (behind the onboarding form): no panel, no clicks, no walking, the camera slowly circles. */
+export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: WorldRows; onVisit?: (id: string) => void; backdrop?: boolean }) {
   const [grouped, setGrouped] = useState(false);
-  const [follow, setFollow] = useState(true); // walking is the point here
+  const [follow, setFollow] = useState(!backdrop); // walking is the point here
   const [sel, setSel] = useState<number | null>(null);
 
   const world = useMemo(() => {
@@ -66,7 +67,9 @@ export default function OpenWorld({ rows, onVisit }: { rows: WorldRows; onVisit:
       for (const g of npc.groups) labels.push({ key: `${h.p.id}-${g.platform}`, x: g.x, z: g.z, text: `${PLATFORM_NAME[g.platform] ?? g.platform} ${g.count}`, color: PLATFORM_COLOR[g.platform] ?? NPC_COLOR });
     }
     const extent = cols * cell;
-    return { byId, hubs, followsCount, sims, colors, labels, extent,
+    // middle of the occupied grid (the camera circles it in backdrop mode)
+    const cx = ((cols - 1) * cell) / 2, cz = ((Math.ceil(hubs.length / cols) - 1) * cell) / 2;
+    return { byId, hubs, followsCount, sims, colors, labels, extent, cx: Math.max(0, cx), cz: Math.max(0, cz),
       x: Float32Array.from(xs), z: Float32Array.from(zs), scales: Float32Array.from(scales) };
   }, [rows, grouped]);
 
@@ -78,12 +81,13 @@ export default function OpenWorld({ rows, onVisit }: { rows: WorldRows; onVisit:
   const keys = useRef(new Set<string>());
   useEffect(() => {
     const typing = (e: KeyboardEvent) => (e.target as HTMLElement)?.tagName === "INPUT";
+    if (backdrop) return;
     const down = (e: KeyboardEvent) => { if (!typing(e)) keys.current.add(e.key.toLowerCase()); if (e.key === "Escape") setSel(null); };
     const up = (e: KeyboardEvent) => keys.current.delete(e.key.toLowerCase());
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
     return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); };
-  }, []);
+  }, [backdrop]);
 
   // labels: plain DOM, moved every frame by <LabelProjector> (same as the ego world)
   const labelEls = useRef(new Map<string, HTMLElement>());
@@ -107,25 +111,27 @@ export default function OpenWorld({ rows, onVisit }: { rows: WorldRows; onVisit:
 
   return (
     <div className="fixed inset-0 select-none bg-[linear-gradient(180deg,#8ec5ff_0%,#b3d8ff_30%,#d9ecff_55%,#e3f6ea_80%,#f1f8e9_100%)]">
-      <Canvas shadows gl={{ alpha: true }} camera={{ position: [start.x, 70, start.z + 95], fov: 50 }} onPointerMissed={() => setSel(null)}>
+      <Canvas shadows gl={{ alpha: true }} camera={{ position: backdrop ? [world.cx, 32, world.cz + 62] : [start.x, 70, start.z + 95], fov: 50 }} onPointerMissed={() => setSel(null)}>
         <fog attach="fog" args={["#dcecfb", 120, 380]} />
         <hemisphereLight args={["#eef6ff", "#9ed98a", 1.2]} />
         <directionalLight position={[50, 90, 40]} intensity={0.95} color="#fff6ee" />
         <mesh rotation-x={-Math.PI / 2} position={[mid, 0, mid]} receiveShadow
           onClick={(e) => { e.stopPropagation(); walkTo.current = e.point.clone(); }}>
-          <planeGeometry args={[world.extent + 400, world.extent + 400]} />
+          <planeGeometry args={[world.extent + 2000, world.extent + 2000]} />
           <meshLambertMaterial color="#b7e4a7" />
         </mesh>
-        <SimpleCrowd x={world.x} z={world.z} colors={world.colors} scales={world.scales} onSelect={setSel} />
+        <SimpleCrowd x={world.x} z={world.z} colors={world.colors} scales={world.scales} onSelect={backdrop ? undefined : setSel} />
         <LabelProjector anchors={anchors} els={labelEls} priority={priority} />
-        <Player heights={heights} pos={playerPos} walkTo={walkTo} keys={keys} follow={follow} stack={0.15} ghostStack={null} />
-        <OrbitControls enabled={!follow} target={[start.x, 0, start.z]} maxPolarAngle={Math.PI / 2.2} minDistance={10} maxDistance={400} enableDamping />
+        {!backdrop && <Player heights={heights} pos={playerPos} walkTo={walkTo} keys={keys} follow={follow} stack={0.15} ghostStack={null} />}
+        {backdrop
+          ? <OrbitControls target={[world.cx, 0, world.cz]} autoRotate autoRotateSpeed={0.35} enableRotate={false} enableZoom={false} enablePan={false} />
+          : <OrbitControls enabled={!follow} target={[start.x, 0, start.z]} maxPolarAngle={Math.PI / 2.2} minDistance={10} maxDistance={400} enableDamping />}
       </Canvas>
 
       <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
         {world.hubs.map((h) => (
-          <button key={h.p.id} ref={bindLabel(`h-${h.p.id}`)} style={{ visibility: "hidden" }} onClick={() => onVisit(h.p.id)} title="See their world"
-            className="pointer-events-auto absolute left-0 top-0 whitespace-nowrap rounded-full bg-rose-500 px-3 py-0.5 text-xs font-extrabold text-white shadow hover:bg-rose-600">
+          <button key={h.p.id} ref={bindLabel(`h-${h.p.id}`)} style={{ visibility: "hidden" }} onClick={() => onVisit?.(h.p.id)} title="See their world"
+            className={`${backdrop ? "" : "pointer-events-auto "}absolute left-0 top-0 whitespace-nowrap rounded-full bg-rose-500 px-3 py-0.5 text-xs font-extrabold text-white shadow hover:bg-rose-600`}>
             {h.p.name}{h.total ? ` · 👥 ${h.total.toLocaleString("en-US")}` : ""}
           </button>
         ))}
@@ -135,6 +141,7 @@ export default function OpenWorld({ rows, onVisit }: { rows: WorldRows; onVisit:
         ))}
       </div>
 
+      {!backdrop && <>
       <div className="absolute left-3 top-3 z-[100] w-72 max-w-[calc(100vw-5rem)] rounded-3xl border-4 border-white bg-white/90 p-4 shadow-xl">
         <h1 className="text-xl font-black tracking-tight text-sky-600">Social Mirror 🚿</h1>
         <p className="mb-3 text-xs text-slate-500">
@@ -151,10 +158,11 @@ export default function OpenWorld({ rows, onVisit }: { rows: WorldRows; onVisit:
         </p>
       </div>
       <Gear grouped={grouped} setGrouped={setGrouped} />
+      </>}
 
       {person && (
         <PersonDetailCard p={person} followsCount={world.followsCount.get(person.id) ?? 0}
-          onVisit={s?.kind === "hub" ? () => onVisit(person.id) : undefined} onClose={() => setSel(null)} />
+          onVisit={s?.kind === "hub" && onVisit ? () => onVisit(person.id) : undefined} onClose={() => setSel(null)} />
       )}
       {s?.kind === "npc" && <NpcCard platform={s.platform} of={world.byId.get(s.hub)?.name ?? "them"} onClose={() => setSel(null)} />}
     </div>
