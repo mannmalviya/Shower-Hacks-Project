@@ -48,7 +48,12 @@
     location: loc,
     photo_url: img ? img.src : null,
     followers: count(/^[\d,.]+[KM]?\+? followers$/i),
-    connections: all.find((l) => /connections?$/i.test(l)) || null,
+    // Own profile: "500+ connections" on one line. Others' profiles: "500+" then "connections".
+    connections: (() => {
+      const i = all.findIndex((l) => /connections?$/i.test(l));
+      if (i < 0) return null;
+      return /\d/.test(all[i]) ? all[i] : `${all[i - 1] || ""} ${all[i]}`.trim();
+    })(),
     page_text: (main.innerText || "").slice(0, 15000),
   });
 })()
