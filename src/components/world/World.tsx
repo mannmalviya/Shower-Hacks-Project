@@ -16,6 +16,12 @@ import { Chamber } from "./Chamber";
 import { TribeArcs, tribeLinks } from "./TribeArcs";
 import { lineFor } from "./speech";
 import { CATEGORIES, TERRAIN_SEG, coverage, getWorld, hasData, heightAt, keysOf, type Category } from "./worldLayout";
+import type { PersonRow } from "@/lib/worldData";
+import { NPC_COLOR, PLATFORM_COLOR, PLATFORM_NAME, npcLayout, npcSplit, totalOf, type Split } from "./npcs";
+import { SimpleCrowd } from "./SimpleCrowd";
+import { Gear, NpcCard, ScrapedSection } from "./SimCard";
+
+const NPC_CAP = 5000; // most sims drawn for your audience; the label shows the real number
 
 const money = (n: number | null | undefined) =>
   n == null ? "?" : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}k` : `$${n}`;
@@ -23,8 +29,16 @@ const FACT_DIM: Partial<Record<Category, Dimension>> = {
   tribe: "tribe", places: "circle", wealthTier: "wealthTier", school: "school", city: "city", industry: "industry", platform: "platform",
 };
 
-export default function World({ analysis, links }: { analysis: Analysis; links: [string, string][] }) {
+export default function World({ analysis, links, details, audience = [], overlay }: {
+  analysis: Analysis;
+  links: [string, string][];
+  details?: Map<string, PersonRow>; // scraped rows, for the card
+  audience?: Split; // your follower counts per platform: NPCs fill the gap to the real number
+  overlay?: React.ReactNode;
+}) {
   const [category, setCategory] = useState<Category>("tribe");
+  const [grouped, setGrouped] = useState(false); // NPCs: one mixed crowd, or one crowd per platform
+  const [npcSel, setNpcSel] = useState<number | null>(null);
   const [follow, setFollow] = useState(false); // V1: orbit camera by default, walking is opt-in
   const [showSecond, setShowSecond] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -59,6 +73,16 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
   const crowdNodes = useMemo(() => analysis.nodes.filter((n) => n.degree === 1), [analysis]);
   const ghostNodes = useMemo(() => analysis.nodes.filter((n) => n.degree === 2 && hasData(n)), [analysis]); // N+1 we know something about
   const arcs = useMemo(() => tribeLinks(analysis.nodes, links), [analysis, links]);
+
+  // NPCs around your circle: your follower count minus the followers we scraped for real
+  const realFollowers = useMemo(() => crowdNodes.filter((n) => n.tie === "audience" || n.tie === "mutual").length, [crowdNodes]);
+  const npc = useMemo(() => {
+    let r1 = 0;
+    for (const n of crowdNodes) { const p = layout.pos.get(n.id); if (p) r1 = Math.max(r1, Math.hypot(p.x, p.z)); }
+    return npcLayout(0, 0, r1 + 6, npcSplit(audience, realFollowers, NPC_CAP), grouped, analysis.egoId);
+  }, [crowdNodes, layout, audience, realFollowers, grouped, analysis.egoId]);
+  const npcColors = useMemo(() => npc.platform.map((p) => (grouped ? PLATFORM_COLOR[p] ?? NPC_COLOR : NPC_COLOR)), [npc, grouped]);
+  const followerTotal = totalOf(audience);
   const byTribe = category === "tribe";
   const neighbors = useMemo(() => {
     const m = new Map<string, Set<string>>();
@@ -108,17 +132,19 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
     layout.groups.forEach((g, i) => pr.set(`g${i}`, g.key === focus ? 1e6 : g.count));
     layout.ring.groups.forEach((g, i) => pr.set(`r${i}`, g.count * 0.5));
     priority.current = pr;
+    npc.groups.forEach((g, i) => m.set(`n${i}`, () => [g.x, 4, g.z]));
     m.set("near", () => {
       const c = crowd.current;
       const i = c && nearest ? c.ids.indexOf(nearest) : -1;
       return c && i >= 0 ? [c.x[i], c.y[i] + 4, c.z[i]] : null;
     });
     anchors.current = m;
-  }, [layout, category, nearest, egoStack, ghostStack, chatter, focus, showSecond]);
+  }, [layout, category, nearest, egoStack, ghostStack, chatter, focus, showSecond, npc]);
 
   // ambient chatter: one Mii at a time says something (in walk mode, only the one next to you talks)
   useEffect(() => {
     const first = analysis.nodes.filter((n) => n.degree === 1);
+    if (!first.length) return; // nobody to talk yet (a fresh user, before the scrape lands)
     let hide: ReturnType<typeof setTimeout> | undefined;
     const show = () => {
       setChatter([first[Math.floor(Math.random() * first.length)].id]);
@@ -185,7 +211,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
 
   return (
     <div className="fixed inset-0 select-none bg-[linear-gradient(180deg,#8ec5ff_0%,#b3d8ff_30%,#d9ecff_55%,#e3f6ea_80%,#f1f8e9_100%)]">
-      <Canvas shadows gl={{ alpha: true }} camera={{ position: [0, 70, 95], fov: 50 }} onPointerMissed={() => setSelected(null)}>
+      <Canvas shadows gl={{ alpha: true }} camera={{ position: [0, 70, 95], fov: 50 }} onPointerMissed={() => { setSelected(null); setNpcSel(null); }}>
         <fog attach="fog" args={["#dcecfb", 120, 330]} />
         <hemisphereLight args={["#eef6ff", "#9ed98a", 1.2]} />
         <directionalLight position={[50, 90, 40]} intensity={0.95} color="#fff6ee" castShadow shadow-mapSize={[2048, 2048]}
@@ -198,7 +224,10 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
         {category === "places" && <Landmarks layout={layout} />}
         {byTribe && <TribeProps layout={layout} />}
         <Crowd nodes={crowdNodes} links={links} layout={layout} heights={heights} dim={dim} player={playerPos} walking={follow}
-          state={crowd} onSelect={setSelected} onNearest={setNearest} />
+          state={crowd} onSelect={(id) => { setSelected(id); setNpcSel(null); }} onNearest={setNearest} />
+        {npc.x.length > 0 && (
+          <SimpleCrowd x={npc.x} z={npc.z} colors={npcColors} onSelect={(i) => { setNpcSel(i); setSelected(null); }} />
+        )}
         {showSecond && <>
           <Crowd nodes={ghostNodes} links={links} layout={layout} heights={heights} dim={dim} player={playerPos} walking={false}
             state={crowd2} onSelect={setSelected} onNearest={noop} veil={0.55} />
@@ -226,6 +255,12 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
           <div key={`ring-${category}-${i}`} ref={bindLabel(`r${i}`)} style={{ visibility: "hidden", borderColor: g.color }}
             className="absolute left-0 top-0 whitespace-nowrap rounded-full border-2 border-dashed bg-emerald-50/90 px-2 py-0.5 text-[10px] font-bold text-emerald-900/70 hover:!opacity-100">
             {g.key} <span className="text-slate-400">{g.count}</span>
+          </div>
+        ))}
+        {npc.groups.map((g, i) => (
+          <div key={`npc-${g.platform}`} ref={bindLabel(`n${i}`)} style={{ visibility: "hidden", borderColor: PLATFORM_COLOR[g.platform] }}
+            className="absolute left-0 top-0 whitespace-nowrap rounded-full border-2 bg-white/95 px-2.5 py-0.5 text-xs font-extrabold text-slate-700 shadow">
+            {PLATFORM_NAME[g.platform] ?? g.platform} <span className="text-slate-400">{g.count.toLocaleString("en-US")}</span>
           </div>
         ))}
         <div ref={bindLabel("you")} style={{ visibility: "hidden" }}
@@ -327,17 +362,29 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
       {!sel && focus && byTribe && (
         <TribeCard name={focus} analysis={analysis} arcs={arcs} onPick={focusGroup} onClose={() => focusGroup(null)} />
       )}
-      {sel && <PersonCard n={sel} links={neighbors.get(sel.id)?.size ?? 0} tribes={analysis.tribes} onClose={() => setSelected(null)} />}
+      {sel && <PersonCard n={sel} detail={details?.get(sel.id)} links={neighbors.get(sel.id)?.size ?? 0} tribes={analysis.tribes} onClose={() => setSelected(null)} />}
+      {npcSel != null && npc.platform[npcSel] && (
+        <NpcCard platform={npc.platform[npcSel]} of={byId.get(analysis.egoId)?.name ?? "them"} onClose={() => setNpcSel(null)} />
+      )}
       {portrait && <Portrait analysis={analysis} onClose={() => setPortrait(false)} />}
+
+      {followerTotal > 0 && (
+        <div className="absolute left-1/2 top-3 z-[90] -translate-x-1/2 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-slate-600 shadow"
+          title={`${realFollowers} scraped for real, ${npc.x.length.toLocaleString("en-US")} NPCs shown${followerTotal > NPC_CAP ? `, capped at ${NPC_CAP.toLocaleString("en-US")} sims` : ""}`}>
+          👥 {followerTotal.toLocaleString("en-US")} followers
+        </div>
+      )}
+      <Gear grouped={grouped} setGrouped={setGrouped} />
+      {overlay}
     </div>
   );
 }
 
-function PersonCard({ n, links, tribes, onClose }: { n: Node; links: number; tribes: Analysis["tribes"]; onClose: () => void }) {
+function PersonCard({ n, detail, links, tribes, onClose }: { n: Node; detail?: PersonRow; links: number; tribes: Analysis["tribes"]; onClose: () => void }) {
   const tie = { self: "That's you", mutual: "Mutual", aspiration: "You follow them (no follow back)", audience: "They follow you", indirect: "Friend of a friend" }[n.tie];
   const conf = tribes.find((t) => t.name === n.tribe)?.confidence;
   return (
-    <div className="absolute bottom-4 right-4 z-[100] w-72 max-w-[calc(100vw-2rem)] rounded-3xl border-4 border-sky-500 bg-white p-4 shadow-xl">
+    <div className="absolute bottom-4 right-4 z-[100] max-h-[70dvh] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-3xl border-4 border-sky-500 bg-white p-4 shadow-xl">
       <button onClick={onClose} className="absolute right-3 top-2 text-xl text-slate-400" aria-label="Close">×</button>
       <h2 className="text-lg font-black text-sky-600">{n.name}</h2>
       <div className="mb-2 flex flex-wrap gap-1">
@@ -353,6 +400,7 @@ function PersonCard({ n, links, tribes, onClose }: { n: Node; links: number; tri
         <dt className="font-bold text-slate-400">On</dt><dd>{n.platforms.join(", ") || "—"}</dd>
         <dt className="font-bold text-slate-400">Links</dt><dd>{links}</dd>
       </dl>
+      {detail && <ScrapedSection p={detail} />}
     </div>
   );
 }

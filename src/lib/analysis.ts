@@ -1,5 +1,5 @@
 // Social mirror analysis. Pure function: people + follows + net_worth -> stats for the viz.
-// No DB, no network. Works on Supabase rows (src/lib/db.ts) and on seed/alex.json.
+// No DB, no network. Works on Supabase rows (src/lib/worldData.ts) and on seed/alex.json (converted there).
 // Conventions (degree, circles, platforms are derived, not stored): see seed/README.md.
 import type { Json } from "./supabase/database.types";
 
@@ -9,10 +9,18 @@ export type PersonIn = {
   id: string;
   name: string;
   headline: string | null;
-  company: string | null;
-  role: string | null;
   location: string | null;
   raw: Json;
+  // joined rows (supabase-js nested select, see src/lib/worldData.ts)
+  experiences?: { company: string; title: string | null; end_date: string | null; is_primary: boolean }[];
+  education?: { school: string }[];
+  social_profiles?: { platform: string; follower_count: number | null }[];
+};
+
+/** The primary job: is_primary, else the first current one, else the first listed. */
+export const jobOf = (p: PersonIn) => {
+  const xs = p.experiences ?? [];
+  return xs.find((e) => e.is_primary) ?? xs.find((e) => !e.end_date) ?? xs[0] ?? null;
 };
 export type FollowIn = { follower_id: string; person_id: string };
 export type NetWorthIn = { person_id: string; low: number; high: number };
@@ -174,13 +182,15 @@ function features(p: PersonIn): Features {
   const place = (type: string) => str(places.find((pl) => str(pl.type) === type)?.text);
   const loc = p.location ?? str(li.location) ?? str(gh.location) ?? str(x.location) ?? place("Current City");
   const parts = (loc ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-  const followers = Number(obj(ig.edge_followed_by).count ?? 0) || Number(x.followersCount ?? 0);
+  const followers = Math.max(Number(obj(ig.edge_followed_by).count ?? 0) || Number(x.followersCount ?? 0),
+    ...(p.social_profiles ?? []).map((s) => s.follower_count ?? 0));
   const words = p.name.trim().split(/\s+/);
   return {
-    platforms: Object.keys(raw).filter((k) => raw[k] && typeof raw[k] === "object"),
-    schools: uniq([...arr(li.educations).map((e) => str(e.institution_name)), ...arr(fb.Education).map((e) => str(e.text))]),
+    platforms: uniq([...Object.keys(raw).filter((k) => raw[k] && typeof raw[k] === "object"), ...(p.social_profiles ?? []).map((s) => s.platform)]),
+    schools: uniqBy(norm, [...(p.education ?? []).map((e) => e.school), ...arr(li.educations).map((e) => str(e.institution_name)), ...arr(fb.Education).map((e) => str(e.text))]),
     companies: uniqBy(norm, [
-      p.company,
+      jobOf(p)?.company,
+      ...(p.experiences ?? []).map((e) => e.company),
       ...arr(li.experiences).map((e) => str(e.institution_name)),
       str(gh.company)?.replace(/^@/, "") ?? null,
       ...arr(fb.Work).map((e) => str(e.text)),
@@ -197,10 +207,11 @@ function features(p: PersonIn): Features {
 }
 
 const industryOf = (p: PersonIn, f: Features): string => {
-  const text = `${p.role ?? ""} ${p.company ?? ""} ${p.headline ?? ""}`;
+  const job = jobOf(p);
+  const text = `${job?.title ?? ""} ${job?.company ?? ""} ${p.headline ?? ""}`;
   if (TECH_COMPANIES.test(text)) return "Tech";
   for (const [re, name] of INDUSTRIES) if (re.test(text)) return name;
-  if (f.schools.length && !p.company) return "Student";
+  if (f.schools.length && !job) return "Student";
   return "Unknown";
 };
 const tierOf = (mid: number | null) => (mid == null ? "❓ Unknown" : WEALTH_TIERS.find(([max]) => mid < max)![1]);
@@ -273,11 +284,11 @@ export function analyze(input: { people: PersonIn[]; follows: FollowIn[]; netWor
       id: p.id, name: p.name, degree: d, tie, circle, era, tribe: d === 0 ? "🙋 You" : "🌫️ 2nd degree", tribes: [],
       platforms: f.platforms, city: f.city, country: f.country,
       school: f.schools[0] ?? null,
-      company: [p.company, ...f.companies].find((c) => c && !f.schools.includes(c)) ?? null,
+      company: f.companies.find((c) => !f.schools.includes(c)) ?? null,
       industry: industryOf(p, f),
       interests: uniq([...INTERESTS.filter(([re]) => re.test(f.bio)).map(([, n]) => n), ...f.languages.map((l) => `💻 ${l}`)]),
       wealth: w, wealthTier: tierOf(w?.mid ?? null), isBridge: false,
-      isStudent: /student|intern|undergrad/i.test(`${p.role ?? ""} ${p.headline ?? ""}`) || industryOf(p, f) === "Student",
+      isStudent: /student|intern|undergrad/i.test(`${jobOf(p)?.title ?? ""} ${p.headline ?? ""}`) || industryOf(p, f) === "Student",
     };
   });
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
@@ -410,7 +421,7 @@ function factFor(dim: Dimension, groups: { value: string; share: number }[], top
 function portraitInput(a: Analysis, ego: PersonIn): Record<string, unknown> {
   const top = (d: Dimension, n = 3) => a.bubbles[d].groups.slice(0, n).map((g) => `${g.value} ${pct(g.share)}`);
   return {
-    you: { headline: ego.headline, role: ego.role, company: ego.company, location: ego.location },
+    you: { headline: ego.headline, role: jobOf(ego)?.title ?? null, company: jobOf(ego)?.company ?? null, location: ego.location },
     networkSize: a.nodes.filter((n) => n.degree === 1).length,
     bubble: {
       school: { top: top("school"), diversity: a.bubbles.school.diversity },
@@ -533,6 +544,9 @@ function detectTribes(first: Node[], feat: Map<string, Features>, und: Map<strin
     const best = [...score].sort((a, b) => b[1] - a[1])[0];
     if (best) label[i] = best[0];
   });
+  // still-tiny groups (people we know nothing about, e.g. followers from a list) become ONE loners group
+  const after = sizeOf();
+  first.forEach((_, i) => { if (!idol[i] && after.get(label[i])! < 3) label[i] = -1; });
 
   // name each group by its most characteristic trait (lift), then score confidence
   const groups = new Map<number, number[]>();
@@ -549,7 +563,7 @@ function detectTribes(first: Node[], feat: Map<string, Features>, und: Map<strin
       return { t, share, score: share * Math.log(share / base + 1e-9) + bonus };
     }).filter((x) => x.share >= 0.35 && !(x.t.startsWith("last:") && x.share < 0.5))
       .sort((a, b) => Number(b.share >= 0.5) - Number(a.share >= 0.5) || b.score - a.score);
-    let name = members.length < 3 ? "❔ Loners" : lift[0] ? tokenLabel(lift[0].t) : "❔ Mystery crew";
+    let name = l === -1 ? "❔ Loners" : lift[0] ? tokenLabel(lift[0].t) : "❔ Mystery crew";
     if (used.has(name) && lift[1]) name = `${name} · ${tokenLabel(lift[1].t).replace(/^\S+ /, "")}`;
     while (used.has(name)) name += "'";
     used.add(name);

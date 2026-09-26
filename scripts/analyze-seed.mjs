@@ -3,7 +3,9 @@ import { readFileSync } from "node:fs";
 import { analyze } from "../src/lib/analysis.ts";
 
 const seed = JSON.parse(readFileSync(process.argv[2] ?? "seed/alex.json", "utf8"));
-const a = analyze({ people: seed.people, follows: seed.follows, netWorth: seed.net_worth, egoId: seed._meta.ego_id });
+// the seed keeps company / role on people; the live schema has them in experiences
+const people = seed.people.map((p) => ({ ...p, experiences: p.company ? [{ company: p.company, title: p.role, end_date: null, is_primary: true }] : [] }));
+const a = analyze({ people, follows: seed.follows, netWorth: seed.net_worth, egoId: seed._meta.ego_id });
 
 console.log("\n== Facts per filter");
 for (const b of Object.values(a.bubbles)) console.log(`  [${b.dimension}] diversity ${b.diversity} | ${b.fact}`);

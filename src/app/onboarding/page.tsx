@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { OnboardingForm } from "./OnboardingForm";
 
 export default function OnboardingPage() {
@@ -11,6 +12,9 @@ export default function OnboardingPage() {
         <div className="rounded-3xl border border-white/80 bg-white/70 p-6 shadow-xl shadow-indigo-100/60 backdrop-blur sm:p-8">
           <OnboardingForm />
         </div>
+        <p className="mt-4 text-center text-sm">
+          <Link href="/world" className="text-slate-500 underline hover:text-slate-700">Skip, just explore →</Link>
+        </p>
       </div>
     </main>
   );
