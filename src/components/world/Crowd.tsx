@@ -1,6 +1,7 @@
 "use client";
-/* eslint-disable react-hooks/immutability, react-hooks/refs -- imperative three.js animation state, mutated every frame on purpose */
-// Every Mii in a handful of instanced meshes (~6 draw calls for 300+ people), one animation loop.
+/* eslint-disable react-hooks/immutability -- imperative three.js animation state, mutated every frame on purpose */
+// Every 1st-degree Mii in a handful of instanced meshes, one animation loop.
+// Tribe accessories (skateboard, briefcase, ball...), friends strolling in pairs, a hop when you walk past a mutual friend.
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -9,7 +10,7 @@ import { heightAt, type WorldLayout } from "./worldLayout";
 
 const SKIN = ["#ffe0bd", "#f1c27d", "#e0ac69", "#c68642", "#8d5524", "#5c3a1e"].map((c) => new THREE.Color(c));
 const HAIR = ["#2b1b0e", "#5a3825", "#d9a441", "#111111", "#a0522d", "#e8e0d0"].map((c) => new THREE.Color(c));
-const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+export const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
 // V1 Mii: round head, flared cylinder body, hair cap tilted back
 export const miiGeo = {
@@ -19,78 +20,111 @@ export const miiGeo = {
   eye: new THREE.SphereGeometry(0.1, 8, 8),
   crown: new THREE.ConeGeometry(0.45, 0.6, 5),
 };
-const white = new THREE.MeshLambertMaterial({ color: "#ffffff" });
-const dark = new THREE.MeshBasicMaterial({ color: "#212529" });
-const gold = new THREE.MeshLambertMaterial({ color: "#ffc800" });
-
-// local offsets of each part relative to the Mii's feet
-export const MII_PARTS = {
-  body: new THREE.Matrix4().makeTranslation(0, 0.8, 0),
-  head: new THREE.Matrix4().makeTranslation(0, 2.2, 0),
-  hair: new THREE.Matrix4().makeTranslation(0, 2.3, 0).multiply(new THREE.Matrix4().makeRotationX(-0.25)),
-  eyeL: new THREE.Matrix4().makeTranslation(-0.25, 2.25, 0.68),
-  eyeR: new THREE.Matrix4().makeTranslation(0.25, 2.25, 0.68),
-  crown: new THREE.Matrix4().makeTranslation(0, 3.25, 0),
+const T = (x: number, y: number, z: number) => new THREE.Matrix4().makeTranslation(x, y, z);
+const L = {
+  body: T(0, 0.8, 0),
+  head: T(0, 2.2, 0),
+  hair: T(0, 2.3, 0).multiply(new THREE.Matrix4().makeRotationX(-0.25)),
+  eyeL: T(-0.25, 2.25, 0.68),
+  eyeR: T(0.25, 2.25, 0.68),
+  crown: T(0, 3.25, 0),
 };
-const L = MII_PARTS;
+const lambert = (color: string) => new THREE.MeshLambertMaterial({ color });
+const white = lambert("#ffffff");
+const dark = new THREE.MeshBasicMaterial({ color: "#212529" });
+const gold = lambert("#ffc800");
+
+// one accessory per tribe family, picked from the tribe's emoji
+type Acc = { match: RegExp; geo: THREE.BufferGeometry; mat: THREE.Material; local: THREE.Matrix4 };
+const ACCESSORIES: Acc[] = [
+  { match: /^🛹/, geo: new THREE.BoxGeometry(0.75, 0.12, 2.5), mat: lambert("#e8590c"), local: T(0, 0.06, 0) }, // skateboard (sticks out front and back)
+  { match: /^💼/, geo: new THREE.BoxGeometry(0.55, 0.42, 0.16), mat: lambert("#7c4a1e"), local: T(0.95, 0.45, 0) }, // briefcase
+  { match: /^⚽/, geo: new THREE.SphereGeometry(0.32, 12, 10), mat: lambert("#f8f9fa"), local: T(0.95, 0.32, 0.95) }, // ball
+  { match: /^🎹/, geo: new THREE.TorusGeometry(0.82, 0.09, 8, 20, Math.PI), mat: lambert("#e03131"), local: T(0, 2.2, 0) }, // headphones
+  { match: /^🎨/, geo: new THREE.CylinderGeometry(0.5, 0.58, 0.16, 16), mat: lambert("#c2255c"),
+    local: T(0.12, 2.95, 0).multiply(new THREE.Matrix4().makeRotationZ(-0.3)) }, // beret
+  { match: /^🤖/, geo: new THREE.ConeGeometry(0.1, 0.8, 6), mat: lambert("#868e96"), local: T(0, 3.25, 0) }, // antenna
+  { match: /^💻/, geo: new THREE.BoxGeometry(0.85, 0.55, 0.05), mat: lambert("#adb5bd"),
+    local: T(0, 1.25, 0.9).multiply(new THREE.Matrix4().makeRotationX(-0.35)) }, // laptop
+  { match: /^(🎓|🐻)/, geo: new THREE.BoxGeometry(1.15, 0.08, 1.15), mat: lambert("#1c2a4a"), local: T(0, 2.98, 0) }, // grad cap
+  { match: /^⭐/, geo: new THREE.BoxGeometry(1.0, 0.2, 0.08), mat: dark, local: T(0, 2.3, 0.72) }, // sunglasses
+];
 
 export type CrowdState = { ids: string[]; x: Float32Array; y: Float32Array; z: Float32Array };
 
 type Props = {
-  nodes: Node[]; // 1st degree (+ 2nd degree when shown)
+  nodes: Node[]; // 1st degree only (friends of friends are <Ghosts>)
+  links: [string, string][];
   layout: WorldLayout;
-  heights: React.RefObject<Float32Array>; // live terrain heights (animated by <Terrain>)
+  heights: React.RefObject<Float32Array>;
   dim: Set<string> | null;
   player: React.RefObject<THREE.Vector3>;
+  walking: boolean;
   state: React.RefObject<CrowdState | null>;
   onSelect: (id: string) => void;
   onNearest: (id: string | null) => void;
 };
 
-export function Crowd({ nodes, layout, heights, dim, player, state, onSelect, onNearest }: Props) {
+export function Crowd({ nodes, links, layout, heights, dim, player, walking, state, onSelect, onNearest }: Props) {
   const N = nodes.length;
-  const refs = {
-    body: useRef<THREE.InstancedMesh>(null), head: useRef<THREE.InstancedMesh>(null), hair: useRef<THREE.InstancedMesh>(null),
-    eyes: useRef<THREE.InstancedMesh>(null), crown: useRef<THREE.InstancedMesh>(null),
-  };
+  const body = useRef<THREE.InstancedMesh>(null), head = useRef<THREE.InstancedMesh>(null), hair = useRef<THREE.InstancedMesh>(null);
+  const eyes = useRef<THREE.InstancedMesh>(null), crown = useRef<THREE.InstancedMesh>(null);
+  const accRefs = useRef<(THREE.InstancedMesh | null)[]>([]);
+
   const sim = useMemo(() => {
     const s = {
       x: new Float32Array(N), z: new Float32Array(N), y: new Float32Array(N), tx: new Float32Array(N), tz: new Float32Array(N),
       heading: new Float32Array(N), scale: new Float32Array(N).fill(1), target: new Float32Array(N).fill(1),
-      phase: new Float32Array(N), size: new Float32Array(N), crowned: new Uint8Array(N),
+      phase: new Float32Array(N), size: new Float32Array(N), crowned: new Uint8Array(N), hop: new Float32Array(N),
+      buddy: new Int32Array(N).fill(-1), mutual: new Uint8Array(N),
+      acc: ACCESSORIES.map(() => [] as number[]), // indices of people wearing each accessory
     };
+    const idx = new Map(nodes.map((n, i) => [n.id, i]));
     nodes.forEach((n, i) => {
       const h = hash(n.id);
       s.phase[i] = (h % 628) / 100;
-      s.size[i] = n.degree === 2 ? 0.5 : 0.8 + (n.wealth ? Math.min(1, n.wealth.mid / 2e6) : 0.2) * 0.5; // V1: richer = a bit taller
+      s.size[i] = 0.8 + (n.wealth ? Math.min(1, n.wealth.mid / 2e6) : 0.2) * 0.5; // V1: richer = a bit taller
       s.crowned[i] = (n.wealth?.mid ?? 0) > 1_000_000 ? 1 : 0;
+      s.mutual[i] = n.tie === "mutual" ? 1 : 0;
+      const a = ACCESSORIES.findIndex((acc) => acc.match.test(n.tribe));
+      if (a >= 0) s.acc[a].push(i);
       const p = layout.pos.get(n.id) ?? { x: 0, z: 0 };
-      s.x[i] = p.x + ((h % 40) - 20); s.z[i] = p.z + (((h >> 5) % 40) - 20); // walk in from around
+      s.x[i] = p.x + ((h % 40) - 20); s.z[i] = p.z + (((h >>> 5) % 40) - 20); // walk in from around
     });
+    // friends in the same tribe stroll in pairs (each person has at most one buddy)
+    for (const [a, b] of links) {
+      const i = idx.get(a), j = idx.get(b);
+      if (i == null || j == null || s.buddy[i] >= 0 || s.buddy[j] >= 0 || nodes[i].tribe !== nodes[j].tribe) continue;
+      s.buddy[i] = j; s.buddy[j] = i;
+      s.phase[j] = s.phase[i];
+    }
     return s;
     // positions persist across layouts; only rebuild when the set of people changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes]);
+  }, [nodes, links]);
 
   useEffect(() => {
     state.current = { ids: nodes.map((n) => n.id), x: sim.x, y: sim.y, z: sim.z };
   }, [nodes, sim, state]);
 
-  // targets + colors when the category changes
+  // targets + colors when the category changes; buddies share the leader's spot
   useEffect(() => {
     nodes.forEach((n, i) => {
       const p = layout.pos.get(n.id);
       if (p) { sim.tx[i] = p.x; sim.tz[i] = p.z; }
     });
+    nodes.forEach((_, i) => {
+      const j = sim.buddy[i];
+      if (j > i) { sim.tx[j] = sim.tx[i] + 1.4; sim.tz[j] = sim.tz[i] + 0.3; }
+    });
     const c = new THREE.Color();
     nodes.forEach((n, i) => {
       const h = hash(n.id);
-      refs.body.current?.setColorAt(i, c.set(layout.colorOf.get(n.id) ?? "#ced4da"));
-      refs.head.current?.setColorAt(i, SKIN[h % SKIN.length]);
-      refs.hair.current?.setColorAt(i, HAIR[(h >>> 3) % HAIR.length]);
+      body.current?.setColorAt(i, c.set(layout.colorOf.get(n.id) ?? "#ced4da"));
+      head.current?.setColorAt(i, SKIN[h % SKIN.length]);
+      hair.current?.setColorAt(i, HAIR[(h >>> 3) % HAIR.length]);
     });
-    for (const r of [refs.body, refs.head, refs.hair]) if (r.current?.instanceColor) r.current.instanceColor.needsUpdate = true;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    for (const r of [body, head, hair]) if (r.current?.instanceColor) r.current.instanceColor.needsUpdate = true;
   }, [layout, nodes, sim]);
 
   useEffect(() => {
@@ -98,47 +132,55 @@ export function Crowd({ nodes, layout, heights, dim, player, state, onSelect, on
   }, [dim, nodes, sim]);
 
   const nearest = useRef<string | null>(null);
-  const tmp = useMemo(() => ({ m: new THREE.Matrix4(), p: new THREE.Matrix4(), q: new THREE.Quaternion(), v: new THREE.Vector3(), s: new THREE.Vector3(), up: new THREE.Vector3(0, 1, 0), zero: new THREE.Matrix4().makeScale(0, 0, 0) }), []);
+  const tmp = useMemo(() => ({
+    m: new THREE.Matrix4(), p: new THREE.Matrix4(), q: new THREE.Quaternion(), v: new THREE.Vector3(), s: new THREE.Vector3(),
+    up: new THREE.Vector3(0, 1, 0), zero: new THREE.Matrix4().makeScale(0, 0, 0), parents: Array.from({ length: N }, () => new THREE.Matrix4()),
+  }), [N]);
 
   useFrame(({ clock }, delta) => {
-    const dt = Math.min(delta, 0.05), t = clock.elapsedTime;
-    const H = heights.current;
-    const { m, p, q, v, s, up, zero } = tmp;
+    const dt = Math.min(delta, 0.05), t = clock.elapsedTime, H = heights.current, pl = player.current;
+    const { m, p, q, v, s, up, zero, parents } = tmp;
     let best: string | null = null, bestD = 3.5 * 3.5;
-    const pl = player.current;
     for (let i = 0; i < N; i++) {
-      // idle wander around your spot (smooth, no randomness per frame)
-      const gx = sim.tx[i] + Math.sin(t * 0.31 + sim.phase[i]) * 0.9;
-      const gz = sim.tz[i] + Math.cos(t * 0.23 + sim.phase[i] * 1.7) * 0.9;
+      // stroll around your spot; pairs stroll a bigger loop together (same phase, side by side)
+      const loop = sim.buddy[i] >= 0 ? 2.2 : 0.9;
+      const gx = sim.tx[i] + Math.sin(t * 0.25 + sim.phase[i]) * loop;
+      const gz = sim.tz[i] + Math.cos(t * 0.19 + sim.phase[i] * 1.7) * loop;
       const dx = gx - sim.x[i], dz = gz - sim.z[i], d = Math.hypot(dx, dz);
-      const speed = Math.max(1.2, d * 1.4);
-      const step = Math.min(d, speed * dt);
-      const moving = d > 0.05;
-      if (moving) {
+      const step = Math.min(d, Math.max(1.2, d * 1.4) * dt);
+      if (d > 0.05) {
         sim.x[i] += (dx / d) * step; sim.z[i] += (dz / d) * step;
-        const want = Math.atan2(dx, dz);
-        let diff = want - sim.heading[i];
+        let diff = Math.atan2(dx, dz) - sim.heading[i];
         diff = Math.atan2(Math.sin(diff), Math.cos(diff));
         sim.heading[i] += diff * Math.min(1, dt * 8);
       }
       sim.y[i] = H ? heightAt(H, sim.x[i], sim.z[i]) : 0;
       sim.scale[i] += (sim.target[i] - sim.scale[i]) * Math.min(1, dt * 6);
+      // mutual friends hop when you walk past them
+      const pd = pl ? (pl.x - sim.x[i]) ** 2 + (pl.z - sim.z[i]) ** 2 : Infinity;
+      if (walking && sim.mutual[i] && pd < 16 && sim.hop[i] <= 0) sim.hop[i] = 1;
+      if (sim.hop[i] > 0) sim.hop[i] = pd < 16 ? Math.max(0.001, sim.hop[i] - dt * 0.6) : sim.hop[i] - dt * 2;
+      const hopY = sim.hop[i] > 0 ? Math.abs(Math.sin(t * 9 + sim.phase[i])) * 0.6 : 0;
       const fast = d > 1.5;
-      const bob = Math.abs(Math.sin(t * (fast ? 11 : 3) + sim.phase[i])) * (fast ? 0.22 : 0.05);
+      const bob = Math.abs(Math.sin(t * (fast ? 11 : 3) + sim.phase[i])) * (fast ? 0.22 : 0.05) + hopY;
       const sc = sim.scale[i] * sim.size[i];
       p.compose(v.set(sim.x[i], sim.y[i] + bob, sim.z[i]), q.setFromAxisAngle(up, sim.heading[i]), s.set(sc, sc, sc));
-      refs.body.current!.setMatrixAt(i, m.multiplyMatrices(p, L.body));
-      refs.head.current!.setMatrixAt(i, m.multiplyMatrices(p, L.head));
-      refs.hair.current!.setMatrixAt(i, m.multiplyMatrices(p, L.hair));
-      refs.eyes.current!.setMatrixAt(i * 2, m.multiplyMatrices(p, L.eyeL));
-      refs.eyes.current!.setMatrixAt(i * 2 + 1, m.multiplyMatrices(p, L.eyeR));
-      refs.crown.current!.setMatrixAt(i, sim.crowned[i] ? m.multiplyMatrices(p, L.crown) : zero);
-      if (pl && sim.size[i] > 0.5) {
-        const pd = (pl.x - sim.x[i]) ** 2 + (pl.z - sim.z[i]) ** 2;
-        if (pd < bestD) { bestD = pd; best = nodes[i].id; }
-      }
+      parents[i].copy(p);
+      body.current!.setMatrixAt(i, m.multiplyMatrices(p, L.body));
+      head.current!.setMatrixAt(i, m.multiplyMatrices(p, L.head));
+      hair.current!.setMatrixAt(i, m.multiplyMatrices(p, L.hair));
+      eyes.current!.setMatrixAt(i * 2, m.multiplyMatrices(p, L.eyeL));
+      eyes.current!.setMatrixAt(i * 2 + 1, m.multiplyMatrices(p, L.eyeR));
+      crown.current!.setMatrixAt(i, sim.crowned[i] ? m.multiplyMatrices(p, L.crown) : zero);
+      if (pd < bestD) { bestD = pd; best = nodes[i].id; }
     }
-    for (const r of Object.values(refs)) if (r.current) r.current.instanceMatrix.needsUpdate = true;
+    ACCESSORIES.forEach((acc, a) => {
+      const mesh = accRefs.current[a];
+      if (!mesh) return;
+      sim.acc[a].forEach((i, k) => mesh.setMatrixAt(k, m.multiplyMatrices(parents[i], acc.local)));
+      mesh.instanceMatrix.needsUpdate = true;
+    });
+    for (const r of [body, head, hair, eyes, crown]) if (r.current) r.current.instanceMatrix.needsUpdate = true;
     if (best !== nearest.current) { nearest.current = best; onNearest(best); }
   });
 
@@ -148,11 +190,14 @@ export function Crowd({ nodes, layout, heights, dim, player, state, onSelect, on
   };
   return (
     <group>
-      <instancedMesh ref={refs.body} args={[miiGeo.body, white, N]} castShadow frustumCulled={false} onClick={click} />
-      <instancedMesh ref={refs.head} args={[miiGeo.head, white, N]} castShadow frustumCulled={false} onClick={click} />
-      <instancedMesh ref={refs.hair} args={[miiGeo.hair, white, N]} frustumCulled={false} />
-      <instancedMesh ref={refs.eyes} args={[miiGeo.eye, dark, N * 2]} frustumCulled={false} />
-      <instancedMesh ref={refs.crown} args={[miiGeo.crown, gold, N]} frustumCulled={false} />
+      <instancedMesh ref={body} args={[miiGeo.body, white, N]} castShadow frustumCulled={false} onClick={click} />
+      <instancedMesh ref={head} args={[miiGeo.head, white, N]} castShadow frustumCulled={false} onClick={click} />
+      <instancedMesh ref={hair} args={[miiGeo.hair, white, N]} frustumCulled={false} />
+      <instancedMesh ref={eyes} args={[miiGeo.eye, dark, N * 2]} frustumCulled={false} />
+      <instancedMesh ref={crown} args={[miiGeo.crown, gold, N]} frustumCulled={false} />
+      {ACCESSORIES.map((acc, a) => sim.acc[a].length > 0 && (
+        <instancedMesh key={a} ref={(el) => { accRefs.current[a] = el; }} args={[acc.geo, acc.mat, sim.acc[a].length]} castShadow frustumCulled={false} />
+      ))}
     </group>
   );
 }

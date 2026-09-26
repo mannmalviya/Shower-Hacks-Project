@@ -36,7 +36,7 @@ export const TERRAIN_SIZE = 260;
 export const TERRAIN_SEG = 110;
 
 /** Keys a person belongs to in a category; the first one is primary. */
-function keysOf(n: Node, c: Category): string[] {
+export function keysOf(n: Node, c: Category): string[] {
   switch (c) {
     case "tribe": case "lifemap": return [n.tribe, ...n.tribes];
     case "places": return [n.circle];
