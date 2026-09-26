@@ -34,7 +34,7 @@ export function TribeArcs({ layout, arcs, focus }: { layout: WorldLayout; arcs: 
         return (
           <QuadraticBezierLine key={`${a}|${b}`} start={[ga.x, ya, ga.z]} end={[gb.x, yb, gb.z]}
             mid={[(ga.x + gb.x) / 2, Math.max(ya, yb) + d * 0.35, (ga.z + gb.z) / 2]}
-            color={lit ? "#4dabf7" : "#ced4da"} lineWidth={1 + (count / max) * 6} transparent opacity={lit ? 0.85 : 0.15} />
+            color={lit ? "#7c6cf0" : "#c9c6ee"} lineWidth={1 + (count / max) * 6} transparent opacity={lit ? 0.85 : 0.15} />
         );
       })}
     </group>

@@ -1,6 +1,6 @@
 "use client";
 // The social mirror: an open Mii world of your network. Walk among your tribes; every category reorganizes the world.
-import { Grid, Line, OrbitControls } from "@react-three/drei";
+import { Grid, Line, OrbitControls, Sparkles } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
@@ -15,7 +15,7 @@ import { Terrain } from "./Terrain";
 import { Chamber } from "./Chamber";
 import { TribeArcs, tribeLinks } from "./TribeArcs";
 import { lineFor } from "./speech";
-import { CATEGORIES, TERRAIN_SEG, computeWorld, coverage, heightAt, keysOf, type Category } from "./worldLayout";
+import { CATEGORIES, TERRAIN_SEG, coverage, getWorld, heightAt, keysOf, type Category } from "./worldLayout";
 
 const money = (n: number | null | undefined) =>
   n == null ? "?" : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}k` : `$${n}`;
@@ -36,7 +36,26 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
 
   const byId = useMemo(() => new Map(analysis.nodes.map((n) => [n.id, n])), [analysis]);
   const cover = useMemo(() => Object.fromEntries(CATEGORIES.map((c) => [c.key, coverage(analysis, c.key)])) as Record<Category, number>, [analysis]);
-  const layout = useMemo(() => computeWorld(analysis, links, category), [analysis, links, category]);
+  const layout = useMemo(() => getWorld(analysis, links, category), [analysis, links, category]);
+  // null = automatic: folded on small screens, open from 640px (pure CSS, no hydration mismatch)
+  const [hudOpen, setHudOpen] = useState<boolean | null>(null);
+
+  // precompute the other categories in idle time, so switching never freezes
+  useEffect(() => {
+    const todo = CATEGORIES.map((c) => c.key);
+    let handle = 0;
+    const ric = typeof window.requestIdleCallback === "function";
+    const idle = (cb: () => void) => (ric ? window.requestIdleCallback(cb, { timeout: 1500 }) : Number(setTimeout(cb, 200)));
+    const next = () => {
+      const c = todo.shift();
+      if (!c) return;
+      getWorld(analysis, links, c);
+      handle = idle(next);
+    };
+    handle = idle(next);
+    return () => (ric ? window.cancelIdleCallback(handle) : clearTimeout(handle));
+  }, [analysis, links]);
+
   const crowdNodes = useMemo(() => analysis.nodes.filter((n) => n.degree === 1), [analysis]);
   const ghostNodes = useMemo(() => analysis.nodes.filter((n) => n.degree === 2), [analysis]);
   const arcs = useMemo(() => tribeLinks(analysis.nodes, links), [analysis, links]);
@@ -167,17 +186,17 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
     : [];
 
   return (
-    <div className="fixed inset-0 select-none bg-slate-50">
-      <Canvas shadows camera={{ position: [0, 70, 95], fov: 50 }} onPointerMissed={() => setSelected(null)}>
-        <color attach="background" args={["#f7f8fa"]} />
-        <fog attach="fog" args={["#f7f8fa", 110, 300]} />
-        <hemisphereLight args={["#ffffff", "#dfe3e8", 1.25]} />
-        <directionalLight position={[50, 90, 40]} intensity={1.1} castShadow shadow-mapSize={[2048, 2048]}
+    <div className="fixed inset-0 select-none bg-[linear-gradient(180deg,#b9a8ff_0%,#d3d0ff_28%,#e7e9ff_52%,#d8f5ef_78%,#fbe3f0_100%)]">
+      <Canvas shadows gl={{ alpha: true }} camera={{ position: [0, 70, 95], fov: 50 }} onPointerMissed={() => setSelected(null)}>
+        <fog attach="fog" args={["#e7e9ff", 120, 330]} />
+        <hemisphereLight args={["#f4efff", "#bfeee6", 1.25]} />
+        <directionalLight position={[50, 90, 40]} intensity={0.95} color="#fff6ee" castShadow shadow-mapSize={[2048, 2048]}
           shadow-camera-left={-110} shadow-camera-right={110} shadow-camera-top={110} shadow-camera-bottom={-110} />
 
         <Terrain layout={layout} heights={heights} onGround={onGround} />
-        <Grid position={[0, 0.03, 0]} args={[10, 10]} infiniteGrid cellSize={4} cellThickness={0.6} cellColor="#e3e6ea"
-          sectionSize={20} sectionThickness={1} sectionColor="#d5dae0" fadeDistance={260} fadeStrength={1.2} />
+        <Grid position={[0, 0.03, 0]} args={[10, 10]} infiniteGrid cellSize={4} cellThickness={0.9} cellColor="#c3c8f4"
+          sectionSize={20} sectionThickness={1.6} sectionColor="#9fa9ee" fadeDistance={300} fadeStrength={1} />
+        <Sparkles count={260} scale={[280, 50, 280]} position={[0, 22, 0]} size={5} speed={0.35} opacity={0.8} color="#ffffff" />
         <Chamber />
         {byTribe && !follow && <TribeArcs layout={layout} arcs={arcs} focus={focus} />}
         {category === "places" && <Landmarks layout={layout} />}
@@ -216,7 +235,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
         )}
         {(["past", "now"] as const).map((side) => (
           <div key={side} ref={bindLabel(side)} style={{ visibility: "hidden" }}
-            className="absolute left-0 top-0 whitespace-nowrap text-2xl font-black text-slate-300">
+            className="absolute left-0 top-0 whitespace-nowrap text-2xl font-black text-indigo-300 drop-shadow-[0_0_8px_rgba(255,255,255,0.9)]">
             {side === "past" ? "⬅ YOUR PAST" : "NOW ➡"}
           </div>
         ))}
@@ -231,8 +250,17 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
       </div>
 
       {/* HUD */}
-      <div className="absolute left-4 top-4 z-[100] w-80 max-w-[calc(100vw-2rem)] rounded-3xl border-4 border-white bg-white/90 p-4 shadow-xl">
-        <h1 className="text-xl font-black tracking-tight text-sky-600">Social Mirror 🚿</h1>
+      <div className={`absolute left-3 top-3 z-[100] max-w-[calc(100vw-1.5rem)] rounded-3xl border-4 border-white bg-white/90 shadow-xl sm:left-4 sm:top-4 ${
+        hudOpen === null ? "px-3 py-2 sm:max-h-[calc(100dvh-2rem)] sm:w-80 sm:overflow-y-auto sm:p-4"
+        : hudOpen ? "max-h-[calc(100dvh-1.5rem)] w-80 overflow-y-auto p-4" : "px-3 py-2"}`}>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-xl font-black tracking-tight text-sky-600">Social Mirror 🚿</h1>
+          <button onClick={() => setHudOpen(!(hudOpen ?? window.innerWidth >= 640))} aria-label="Fold or open the panel"
+            className="rounded-full bg-sky-50 px-2.5 py-0.5 text-sm font-black text-sky-600 hover:bg-sky-100">
+            {hudOpen === null ? <><span className="sm:hidden">☰</span><span className="hidden sm:inline">–</span></> : hudOpen ? "–" : "☰"}
+          </button>
+        </div>
+        <div className={hudOpen === null ? "hidden sm:block" : hudOpen ? "block" : "hidden"}>
         <p className="mb-3 text-xs text-slate-500">Who you are, who your people are, and what they say about you.</p>
         <div className="mb-3 grid grid-cols-4 gap-1.5">
           {CATEGORIES.map((c) => {
@@ -286,7 +314,8 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
         <button onClick={() => setPortrait(true)} className="w-full rounded-2xl bg-rose-500 py-2 text-sm font-black text-white shadow hover:bg-rose-600">
           🪞 My portrait
         </button>
-        <p className="mt-2 text-center text-[10px] text-slate-400">{follow ? "WASD / ZQSD / arrows to walk · click the ground to go · E to meet someone" : "Drag to rotate · scroll to zoom · click a Mii"}</p>
+        <p className="mt-2 text-center text-[10px] text-slate-400">{follow ? "WASD / ZQSD / arrows to walk · tap the ground to go · E to meet someone" : "Drag to rotate · scroll or pinch to zoom · tap a Mii"}</p>
+        </div>
       </div>
 
       {near && !sel && (

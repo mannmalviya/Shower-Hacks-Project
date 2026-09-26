@@ -69,6 +69,15 @@ export function coverage(a: Analysis, c: Category): number {
 const hash = (s: string) => [...s].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
 const rand = (s: string, k: number) => ((hash(s + k) % 1000) / 1000) * 2 - 1;
 
+// one layout per (analysis, category), computed once: switching back and forth is instant
+const CACHE = new WeakMap<Analysis, Map<Category, WorldLayout>>();
+export function getWorld(a: Analysis, links: [string, string][], c: Category): WorldLayout {
+  let byCat = CACHE.get(a);
+  if (!byCat) CACHE.set(a, (byCat = new Map()));
+  if (!byCat.has(c)) byCat.set(c, computeWorld(a, links, c));
+  return byCat.get(c)!;
+}
+
 export function computeWorld(a: Analysis, links: [string, string][], c: Category): WorldLayout {
   const first = a.nodes.filter((n) => n.degree === 1);
   const counts = new Map<string, { n: number; past: number; present: number }>();
@@ -217,7 +226,7 @@ function terrain(first: Node[], pos: Map<string, { x: number; z: number }>, colo
         cr += g * p.rgb[0]; cg += g * p.rgb[1]; cb += g * p.rgb[2]; ck += g;
       }
       const t = Math.min(1, h / 6);
-      const base = [0.97, 0.97 - 0.05 * t, 0.98 - 0.25 * t]; // white training-room floor, pale gold uphill
+      const base = [0.92 + 0.07 * t, 0.93 - 0.01 * t, 1.0 - 0.2 * t]; // Soul's soft lavender floor, peach-gold uphill
       const m = Math.min(0.22, ck * 0.15); // just a hint of the group color
       // vertex colors are linear in three.js: convert from sRGB or everything looks washed out
       tints[v * 3] = toLinear(ck ? base[0] * (1 - m) + (cr / ck) * m : base[0]);
