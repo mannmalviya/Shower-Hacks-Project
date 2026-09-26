@@ -5,7 +5,7 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
-import { SOUL_PARTS, soulGeo } from "./Crowd";
+import { miiGeo } from "./Crowd";
 import { heightAt } from "./worldLayout";
 
 const cash = new THREE.BoxGeometry(1.1, 1, 0.7);
@@ -100,17 +100,11 @@ export function Player({ heights, pos, walkTo, keys, follow, stack, ghostStack, 
         <group position={[1.7, 0, 0]}><CashStack height={ghostStack} isGhost /></group>
       )}
       <group ref={body} scale={1.25}>
-        <mesh geometry={soulGeo.body} castShadow>
-          <meshLambertMaterial color="#ffffff" emissive="#ff8fb8" emissiveIntensity={0.35} />
-        </mesh>
-        {[SOUL_PARTS.armL, SOUL_PARTS.armR].map((m, i) => (
-          <mesh key={i} geometry={soulGeo.arm} matrix={m} matrixAutoUpdate={false}>
-            <meshLambertMaterial color="#ffffff" emissive="#ff8fb8" emissiveIntensity={0.35} />
-          </mesh>
-        ))}
-        {[SOUL_PARTS.eyeL, SOUL_PARTS.eyeR].map((m, i) => (
-          <mesh key={i} geometry={soulGeo.eye} matrix={m} matrixAutoUpdate={false}><meshBasicMaterial color="#2b2d42" /></mesh>
-        ))}
+        <mesh geometry={miiGeo.body} position={[0, 0.8, 0]} castShadow><meshLambertMaterial color="#ff3366" /></mesh>
+        <mesh geometry={miiGeo.head} position={[0, 2.2, 0]} castShadow><meshLambertMaterial color="#f1c27d" /></mesh>
+        <mesh geometry={miiGeo.hair} position={[0, 2.3, 0]} rotation-x={-0.25}><meshLambertMaterial color="#111111" /></mesh>
+        <mesh geometry={miiGeo.eye} position={[-0.25, 2.25, 0.68]}><meshBasicMaterial color="#212529" /></mesh>
+        <mesh geometry={miiGeo.eye} position={[0.25, 2.25, 0.68]}><meshBasicMaterial color="#212529" /></mesh>
       </group>
       {children}
     </group>

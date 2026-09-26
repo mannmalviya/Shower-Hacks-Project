@@ -1,6 +1,6 @@
 "use client";
 /* eslint-disable react-hooks/immutability -- imperative three.js animation state, mutated every frame on purpose */
-// Every 1st-degree soul in a handful of instanced meshes, one animation loop.
+// Every 1st-degree Mii in a handful of instanced meshes, one animation loop.
 // Tribe accessories (skateboard, briefcase, ball...), friends strolling in pairs, a hop when you walk past a mutual friend.
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
@@ -8,47 +8,46 @@ import * as THREE from "three";
 import type { Node } from "@/lib/analysis";
 import { heightAt, type WorldLayout } from "./worldLayout";
 
+const SKIN = ["#ffe0bd", "#f1c27d", "#e0ac69", "#c68642", "#8d5524", "#5c3a1e"].map((c) => new THREE.Color(c));
+const HAIR = ["#2b1b0e", "#5a3825", "#d9a441", "#111111", "#a0522d", "#e8e0d0"].map((c) => new THREE.Color(c));
 export const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
-// Soul-style little souls (Pixar's "Soul"): a soft rounded gumdrop, pastel and faintly glowing,
-// tiny oval eyes and stubby arms. Same shape for everyone; color = group, size = wealth.
-export const soulGeo = {
-  body: new THREE.LatheGeometry(
-    [[0, 0], [0.62, 0.03], [0.85, 0.3], [0.9, 0.8], [0.86, 1.3], [0.8, 1.7], [0.7, 2.05], [0.48, 2.33], [0, 2.45]]
-      .map(([x, y]) => new THREE.Vector2(x, y)), 28),
-  arm: new THREE.CapsuleGeometry(0.15, 0.32, 4, 8),
-  eye: new THREE.SphereGeometry(0.085, 10, 8),
-  crown: new THREE.ConeGeometry(0.4, 0.55, 5),
+// V1 Mii: round head, flared cylinder body, hair cap tilted back
+export const miiGeo = {
+  body: new THREE.CylinderGeometry(0.55, 0.85, 1.6, 16),
+  head: new THREE.SphereGeometry(0.75, 20, 16),
+  hair: new THREE.SphereGeometry(0.8, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2.2),
+  eye: new THREE.SphereGeometry(0.1, 8, 8),
+  crown: new THREE.ConeGeometry(0.45, 0.6, 5),
 };
 const T = (x: number, y: number, z: number) => new THREE.Matrix4().makeTranslation(x, y, z);
-const R = (axis: "x" | "z", a: number) => (axis === "x" ? new THREE.Matrix4().makeRotationX(a) : new THREE.Matrix4().makeRotationZ(a));
-export const SOUL_PARTS = {
-  body: new THREE.Matrix4(),
-  armL: T(-0.92, 1.0, 0.05).multiply(R("z", 0.55)),
-  armR: T(0.92, 1.0, 0.05).multiply(R("z", -0.55)),
-  eyeL: T(-0.24, 1.72, 0.79).multiply(new THREE.Matrix4().makeScale(1, 1.6, 1)),
-  eyeR: T(0.24, 1.72, 0.79).multiply(new THREE.Matrix4().makeScale(1, 1.6, 1)),
-  crown: T(0, 2.72, 0),
+const L = {
+  body: T(0, 0.8, 0),
+  head: T(0, 2.2, 0),
+  hair: T(0, 2.3, 0).multiply(new THREE.Matrix4().makeRotationX(-0.25)),
+  eyeL: T(-0.25, 2.25, 0.68),
+  eyeR: T(0.25, 2.25, 0.68),
+  crown: T(0, 3.25, 0),
 };
-const L = SOUL_PARTS;
 const lambert = (color: string) => new THREE.MeshLambertMaterial({ color });
-export const soulMat = new THREE.MeshLambertMaterial({ color: "#ffffff", emissive: "#ffffff", emissiveIntensity: 0.1 });
-const dark = new THREE.MeshBasicMaterial({ color: "#2b2d42" });
+const white = lambert("#ffffff");
+const dark = new THREE.MeshBasicMaterial({ color: "#212529" });
 const gold = lambert("#ffc800");
-const WHITE = new THREE.Color("#ffffff");
 
 // one accessory per tribe family, picked from the tribe's emoji
 type Acc = { match: RegExp; geo: THREE.BufferGeometry; mat: THREE.Material; local: THREE.Matrix4 };
 const ACCESSORIES: Acc[] = [
-  { match: /^🛹/, geo: new THREE.BoxGeometry(0.75, 0.12, 2.3), mat: lambert("#e8590c"), local: T(0, 0.06, 0) }, // skateboard (sticks out front and back)
-  { match: /^💼/, geo: new THREE.BoxGeometry(0.5, 0.4, 0.15), mat: lambert("#7c4a1e"), local: T(1.1, 0.55, 0.1) }, // briefcase
-  { match: /^⚽/, geo: new THREE.SphereGeometry(0.3, 12, 10), mat: lambert("#f8f9fa"), local: T(0.95, 0.3, 0.95) }, // ball
-  { match: /^🎹/, geo: new THREE.TorusGeometry(0.86, 0.08, 8, 20, Math.PI), mat: lambert("#e03131"), local: T(0, 1.75, 0) }, // headphones
-  { match: /^🎨/, geo: new THREE.CylinderGeometry(0.42, 0.5, 0.14, 16), mat: lambert("#c2255c"), local: T(0.1, 2.42, 0).multiply(R("z", -0.3)) }, // beret
-  { match: /^🤖/, geo: new THREE.ConeGeometry(0.08, 0.7, 6), mat: lambert("#868e96"), local: T(0, 2.75, 0) }, // antenna
-  { match: /^💻/, geo: new THREE.BoxGeometry(0.8, 0.5, 0.05), mat: lambert("#adb5bd"), local: T(0, 1.05, 1.0).multiply(R("x", -0.35)) }, // laptop
-  { match: /^(🎓|🐻)/, geo: new THREE.BoxGeometry(1.0, 0.08, 1.0), mat: lambert("#1c2a4a"), local: T(0, 2.46, 0) }, // grad cap
-  { match: /^⭐/, geo: new THREE.BoxGeometry(0.85, 0.18, 0.08), mat: dark, local: T(0, 1.74, 0.84) }, // sunglasses
+  { match: /^🛹/, geo: new THREE.BoxGeometry(0.75, 0.12, 2.5), mat: lambert("#e8590c"), local: T(0, 0.06, 0) }, // skateboard (sticks out front and back)
+  { match: /^💼/, geo: new THREE.BoxGeometry(0.55, 0.42, 0.16), mat: lambert("#7c4a1e"), local: T(0.95, 0.45, 0) }, // briefcase
+  { match: /^⚽/, geo: new THREE.SphereGeometry(0.32, 12, 10), mat: lambert("#f8f9fa"), local: T(0.95, 0.32, 0.95) }, // ball
+  { match: /^🎹/, geo: new THREE.TorusGeometry(0.82, 0.09, 8, 20, Math.PI), mat: lambert("#e03131"), local: T(0, 2.2, 0) }, // headphones
+  { match: /^🎨/, geo: new THREE.CylinderGeometry(0.5, 0.58, 0.16, 16), mat: lambert("#c2255c"),
+    local: T(0.12, 2.95, 0).multiply(new THREE.Matrix4().makeRotationZ(-0.3)) }, // beret
+  { match: /^🤖/, geo: new THREE.ConeGeometry(0.1, 0.8, 6), mat: lambert("#868e96"), local: T(0, 3.25, 0) }, // antenna
+  { match: /^💻/, geo: new THREE.BoxGeometry(0.85, 0.55, 0.05), mat: lambert("#adb5bd"),
+    local: T(0, 1.25, 0.9).multiply(new THREE.Matrix4().makeRotationX(-0.35)) }, // laptop
+  { match: /^(🎓|🐻)/, geo: new THREE.BoxGeometry(1.15, 0.08, 1.15), mat: lambert("#1c2a4a"), local: T(0, 2.98, 0) }, // grad cap
+  { match: /^⭐/, geo: new THREE.BoxGeometry(1.0, 0.2, 0.08), mat: dark, local: T(0, 2.3, 0.72) }, // sunglasses
 ];
 
 export type CrowdState = { ids: string[]; x: Float32Array; y: Float32Array; z: Float32Array };
@@ -68,7 +67,7 @@ type Props = {
 
 export function Crowd({ nodes, links, layout, heights, dim, player, walking, state, onSelect, onNearest }: Props) {
   const N = nodes.length;
-  const body = useRef<THREE.InstancedMesh>(null), arms = useRef<THREE.InstancedMesh>(null);
+  const body = useRef<THREE.InstancedMesh>(null), head = useRef<THREE.InstancedMesh>(null), hair = useRef<THREE.InstancedMesh>(null);
   const eyes = useRef<THREE.InstancedMesh>(null), crown = useRef<THREE.InstancedMesh>(null);
   const accRefs = useRef<(THREE.InstancedMesh | null)[]>([]);
 
@@ -120,12 +119,12 @@ export function Crowd({ nodes, links, layout, heights, dim, player, walking, sta
     });
     const c = new THREE.Color();
     nodes.forEach((n, i) => {
-      c.set(layout.colorOf.get(n.id) ?? "#ced4da").lerp(WHITE, 0.12); // a touch pastel
-      body.current?.setColorAt(i, c);
-      arms.current?.setColorAt(i * 2, c);
-      arms.current?.setColorAt(i * 2 + 1, c);
+      const h = hash(n.id);
+      body.current?.setColorAt(i, c.set(layout.colorOf.get(n.id) ?? "#ced4da"));
+      head.current?.setColorAt(i, SKIN[h % SKIN.length]);
+      hair.current?.setColorAt(i, HAIR[(h >>> 3) % HAIR.length]);
     });
-    for (const r of [body, arms]) if (r.current?.instanceColor) r.current.instanceColor.needsUpdate = true;
+    for (const r of [body, head, hair]) if (r.current?.instanceColor) r.current.instanceColor.needsUpdate = true;
   }, [layout, nodes, sim]);
 
   useEffect(() => {
@@ -167,9 +166,9 @@ export function Crowd({ nodes, links, layout, heights, dim, player, walking, sta
       const sc = sim.scale[i] * sim.size[i];
       p.compose(v.set(sim.x[i], sim.y[i] + bob, sim.z[i]), q.setFromAxisAngle(up, sim.heading[i]), s.set(sc, sc, sc));
       parents[i].copy(p);
-      body.current!.setMatrixAt(i, p);
-      arms.current!.setMatrixAt(i * 2, m.multiplyMatrices(p, L.armL));
-      arms.current!.setMatrixAt(i * 2 + 1, m.multiplyMatrices(p, L.armR));
+      body.current!.setMatrixAt(i, m.multiplyMatrices(p, L.body));
+      head.current!.setMatrixAt(i, m.multiplyMatrices(p, L.head));
+      hair.current!.setMatrixAt(i, m.multiplyMatrices(p, L.hair));
       eyes.current!.setMatrixAt(i * 2, m.multiplyMatrices(p, L.eyeL));
       eyes.current!.setMatrixAt(i * 2 + 1, m.multiplyMatrices(p, L.eyeR));
       crown.current!.setMatrixAt(i, sim.crowned[i] ? m.multiplyMatrices(p, L.crown) : zero);
@@ -181,7 +180,7 @@ export function Crowd({ nodes, links, layout, heights, dim, player, walking, sta
       sim.acc[a].forEach((i, k) => mesh.setMatrixAt(k, m.multiplyMatrices(parents[i], acc.local)));
       mesh.instanceMatrix.needsUpdate = true;
     });
-    for (const r of [body, arms, eyes, crown]) if (r.current) r.current.instanceMatrix.needsUpdate = true;
+    for (const r of [body, head, hair, eyes, crown]) if (r.current) r.current.instanceMatrix.needsUpdate = true;
     if (best !== nearest.current) { nearest.current = best; onNearest(best); }
   });
 
@@ -191,10 +190,11 @@ export function Crowd({ nodes, links, layout, heights, dim, player, walking, sta
   };
   return (
     <group>
-      <instancedMesh ref={body} args={[soulGeo.body, soulMat, N]} castShadow frustumCulled={false} onClick={click} />
-      <instancedMesh ref={arms} args={[soulGeo.arm, soulMat, N * 2]} castShadow frustumCulled={false} />
-      <instancedMesh ref={eyes} args={[soulGeo.eye, dark, N * 2]} frustumCulled={false} />
-      <instancedMesh ref={crown} args={[soulGeo.crown, gold, N]} frustumCulled={false} />
+      <instancedMesh ref={body} args={[miiGeo.body, white, N]} castShadow frustumCulled={false} onClick={click} />
+      <instancedMesh ref={head} args={[miiGeo.head, white, N]} castShadow frustumCulled={false} onClick={click} />
+      <instancedMesh ref={hair} args={[miiGeo.hair, white, N]} frustumCulled={false} />
+      <instancedMesh ref={eyes} args={[miiGeo.eye, dark, N * 2]} frustumCulled={false} />
+      <instancedMesh ref={crown} args={[miiGeo.crown, gold, N]} frustumCulled={false} />
       {ACCESSORIES.map((acc, a) => sim.acc[a].length > 0 && (
         <instancedMesh key={a} ref={(el) => { accRefs.current[a] = el; }} args={[acc.geo, acc.mat, sim.acc[a].length]} castShadow frustumCulled={false} />
       ))}

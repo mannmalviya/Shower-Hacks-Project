@@ -95,7 +95,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
       m.set(`g${i}`, () => [g.x, y, g.z]);
     });
     const p = playerPos.current;
-    m.set("you", () => [p.x, p.y + egoStack + 3.8, p.z]);
+    m.set("you", () => [p.x, p.y + egoStack + 4.6, p.z]);
     if (ghostStack != null) m.set("future", () => [p.x + 1.7, p.y + ghostStack + 0.7, p.z]);
     const axis = category === "lifemap" || category === "places";
     m.set("past", () => (axis ? [-60, 2, 40] : null));
@@ -103,7 +103,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
     chatter.forEach((id, k) => m.set(`b${k}`, () => {
       const c = crowd.current;
       const i = c ? c.ids.indexOf(id) : -1;
-      return c && i >= 0 ? [c.x[i], c.y[i] + 4.0, c.z[i]] : null;
+      return c && i >= 0 ? [c.x[i], c.y[i] + 4.9, c.z[i]] : null;
     }));
     const pr = new Map<string, number>();
     layout.groups.forEach((g, i) => pr.set(`g${i}`, g.key === focus ? 1e6 : g.count));
@@ -111,7 +111,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
     m.set("near", () => {
       const c = crowd.current;
       const i = c && nearest ? c.ids.indexOf(nearest) : -1;
-      return c && i >= 0 ? [c.x[i], c.y[i] + 3.3, c.z[i]] : null;
+      return c && i >= 0 ? [c.x[i], c.y[i] + 4, c.z[i]] : null;
     });
     anchors.current = m;
   }, [layout, category, nearest, egoStack, ghostStack, chatter, focus]);
