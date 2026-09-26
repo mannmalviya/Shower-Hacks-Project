@@ -12,10 +12,8 @@ Hackathon project. ~8 hours, 3 people, all using Claude. Read `PLAN.md` first. I
 ### Backend
 - Potentially a Zo cloud instance that does computer use scraping
 
-
 ### Database
 - Hosted Cloud Supabase
-
 
 ## Rules
 

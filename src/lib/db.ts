@@ -1,0 +1,114 @@
+// Typed read/write helpers. These are the app's "endpoints".
+// Pass in a client:
+//   browser:   createClient() from "@/lib/supabase/client"
+//   server:    await createClient() from "@/lib/supabase/server"
+//   admin:     createAdminClient() from "@/lib/supabase/admin" (skips RLS, server only)
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Json, Tables, TablesInsert } from "./supabase/database.types";
+
+type DB = SupabaseClient<Database>;
+
+export type Person = Tables<"people">;
+export type NetWorth = Tables<"net_worth">;
+export type ScrapeJob = Tables<"scrape_jobs">;
+export type Platform = "linkedin" | "x" | "instagram";
+export type PersonWithNetWorth = Person & { net_worth: NetWorth | null };
+
+// ---------- Reads (anyone) ----------
+
+export async function getPerson(db: DB, id: string) {
+  const { data, error } = await db.from("people").select("*, net_worth(*)").eq("id", id).single();
+  if (error) throw error;
+  return data as PersonWithNetWorth;
+}
+
+/** Everyone in the world, with net worth. The 3D scene renders this. */
+export async function listPeople(db: DB, opts: { company?: string } = {}) {
+  let q = db.from("people").select("*, net_worth(*)");
+  if (opts.company) q = q.eq("company", opts.company);
+  const { data, error } = await q;
+  if (error) throw error;
+  return data as PersonWithNetWorth[];
+}
+
+/** People who follow `personId`. */
+export async function listFollowers(db: DB, personId: string) {
+  const { data, error } = await db
+    .from("follows")
+    .select("follower:people!follows_follower_id_fkey(*, net_worth(*))")
+    .eq("person_id", personId);
+  if (error) throw error;
+  return data.map((r) => r.follower) as PersonWithNetWorth[];
+}
+
+export async function listJobs(db: DB, personId: string) {
+  const { data, error } = await db.from("scrape_jobs").select("*").eq("person_id", personId).order("created_at");
+  if (error) throw error;
+  return data;
+}
+
+// ---------- User writes (signed-in user, RLS checks ownership) ----------
+
+/** The signed-in user's own person row, or null. */
+export async function getMyPerson(db: DB) {
+  const { data: claims } = await db.auth.getClaims();
+  const uid = claims?.claims.sub;
+  if (!uid) return null;
+  const { data, error } = await db.from("people").select("*, net_worth(*)").eq("user_id", uid).maybeSingle();
+  if (error) throw error;
+  return data as PersonWithNetWorth | null;
+}
+
+/** Create or update the signed-in user's person row (name + social URLs). */
+export async function upsertMyPerson(db: DB, fields: Omit<TablesInsert<"people">, "id" | "user_id">) {
+  const { data: claims } = await db.auth.getClaims();
+  const uid = claims?.claims.sub;
+  if (!uid) throw new Error("Not signed in");
+  const { data, error } = await db
+    .from("people")
+    .upsert({ ...fields, user_id: uid }, { onConflict: "user_id" })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function saveOnboarding(db: DB, answers: Json) {
+  const { data: claims } = await db.auth.getClaims();
+  const uid = claims?.claims.sub;
+  if (!uid) throw new Error("Not signed in");
+  const { error } = await db.from("onboarding_answers").upsert({ user_id: uid, answers });
+  if (error) throw error;
+}
+
+/** Queue one scrape job per platform. The worker picks them up. */
+export async function queueScrapeJobs(db: DB, personId: string, platforms: Platform[]) {
+  const { data, error } = await db
+    .from("scrape_jobs")
+    .insert(platforms.map((platform) => ({ person_id: personId, platform })))
+    .select();
+  if (error) throw error;
+  return data;
+}
+
+// ---------- Admin writes (admin client only: API routes) ----------
+// The Python worker writes the same tables with supabase-py and the secret key.
+
+export async function saveNetWorth(db: DB, row: TablesInsert<"net_worth">) {
+  const { error } = await db.from("net_worth").upsert(row);
+  if (error) throw error;
+}
+
+// ---------- Realtime ----------
+
+/** Calls `onChange` when people, follows, net_worth or scrape_jobs change. Returns an unsubscribe function. */
+export function subscribeWorld(db: DB, onChange: (table: string) => void) {
+  const channel = db.channel("world");
+  for (const table of ["people", "follows", "net_worth", "scrape_jobs"]) {
+    channel.on("postgres_changes", { event: "*", schema: "public", table }, () => onChange(table));
+  }
+  channel.subscribe();
+  return () => {
+    db.removeChannel(channel);
+  };
+}
