@@ -89,12 +89,14 @@ Next.js API route ◀────────────┘
 3D page ◀── Supabase realtime ─┘
 ```
 
-## Data (first draft; change it as a team)
+## Data
 
-- `people`: id, name, headline, company, role, location, photo_url, linkedin_url, x_url, instagram_url, raw (jsonb), is_user (bool)
+Schema: `supabase/migrations/`. Helpers: `src/lib/db.ts`. Reads are public. Users write their own rows. The worker and API routes write with the secret key.
+
+- `people`: id, user_id (set = signed-up user), name, headline, company, role, location, photo_url, linkedin_url, x_url, instagram_url, raw (jsonb)
 - `follows`: follower_id → person_id
 - `scrape_jobs`: id, person_id, platform, status (`queued` | `running` | `done` | `failed`), error, created_at
-- `net_worth`: person_id, low, high, reasoning, sources (jsonb)
+- `net_worth`: person_id, low, high (USD), reasoning, sources (jsonb)
 - `onboarding_answers`: user_id, answers (jsonb)
 
 **Proposed additions** (for Platforms / Second degree / Visualizations; agree as a team first):
