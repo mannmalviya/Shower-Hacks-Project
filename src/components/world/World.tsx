@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { Analysis, Dimension, Node } from "@/lib/analysis";
 import { Crowd, type CrowdState } from "./Crowd";
-import { Ghosts } from "./Ghosts";
 import { LabelProjector, type Anchor } from "./Labels";
 import { Landmarks } from "./Landmarks";
 import { Player, stackHeight } from "./Player";
@@ -16,7 +15,7 @@ import { TribeProps } from "./TribeProps";
 import { Chamber } from "./Chamber";
 import { TribeArcs, tribeLinks } from "./TribeArcs";
 import { lineFor } from "./speech";
-import { CATEGORIES, TERRAIN_SEG, coverage, getWorld, heightAt, keysOf, type Category, type WorldLayout } from "./worldLayout";
+import { CATEGORIES, TERRAIN_SEG, coverage, getWorld, heightAt, keysOf, type Category } from "./worldLayout";
 
 const money = (n: number | null | undefined) =>
   n == null ? "?" : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}k` : `$${n}`;
@@ -76,6 +75,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
   const walkTo = useRef<THREE.Vector3 | null>(null);
   const keys = useRef(new Set<string>());
   const crowd = useRef<CrowdState | null>(null);
+  const crowd2 = useRef<CrowdState | null>(null); // the N+1 circle
   const controls = useRef<React.ComponentRef<typeof OrbitControls>>(null);
   const flyTo = useRef<{ x: number; y: number; z: number; dist?: number } | null>(null);
   const labelEls = useRef(new Map<string, HTMLElement>());
@@ -209,12 +209,9 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
         <Crowd nodes={crowdNodes} links={links} layout={layout} heights={heights} dim={dim} player={playerPos} walking={follow}
           state={crowd} onSelect={setSelected} onNearest={setNearest} />
         {showSecond && <>
-          <Ghosts nodes={ghostNodes} layout={layout} heights={heights} onSelect={setSelected} />
-          <RingLinks layout={layout} links={links} />
-          <mesh rotation-x={-Math.PI / 2} position-y={0.25}>
-            <ringGeometry args={[(layout.ring.inner + layout.ring.radius) / 2 - 0.3, (layout.ring.inner + layout.ring.radius) / 2 + 0.3, 128]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={0.7} />
-          </mesh>
+          <Crowd nodes={ghostNodes} links={links} layout={layout} heights={heights} dim={dim} player={playerPos} walking={false}
+            state={crowd2} onSelect={setSelected} onNearest={noop} />
+          <Halo inner={layout.ring.radius - 6} outer={layout.ring.radius + 6} />
         </>}
         <CameraFly flyTo={flyTo} controls={controls} />
         <Player heights={heights} pos={playerPos} walkTo={walkTo} keys={keys} follow={follow} stack={egoStack} ghostStack={ghostStack} />
@@ -239,8 +236,8 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
           </div>
         ))}
         {layout.ring.groups.map((g, i) => (
-          <div key={`ring-${category}-${i}`} ref={bindLabel(`r${i}`)} style={{ visibility: "hidden" }}
-            className="absolute left-0 top-0 whitespace-nowrap rounded-full border-2 border-dashed border-slate-300 bg-white/70 px-2 py-0.5 text-[10px] font-bold italic text-slate-500 hover:!opacity-100">
+          <div key={`ring-${category}-${i}`} ref={bindLabel(`r${i}`)} style={{ visibility: "hidden", borderColor: g.color }}
+            className="absolute left-0 top-0 whitespace-nowrap rounded-full border-2 border-dashed bg-white/85 px-2 py-0.5 text-[10px] font-bold text-slate-600 hover:!opacity-100">
             {g.key} <span className="text-slate-400">{g.count}</span>
           </div>
         ))}
@@ -328,7 +325,7 @@ export default function World({ analysis, links }: { analysis: Analysis; links: 
             <input type="checkbox" checked={showSecond} onChange={(e) => {
               setShowSecond(e.target.checked);
               if (e.target.checked && !follow) flyTo.current = { x: 0, y: 0, z: 0, dist: 3.4 };
-            }} /> 👻 N+1 circle ({analysis.secondDegree.count})
+            }} /> 🌐 N+1 circle ({analysis.secondDegree.count})
           </label>
         </div>
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search (Stripe, skate, Berkeley…)"
@@ -452,25 +449,32 @@ function Bubble({ bind, text, who }: { bind: (el: HTMLElement | null) => void; t
   );
 }
 
-/** Thin lines from each friend of a friend (N+1 ring) to the people of your first circle they know. */
-function RingLinks({ layout, links }: { layout: WorldLayout; links: [string, string][] }) {
-  const geo = useMemo(() => {
-    const pts: number[] = [];
-    const inner = layout.ring.inner + 2;
-    for (const [a, b] of links) {
-      const pa = layout.pos.get(a), pb = layout.pos.get(b);
-      if (!pa || !pb) continue;
-      const ra = Math.hypot(pa.x, pa.z), rb = Math.hypot(pb.x, pb.z);
-      if ((ra > inner) === (rb > inner)) continue; // only ring <-> first circle
-      pts.push(pa.x, heightAt(layout.heights, pa.x, pa.z) + 1.4, pa.z, pb.x, heightAt(layout.heights, pb.x, pb.z) + 1.4, pb.z);
-    }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
-    return g;
-  }, [layout, links]);
+const noop = () => {};
+
+/** The N+1 zone: a closed band of soft light around your world (transparent, fading at both edges). */
+function Halo({ inner, outer }: { inner: number; outer: number }) {
+  const mat = useMemo(() => new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false,
+    uniforms: { inner: { value: inner }, outer: { value: outer } },
+    vertexShader: "varying vec2 vP; void main() { vP = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+    fragmentShader: `uniform float inner; uniform float outer; varying vec2 vP;
+      void main() {
+        float r = length(vP), w = (outer - inner) * 0.35;
+        float a = smoothstep(inner, inner + w, r) * (1.0 - smoothstep(outer - w, outer, r));
+        gl_FragColor = vec4(1.0, 1.0, 1.0, a * 0.55);
+      }`,
+  }), [inner, outer]);
   return (
-    <lineSegments geometry={geo}>
-      <lineBasicMaterial color="#7c86b8" transparent opacity={0.28} depthWrite={false} />
-    </lineSegments>
+    <group>
+      <mesh rotation-x={-Math.PI / 2} position-y={0.3} material={mat} renderOrder={2}>
+        <ringGeometry args={[inner, outer, 160, 1]} />
+      </mesh>
+      {[inner, outer].map((r) => (
+        <mesh key={r} rotation-x={-Math.PI / 2} position-y={0.32}>
+          <ringGeometry args={[r - 0.12, r + 0.12, 160]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.9} />
+        </mesh>
+      ))}
+    </group>
   );
 }

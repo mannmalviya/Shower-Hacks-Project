@@ -165,11 +165,12 @@ export function computeWorld(a: Analysis, links: [string, string][], c: Category
   const colorOf = new Map<string, string>();
   first.forEach((n, i) => { pos.set(n.id, P[i]); colorOf.set(n.id, colorFor.get(keysOf(n, c)[0])!); });
 
-  // ---------- N+1 circle: friends of friends on a ring around your world ----------
-  // grouped by company (the only thing we usually know about them), each group facing the people it reaches you through
+  // ---------- N+1 circle: friends of friends on a closed ring around your world ----------
+  // grouped by company (the only thing we usually know about them). Groups keep the order of the side they reach
+  // you through, but share the whole 360°, so the ring is always closed.
   let r1 = 0;
   for (const p of pos.values()) r1 = Math.max(r1, Math.hypot(p.x, p.z));
-  const R2 = Math.min(118, r1 + 24);
+  const R2 = Math.min(112, r1 + 22);
   const contactsOf = new Map<string, string[]>();
   for (const [x, y] of links) {
     if (pos.has(x) && !pos.has(y)) (contactsOf.get(y) ?? contactsOf.set(y, []).get(y)!).push(x);
@@ -181,32 +182,26 @@ export function computeWorld(a: Analysis, links: [string, string][], c: Category
     return Math.atan2(sz, sx);
   };
   const second = a.nodes.filter((n) => n.degree === 2);
-  const ringKey = (n: Node) => (n.company ? `👻 ${n.company}` : "👻 Unknown");
+  const ringKey = (n: Node) => (n.company ? `🌐 ${n.company}` : "🌐 Unknown");
   const ringGroups = new Map<string, Node[]>();
   for (const n of second) (ringGroups.get(ringKey(n)) ?? ringGroups.set(ringKey(n), []).get(ringKey(n))!).push(n);
   const ringList = [...ringGroups].map(([key, members]) => ({ key, members, angle: angleOf(members.flatMap((m) => contactsOf.get(m.id) ?? [])) }))
     .sort((x, y) => x.angle - y.angle);
-  // spread groups so they don't overlap: each takes an arc proportional to its size
-  const need = ringList.map((g) => Math.max(0.18, Math.sqrt(g.members.length) * 0.09));
-  const total = need.reduce((s2, x) => s2 + x, 0), scaleArc = total > Math.PI * 2 ? (Math.PI * 2) / total : 1;
-  for (let it = 0; it < 30; it++) {
-    for (let i = 0; i < ringList.length; i++) {
-      const j = (i + 1) % ringList.length;
-      let gap = ringList[j].angle - ringList[i].angle;
-      if (j === 0) gap += Math.PI * 2;
-      const min = ((need[i] + need[j]) / 2) * scaleArc;
-      if (ringList.length > 1 && gap < min) { ringList[i].angle -= (min - gap) / 2; ringList[j].angle += (min - gap) / 2; }
-    }
-  }
   const ringOut: Group[] = [];
-  ringList.forEach((g) => {
-    const gx = Math.cos(g.angle) * R2, gz = Math.sin(g.angle) * R2;
+  let start = ringList[0]?.angle ?? 0;
+  ringList.forEach((g, gi) => {
+    const arc = (g.members.length / Math.max(1, second.length)) * Math.PI * 2;
+    const color = PALETTE[(gi + 5) % PALETTE.length];
     g.members.forEach((m, k) => {
-      const rr = 1.8 * Math.sqrt(k + 0.5), aa = k * GOLDEN;
-      pos.set(m.id, { x: gx + Math.cos(aa) * rr, z: gz + Math.sin(aa) * rr });
-      colorOf.set(m.id, "#ced4da");
+      // spread along the group's arc, in 3 staggered rows across the band
+      const t = (k + 0.5) / g.members.length, row = k % 3;
+      const a2 = start + arc * t, r = R2 + (row - 1) * 2.6 + rand(m.id, 7) * 0.6;
+      pos.set(m.id, { x: Math.cos(a2) * r, z: Math.sin(a2) * r });
+      colorOf.set(m.id, color);
     });
-    ringOut.push({ key: g.key, count: g.members.length, x: gx * 1.06, z: gz * 1.06, color: "#9aa5c9", era: "unknown" });
+    const mid = start + arc / 2;
+    ringOut.push({ key: g.key, count: g.members.length, x: Math.cos(mid) * (R2 + 7), z: Math.sin(mid) * (R2 + 7), color, era: "unknown" });
+    start += arc;
   });
 
   // group label spots = centroid of primary members
