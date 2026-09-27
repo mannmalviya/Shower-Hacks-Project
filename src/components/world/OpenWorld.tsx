@@ -1,13 +1,14 @@
 "use client";
 // The open world (/world): everyone we scraped stands on a grid in sign-up order, their audience around them
 // (real scraped followers first, NPCs up to 300). Walk around, click anyone. Click a person to open their world.
-import { OrbitControls, Sparkles } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { PersonRow, WorldRows } from "@/lib/worldData";
 import { NPC_COLOR, PLATFORM_COLOR, PLATFORM_NAME, audienceOf, npcLayout, npcSplit, totalOf } from "./npcs";
+import { Environment } from "./Environment";
 import { LabelProjector, type Anchor } from "./Labels";
 import { CashStack, Player, stackHeight } from "./Player";
 import { Gear, NpcCard, PersonDetailCard } from "./SimCard";
@@ -120,13 +121,7 @@ export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: W
   return (
     <div className="fixed inset-0 select-none bg-[linear-gradient(180deg,#8ec5ff_0%,#b3d8ff_30%,#d9ecff_55%,#e3f6ea_80%,#f1f8e9_100%)]">
       <Canvas shadows gl={{ alpha: true }} camera={{ position: backdrop ? [world.cx, 32, world.cz + 62] : [start.x, 34, start.z + 48], fov: 50 }} onPointerMissed={() => setSel(null)}>
-        <fog attach="fog" args={["#dcecfb", 120, 380]} />
-        <hemisphereLight args={["#eef6ff", "#9ed98a", 1.2]} />
-        <directionalLight position={[world.cx + 50, 90, world.cz + 40]} intensity={0.95} color="#fff6ee" castShadow shadow-mapSize={[2048, 2048]}
-          shadow-camera-left={-110} shadow-camera-right={110} shadow-camera-top={110} shadow-camera-bottom={-110}>
-          <object3D attach="target" position={[world.cx, 0, world.cz]} />
-        </directionalLight>
-        <Sparkles count={260} scale={[280, 50, 280]} position={[world.cx, 22, world.cz]} size={5} speed={0.35} opacity={0.8} color="#ffffff" />
+        <Environment center={[world.cx, world.cz]} />
         <mesh rotation-x={-Math.PI / 2} position={[mid, 0, mid]} receiveShadow
           onClick={(e) => { e.stopPropagation(); walkTo.current = e.point.clone(); }}>
           <planeGeometry args={[world.extent + 2000, world.extent + 2000]} />

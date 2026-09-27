@@ -1,6 +1,6 @@
 "use client";
 // The social mirror: an open Mii world of your network. Walk among your tribes; every category reorganizes the world.
-import { OrbitControls, Sparkles } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
@@ -13,6 +13,7 @@ import { Portrait } from "./Portrait";
 import { Terrain } from "./Terrain";
 import { TribeProps } from "./TribeProps";
 import { Chamber } from "./Chamber";
+import { Environment } from "./Environment";
 import { TribeArcs, tribeLinks } from "./TribeArcs";
 import { ValueBar, fmtCount, type Facet } from "./ValueBar";
 import { lineFor } from "./speech";
@@ -216,13 +217,9 @@ export default function World({ analysis, links, details, audience = [], overlay
   return (
     <div className="fixed inset-0 select-none bg-[linear-gradient(180deg,#8ec5ff_0%,#b3d8ff_30%,#d9ecff_55%,#e3f6ea_80%,#f1f8e9_100%)]">
       <Canvas shadows gl={{ alpha: true }} camera={{ position: [0, 70, 95], fov: 50 }} onPointerMissed={() => { setSelected(null); setNpcSel(null); }}>
-        <fog attach="fog" args={["#dcecfb", 120, 330]} />
-        <hemisphereLight args={["#eef6ff", "#9ed98a", 1.2]} />
-        <directionalLight position={[50, 90, 40]} intensity={0.95} color="#fff6ee" castShadow shadow-mapSize={[2048, 2048]}
-          shadow-camera-left={-110} shadow-camera-right={110} shadow-camera-top={110} shadow-camera-bottom={-110} />
+        <Environment />
 
         <Terrain layout={layout} heights={heights} onGround={onGround} />
-        <Sparkles count={260} scale={[280, 50, 280]} position={[0, 22, 0]} size={5} speed={0.35} opacity={0.8} color="#ffffff" />
         <Chamber />
         {byTribe && !follow && focus && <TribeArcs layout={layout} arcs={arcs} focus={focus} />}
         {category === "places" && <Landmarks layout={layout} />}
