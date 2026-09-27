@@ -33,6 +33,8 @@ export type WorldLayout = {
 };
 
 export const TERRAIN_SIZE = 260;
+/** The world is an island: land up to this radius, then a beach sloping under the sea. */
+export const ISLAND_R = 118;
 export const TERRAIN_SEG = 110;
 
 /** N+1 people are only shown when we know where they work (unknowns are dropped; your own circle keeps everyone). */
@@ -114,7 +116,7 @@ export function computeWorld(a: Analysis, links: [string, string][], c: Category
       anchors.set(k, { x: Math.cos(i * GOLDEN) * d, z: Math.sin(i * GOLDEN) * d });
     });
   }
-  const colorFor = new Map(keys.map((k, i) => [k, k.includes("Unknown") ? "#adb5bd" : PALETTE[i % PALETTE.length]]));
+  const colorFor = new Map(keys.map((k, i) => [k, PALETTE[i % PALETTE.length]])); // every group gets a real color, "Unknown" too
 
   // ---------- force simulation ----------
   const P = first.map((n) => {
@@ -260,7 +262,10 @@ function terrain(first: Node[], pos: Map<string, { x: number; z: number }>, colo
       }
       const rad = Math.hypot(x, z), edge = Math.min(1, Math.max(0, (rad - (r1 - 2)) / 10));
       const h = k > 0 ? (kw / (k + 0.35)) * 7 * (1 - edge * edge * (3 - 2 * edge)) : 0; // smoothstep falloff at your circle's edge
-      heights[v] = h;
+      // island: a sand beach, then the ground dips under the sea (see Island.tsx)
+      const shore = Math.max(0, Math.min(1, (rad - ISLAND_R) / 10));
+      heights[v] = h - 3 * shore * shore * (3 - 2 * shore);
+      const sand = Math.max(0, Math.min(1, (rad - (ISLAND_R - 10)) / 8));
       // ground tint = color of the group standing there, over grass that turns golden uphill
       let cr = 0, cg = 0, cb = 0, ck = 0;
       for (const p of people) {
@@ -273,9 +278,10 @@ function terrain(first: Node[], pos: Map<string, { x: number; z: number }>, colo
       const base = [0.56 + 0.4 * t, 0.84 + 0.04 * t, 0.46 + 0.1 * t]; // fresh grass green, golden uphill
       const m = Math.min(0.22, ck * 0.15); // just a hint of the group color
       // vertex colors are linear in three.js: convert from sRGB or everything looks washed out
-      tints[v * 3] = toLinear(ck ? base[0] * (1 - m) + (cr / ck) * m : base[0]);
-      tints[v * 3 + 1] = toLinear(ck ? base[1] * (1 - m) + (cg / ck) * m : base[1]);
-      tints[v * 3 + 2] = toLinear(ck ? base[2] * (1 - m) + (cb / ck) * m : base[2]);
+      const SAND = [0.95, 0.87, 0.64];
+      tints[v * 3] = toLinear((ck ? base[0] * (1 - m) + (cr / ck) * m : base[0]) * (1 - sand) + SAND[0] * sand);
+      tints[v * 3 + 1] = toLinear((ck ? base[1] * (1 - m) + (cg / ck) * m : base[1]) * (1 - sand) + SAND[1] * sand);
+      tints[v * 3 + 2] = toLinear((ck ? base[2] * (1 - m) + (cb / ck) * m : base[2]) * (1 - sand) + SAND[2] * sand);
     }
   }
   return { heights, tints };

@@ -4,9 +4,9 @@
 import type { PersonRow } from "@/lib/worldData";
 
 const GOLDEN = Math.PI * (3 - Math.sqrt(5));
-const AREA = 4.2; // ground per NPC, world units²
+const BASE_AREA = 4.2; // ground per NPC, world units²
 
-export const NPC_COLOR = "#ced4da";
+export const NPC_COLOR = "#20c997"; // fallback body color (never grey)
 export const PLATFORM_COLOR: Record<string, string> = { instagram: "#e64980", x: "#343a40", linkedin: "#1c7ed6", github: "#7950f2" };
 export const PLATFORM_NAME: Record<string, string> = { instagram: "Instagram", x: "X", linkedin: "LinkedIn", github: "GitHub" };
 
@@ -36,9 +36,11 @@ export function npcSplit(audience: Split, real: number, cap: number): Split {
 
 const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
-/** NPC spots around (cx, cz) from radius `inner` outwards. Mixed: one well-mixed crowd. Grouped: one wedge per platform. */
-export function npcLayout(cx: number, cz: number, inner: number, split: Split, grouped: boolean, seed: string): NpcLayout {
+/** NPC spots around (cx, cz) from radius `inner` outwards (packed tighter to stay inside `maxR`, e.g. the island).
+ *  Mixed: one well-mixed crowd. Grouped: one wedge per platform. */
+export function npcLayout(cx: number, cz: number, inner: number, split: Split, grouped: boolean, seed: string, maxR = Infinity): NpcLayout {
   const N = totalOf(split);
+  const AREA = Math.max(1.2, Math.min(BASE_AREA, (Math.PI * (maxR * maxR - inner * inner)) / Math.max(1, N)));
   const x = new Float32Array(N), z = new Float32Array(N), platform: string[] = new Array(N);
   const spin = (hash(seed) % 628) / 100;
   let outer = inner;

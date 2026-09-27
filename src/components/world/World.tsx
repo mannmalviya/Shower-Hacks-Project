@@ -16,7 +16,8 @@ import { Chamber } from "./Chamber";
 import { TribeArcs, tribeLinks } from "./TribeArcs";
 import { ValueBar, fmtCount, type Facet } from "./ValueBar";
 import { lineFor } from "./speech";
-import { CATEGORIES, PALETTE, TERRAIN_SEG, coverage, getWorld, hasData, heightAt, keysOf, type Category } from "./worldLayout";
+import { CATEGORIES, ISLAND_R, PALETTE, TERRAIN_SEG, coverage, getWorld, hasData, heightAt, keysOf, type Category } from "./worldLayout";
+import { Trees, treeSpots } from "./Island";
 import type { PersonRow } from "@/lib/worldData";
 import { PLATFORM_COLOR, PLATFORM_NAME, fakeProfile, npcColor, npcLayout, npcSplit, totalOf, type Split } from "./npcs";
 import { SimpleCrowd } from "./SimpleCrowd";
@@ -80,10 +81,12 @@ export default function World({ analysis, links, details, audience = [], overlay
   const npc = useMemo(() => {
     let r1 = 0;
     for (const n of crowdNodes) { const p = layout.pos.get(n.id); if (p) r1 = Math.max(r1, Math.hypot(p.x, p.z)); }
-    return npcLayout(0, 0, r1 + 6, npcSplit(audience, realFollowers, NPC_CAP), grouped, analysis.egoId);
+    return npcLayout(0, 0, r1 + 6, npcSplit(audience, realFollowers, NPC_CAP), grouped, analysis.egoId, ISLAND_R - 8);
   }, [crowdNodes, layout, audience, realFollowers, grouped, analysis.egoId]);
   const npcColors = useMemo(() => npc.platform.map((p, i) => npcColor(analysis.egoId, i, p, grouped, PALETTE)), [npc, grouped, analysis.egoId]);
   const followerTotal = totalOf(audience);
+  // trees on the open ground between the crowd and the beach
+  const trees = useMemo(() => treeSpots(0, 0, npc.outer + 5, ISLAND_R - 6, 140, 7, [], (x, z) => heightAt(layout.heights, x, z)), [npc.outer, layout]);
   const byTribe = category === "tribe";
   const neighbors = useMemo(() => {
     const m = new Map<string, Set<string>>();
@@ -221,6 +224,7 @@ export default function World({ analysis, links, details, audience = [], overlay
           shadow-camera-left={-110} shadow-camera-right={110} shadow-camera-top={110} shadow-camera-bottom={-110} />
 
         <Terrain layout={layout} heights={heights} onGround={onGround} />
+        <Trees spots={trees} />
         <Sparkles count={260} scale={[280, 50, 280]} position={[0, 22, 0]} size={5} speed={0.35} opacity={0.8} color="#ffffff" />
         <Chamber />
         {byTribe && !follow && focus && <TribeArcs layout={layout} arcs={arcs} focus={focus} />}
@@ -233,7 +237,7 @@ export default function World({ analysis, links, details, audience = [], overlay
         )}
         {showSecond && <>
           <Crowd nodes={ghostNodes} links={links} layout={layout} heights={heights} dim={dim} player={playerPos} walking={false}
-            state={crowd2} onSelect={setSelected} onNearest={noop} veil={0.55} />
+            state={crowd2} onSelect={setSelected} onNearest={noop} />
           <Halo inner={layout.ring.inner + 6} outer={layout.ring.radius + 16} />
         </>}
         <CameraFly flyTo={flyTo} controls={controls} />

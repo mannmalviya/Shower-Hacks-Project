@@ -50,9 +50,9 @@ export function SimpleCrowd({ x, z, colors, scales, y, seed = "", onSelect }: Pr
     const t = clock.elapsedTime, { m, p, q, v, s, up } = tmp;
     for (let i = 0; i < N; i++) {
       const ph = phase[i], sc = scales?.[i] ?? 1;
-      const dx = Math.sin(t * 0.25 + ph) * 0.6, dz = Math.cos(t * 0.19 + ph * 1.7) * 0.6; // stroll a small loop
+      const dx = Math.sin(t * 0.25 + ph) * 1.1, dz = Math.cos(t * 0.19 + ph * 1.7) * 1.1; // stroll a small loop
       const heading = Math.atan2(Math.cos(t * 0.25 + ph) * 0.25, -Math.sin(t * 0.19 + ph * 1.7) * 0.19);
-      p.compose(v.set(x[i] + dx, (y?.[i] ?? 0) + Math.abs(Math.sin(t * 3 + ph)) * 0.05, z[i] + dz), q.setFromAxisAngle(up, heading), s.set(sc, sc, sc));
+      p.compose(v.set(x[i] + dx, (y?.[i] ?? 0) + Math.abs(Math.sin(t * 3.2 + ph)) * 0.22, z[i] + dz), q.setFromAxisAngle(up, heading), s.set(sc, sc, sc));
       body.current!.setMatrixAt(i, m.multiplyMatrices(p, L.body));
       head.current!.setMatrixAt(i, m.multiplyMatrices(p, L.head));
       hair.current!.setMatrixAt(i, m.multiplyMatrices(p, L.hair));

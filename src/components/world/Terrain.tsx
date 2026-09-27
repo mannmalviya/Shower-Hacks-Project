@@ -4,6 +4,7 @@
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { Sea } from "./Island";
 import { TERRAIN_SEG, TERRAIN_SIZE, type WorldLayout } from "./worldLayout";
 
 type Props = {
@@ -77,10 +78,7 @@ export function Terrain({ layout, heights, onGround }: Props) {
       <mesh geometry={geo} receiveShadow onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onGround(e.point); }}>
         <primitive object={material} attach="material" />
       </mesh>
-      <mesh rotation-x={-Math.PI / 2} position-y={-0.05}>
-        <circleGeometry args={[600, 48]} />
-        <meshLambertMaterial color="#8fd672" />
-      </mesh>
+      <Sea />
     </group>
   );
 }

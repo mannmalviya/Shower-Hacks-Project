@@ -172,8 +172,9 @@ export function Crowd({ nodes, links, layout, heights, dim, player, walking, sta
     for (let i = 0; i < N; i++) {
       // stroll around your spot; pairs stroll a bigger loop together (same phase, side by side)
       const act = sim.act[i], ph = sim.phase[i];
-      const loop = act === JOG ? 3.2 : act === GLIDE ? 4.5 : act === ROBOT ? 1.2 : act === DANCE ? 0.25 : act === TALK ? 0.35
-        : act === TYPE || act === POSE ? 0.15 : act === PICNIC ? 0 : sim.buddy[i] >= 0 ? 2.2 : 0.9;
+      // everyone moves around a little, even the ones sitting, typing or posing
+      const loop = Math.max(0.4, act === JOG ? 3.2 : act === GLIDE ? 4.5 : act === ROBOT ? 1.2 : act === DANCE ? 0.25 : act === TALK ? 0.35
+        : act === TYPE || act === POSE ? 0.15 : act === PICNIC ? 0 : sim.buddy[i] >= 0 ? 2.2 : 0.9);
       const tempo = act === JOG ? 1.8 : act === GLIDE ? 1.5 : 1;
       const gx = sim.tx[i] + Math.sin(t * 0.25 * tempo + ph) * loop;
       const gz = sim.tz[i] + Math.cos(t * 0.19 * tempo + ph * 1.7) * loop;
@@ -207,7 +208,8 @@ export function Crowd({ nodes, links, layout, heights, dim, player, walking, sta
         : act === TALK ? Math.abs(Math.sin(t * 2.5 + ph)) * 0.08
         : act === GLIDE || act === PICNIC || act === ROBOT || act === POSE ? 0
         : Math.abs(Math.sin(t * 3 + ph)) * 0.05;
-      const bob = (fast && act !== GLIDE ? Math.abs(Math.sin(t * 11 + ph)) * 0.22 : actBob) + hopY + (act === PICNIC && !fast ? -0.45 : 0); // sitting
+      const bob = (fast && act !== GLIDE ? Math.abs(Math.sin(t * 11 + ph)) * 0.22 : actBob) + hopY + (act === PICNIC && !fast ? -0.45 : 0) // sitting
+        + Math.abs(Math.sin(t * 3.2 + ph)) * 0.18; // and everyone bobs
       const sc = sim.scale[i] * sim.size[i];
       p.compose(v.set(sim.x[i], sim.y[i] + bob, sim.z[i]), q.setFromAxisAngle(up, sim.heading[i]), s.set(sc, sc, sc));
       parents[i].copy(p);

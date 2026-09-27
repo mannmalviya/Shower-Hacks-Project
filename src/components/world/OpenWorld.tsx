@@ -9,6 +9,7 @@ import * as THREE from "three";
 import type { PersonRow, WorldRows } from "@/lib/worldData";
 import { NPC_COLOR, PLATFORM_COLOR, PLATFORM_NAME, audienceOf, fakeProfile, npcColor, npcLayout, npcSplit, totalOf } from "./npcs";
 import { LabelProjector, type Anchor } from "./Labels";
+import { FlatIsland, Sea, Trees, treeSpots } from "./Island";
 import { CashStack, Player, stackHeight } from "./Player";
 import { Gear, NpcCard, PersonDetailCard } from "./SimCard";
 import { SimpleCrowd } from "./SimpleCrowd";
@@ -77,7 +78,11 @@ export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: W
     const extent = cols * cell;
     // middle of the occupied grid (the camera circles it in backdrop mode)
     const cx = ((cols - 1) * cell) / 2, cz = ((Math.ceil(hubs.length / cols) - 1) * cell) / 2;
-    return { byId, hubs, followsCount, sims, colors, labels, extent, cx: Math.max(0, cx), cz: Math.max(0, cz),
+    // island around the whole grid; trees on open ground, never inside someone's crowd
+    const icx = Math.max(0, cx), icz = Math.max(0, cz);
+    const islandR = Math.max(60, ...hubs.map((h) => Math.hypot(h.x - icx, h.z - icz))) + cell / 2 + 30;
+    const trees = treeSpots(icx, icz, 0, islandR - 6, Math.round(islandR * 1.6), 11, hubs.map((h) => ({ x: h.x, z: h.z, r: cell / 2 - 2 })));
+    return { byId, hubs, followsCount, sims, colors, labels, extent, cx: icx, cz: icz, islandR, trees,
       x: Float32Array.from(xs), z: Float32Array.from(zs), y: Float32Array.from(ys), scales: Float32Array.from(scales) };
   }, [rows, grouped]);
 
@@ -116,7 +121,6 @@ export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: W
 
   const s = sel != null ? world.sims[sel] : null;
   const person = s && s.kind !== "npc" ? world.byId.get(s.id) : null;
-  const mid = world.extent / 2;
 
   return (
     <div className="fixed inset-0 select-none bg-[linear-gradient(180deg,#8ec5ff_0%,#b3d8ff_30%,#d9ecff_55%,#e3f6ea_80%,#f1f8e9_100%)]">
@@ -128,11 +132,9 @@ export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: W
           <object3D attach="target" position={[world.cx, 0, world.cz]} />
         </directionalLight>
         <Sparkles count={260} scale={[280, 50, 280]} position={[world.cx, 22, world.cz]} size={5} speed={0.35} opacity={0.8} color="#ffffff" />
-        <mesh rotation-x={-Math.PI / 2} position={[mid, 0, mid]} receiveShadow
-          onClick={(e) => { e.stopPropagation(); walkTo.current = e.point.clone(); }}>
-          <planeGeometry args={[world.extent + 2000, world.extent + 2000]} />
-          <meshLambertMaterial color="#8fd675" />
-        </mesh>
+        <FlatIsland cx={world.cx} cz={world.cz} radius={world.islandR} onGround={(p) => { walkTo.current = p; }} />
+        <Sea cx={world.cx} cz={world.cz} />
+        <Trees spots={world.trees} />
         {world.hubs.map((h) => h.stack > 0 && (
           <group key={h.p.id} position={[h.x, 0, h.z]} scale={HUB_SCALE}><CashStack height={h.stack / HUB_SCALE} /></group>
         ))}
