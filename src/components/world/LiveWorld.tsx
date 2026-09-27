@@ -2,7 +2,7 @@
 // Picks the view: /world = the open world, /world?me=<id> = that person's world. Both update live.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrapeStatus } from "@/app/onboarding/ScrapeStatus";
 import { analyze } from "@/lib/analysis";
 import { useWorldRows, type WorldRows } from "@/lib/worldData";
@@ -36,12 +36,14 @@ function EgoWorld({ rows, egoId, live }: { rows: WorldRows; egoId: string; live:
     return { analysis, links, details: new Map(rows.people.map((p) => [p.id, p])) };
   }, [rows, egoId]);
   const audience = useMemo(() => audienceOf(details.get(egoId)), [details, egoId]);
+  const worth = useNetWorth(rows, egoId, live);
 
   const overlay = (
     <div className="absolute bottom-4 left-4 z-[100] flex w-72 max-w-[calc(100vw-2rem)] flex-col gap-2">
       {live && (
         <div className="rounded-3xl bg-white/90 p-3 shadow-xl">
           <ScrapeStatus personId={egoId} />
+          {worth && <p className="mt-2 text-center text-xs font-bold text-emerald-700">{worth}</p>}
         </div>
       )}
       <Link href="/world" className="rounded-full bg-white/90 px-3 py-1.5 text-center text-xs font-bold text-sky-700 shadow hover:bg-white">
@@ -50,6 +52,35 @@ function EgoWorld({ rows, egoId, live }: { rows: WorldRows; egoId: string; live:
     </div>
   );
   return <World analysis={analysis} links={links} details={details} audience={audience} overlay={overlay} />;
+}
+
+const money = (n: number) => (n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}k` : `$${n}`);
+
+/** Once every scrape job is finished and there is no estimate yet, ask the server for one (POST /api/net-worth).
+ *  The new net_worth row arrives through realtime and your cash stack grows. Returns a status line. */
+function useNetWorth(rows: WorldRows, egoId: string, live: boolean): string | null {
+  const asked = useRef<string | null>(null);
+  const [state, setState] = useState<"idle" | "working" | "none" | "failed">("idle");
+  const jobs = rows.jobs.filter((j) => j.person_id === egoId);
+  const scraped = jobs.length > 0 && jobs.every((j) => j.status === "done" || j.status === "failed");
+  const row = rows.netWorth.find((n) => n.person_id === egoId);
+  useEffect(() => {
+    if (!live || !scraped || row || asked.current === egoId) return;
+    asked.current = egoId;
+    setState("working");
+    fetch("/api/net-worth", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ personId: egoId }) })
+      .then((r) => r.json())
+      .then((b: { results?: { skipped?: string; error?: string }[] }) => {
+        const r = b.results?.[0];
+        setState(r?.error ? "failed" : r?.skipped === "not enough information" ? "none" : "idle");
+      })
+      .catch(() => setState("failed"));
+  }, [live, scraped, row, egoId]);
+  if (row) return `💰 Net worth ${money(row.low)} – ${money(row.high)}`;
+  if (state === "working") return "💰 Estimating your net worth…";
+  if (state === "none") return "💰 Not enough data for a net worth estimate.";
+  if (state === "failed") return "💰 Net worth estimate failed.";
+  return null;
 }
 
 function Center({ children }: { children: React.ReactNode }) {
