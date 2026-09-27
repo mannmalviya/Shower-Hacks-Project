@@ -14,6 +14,7 @@ import { Terrain } from "./Terrain";
 import { TribeProps } from "./TribeProps";
 import { Chamber } from "./Chamber";
 import { TribeArcs, tribeLinks } from "./TribeArcs";
+import { ValueBar, fmtCount, type Facet } from "./ValueBar";
 import { lineFor } from "./speech";
 import { CATEGORIES, TERRAIN_SEG, coverage, getWorld, hasData, heightAt, keysOf, type Category } from "./worldLayout";
 import type { PersonRow } from "@/lib/worldData";
@@ -44,6 +45,7 @@ export default function World({ analysis, links, details, audience = [], overlay
   const [selected, setSelected] = useState<string | null>(null);
   const [nearest, setNearest] = useState<string | null>(null);
   const [focus, setFocus] = useState<string | null>(null); // a group (tribe, school...) the camera flew to
+  const [facet, setFacet] = useState<Facet | null>(null); // a value facet whose top contributors are lit
   const [query, setQuery] = useState("");
   const [portrait, setPortrait] = useState(false);
   const [chatter, setChatter] = useState<string[]>([]); // ids of Miis currently saying something
@@ -178,16 +180,18 @@ export default function World({ analysis, links, details, audience = [], overlay
 
   const q = query.trim().toLowerCase();
   const dim = useMemo(() => {
-    if (!selected && !q && !focus) return null;
+    if (!selected && !q && !focus && !facet) return null;
+    const lit = facet ? new Set(analysis.value.top[facet]) : null;
     const s = new Set<string>();
     for (const n of analysis.nodes) {
       const keep = selected ? n.id === selected || neighbors.get(selected)?.has(n.id)
+        : lit ? lit.has(n.id)
         : focus ? (byTribe ? n.tribe === focus || n.tribes.includes(focus) : n.degree === 1 && keysOf(n, category).includes(focus))
         : [n.name, n.company, n.school, n.city, n.tribe, n.industry].some((v) => v?.toLowerCase().includes(q));
       if (!keep) s.add(n.id);
     }
     return s;
-  }, [analysis, selected, q, focus, neighbors, byTribe, category]);
+  }, [analysis, selected, q, focus, facet, neighbors, byTribe, category]);
 
   const onGround = useCallback((p: THREE.Vector3) => { walkTo.current = p.clone(); }, []);
   const focusGroup = (key: string | null) => {
@@ -241,6 +245,8 @@ export default function World({ analysis, links, details, audience = [], overlay
 
         <OrbitControls ref={controls} enabled={!follow} maxPolarAngle={Math.PI / 2.2} minDistance={10} maxDistance={260} enableDamping />
       </Canvas>
+
+      <ValueBar value={analysis.value} active={facet} onPick={(f) => { setFacet(f); setSelected(null); setFocus(null); }} />
 
       {/* labels overlay: moved every frame by <LabelProjector> */}
       <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
@@ -363,14 +369,14 @@ export default function World({ analysis, links, details, audience = [], overlay
       {!sel && focus && byTribe && (
         <TribeCard name={focus} analysis={analysis} arcs={arcs} onPick={focusGroup} onClose={() => focusGroup(null)} />
       )}
-      {sel && <PersonCard n={sel} detail={details?.get(sel.id)} links={neighbors.get(sel.id)?.size ?? 0} tribes={analysis.tribes} onClose={() => setSelected(null)} />}
+      {sel && <PersonCard n={sel} detail={details?.get(sel.id)} links={neighbors.get(sel.id)?.size ?? 0} tribes={analysis.tribes} doors={analysis.value.byPerson[sel.id]?.doors ?? []} onClose={() => setSelected(null)} />}
       {npcSel != null && npc.platform[npcSel] && (
         <NpcCard platform={npc.platform[npcSel]} of={byId.get(analysis.egoId)?.name ?? "them"} onClose={() => setNpcSel(null)} />
       )}
       {portrait && <Portrait analysis={analysis} onClose={() => setPortrait(false)} />}
 
       {followerTotal > 0 && (
-        <div className="absolute left-1/2 top-3 z-[90] -translate-x-1/2 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-slate-600 shadow"
+        <div className="absolute left-1/2 top-[6.25rem] z-[90] -translate-x-1/2 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-slate-600 shadow max-sm:top-3"
           title={`${realFollowers} scraped for real, ${npc.x.length.toLocaleString("en-US")} NPCs shown${followerTotal > NPC_CAP ? `, capped at ${NPC_CAP.toLocaleString("en-US")} sims` : ""}`}>
           👥 {followerTotal.toLocaleString("en-US")} followers
         </div>
@@ -381,7 +387,7 @@ export default function World({ analysis, links, details, audience = [], overlay
   );
 }
 
-function PersonCard({ n, detail, links, tribes, onClose }: { n: Node; detail?: PersonRow; links: number; tribes: Analysis["tribes"]; onClose: () => void }) {
+function PersonCard({ n, detail, links, tribes, doors, onClose }: { n: Node; detail?: PersonRow; links: number; tribes: Analysis["tribes"]; doors: string[]; onClose: () => void }) {
   const tie = { self: "That's you", mutual: "Mutual", aspiration: "You follow them (no follow back)", audience: "They follow you", indirect: "Friend of a friend" }[n.tie];
   const conf = tribes.find((t) => t.name === n.tribe)?.confidence;
   return (
@@ -400,6 +406,8 @@ function PersonCard({ n, detail, links, tribes, onClose }: { n: Node; detail?: P
         <dt className="font-bold text-slate-400">Wealth</dt><dd>{n.wealth ? `${money(n.wealth.low)} – ${money(n.wealth.high)}` : "❓ invisible to the algorithm"}</dd>
         <dt className="font-bold text-slate-400">On</dt><dd>{n.platforms.join(", ") || "—"}</dd>
         <dt className="font-bold text-slate-400">Links</dt><dd>{links}</dd>
+        <dt className="font-bold text-slate-400">Audience</dt><dd>{n.audience ? `${fmtCount(n.audience)} followers` : "—"}</dd>
+        <dt className="font-bold text-slate-400">Opens</dt><dd>{doors.length ? doors.slice(0, 4).join(", ") : "—"}</dd>
       </dl>
       {detail && <ScrapedSection p={detail} />}
     </div>
@@ -451,6 +459,12 @@ function TribeCard({ name, analysis, arcs, onPick, onClose }: {
         <dt className="font-bold text-slate-400">Worth</dt>
         <dd>{t.medianWealth != null ? `${money(t.medianWealth)} median` : "❓ invisible to the algorithm"}
           {t.medianWealth != null && you != null && you > 0 ? <span className="text-slate-400"> · {(t.medianWealth / you).toFixed(0)}× you</span> : null}</dd>
+        {analysis.value.byTribe[name] && <>
+          <dt className="font-bold text-slate-400">Value</dt>
+          <dd>{Math.round(analysis.value.byTribe[name].moneyShare * 100)}% of your network&apos;s worth · {Math.round(analysis.value.byTribe[name].reachShare * 100)}% of your reach</dd>
+          <dt className="font-bold text-slate-400">Doors</dt>
+          <dd>{analysis.value.byTribe[name].doors.slice(0, 4).join(", ") || "—"}</dd>
+        </>}
         <dt className="font-bold text-slate-400">Bridges</dt>
         <dd className="flex flex-wrap gap-1">
           {bridges.length ? bridges.map((b) => (
