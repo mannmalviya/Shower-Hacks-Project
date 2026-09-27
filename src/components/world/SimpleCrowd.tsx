@@ -11,6 +11,7 @@ const T = (x: number, y: number, z: number) => new THREE.Matrix4().makeTranslati
 const L = { // same local offsets as <Crowd>
   body: T(0, 0.8, 0), head: T(0, 2.2, 0), hair: T(0, 2.3, 0).multiply(new THREE.Matrix4().makeRotationX(-0.25)),
   eyeL: T(-0.25, 2.25, 0.68), eyeR: T(0.25, 2.25, 0.68),
+  mouth: T(0, 2.02, 0.7).multiply(new THREE.Matrix4().makeRotationZ(Math.PI)),
 };
 const WHITE = new THREE.MeshLambertMaterial({ color: "#ffffff" });
 const DARK = new THREE.MeshBasicMaterial({ color: "#212529" });
@@ -28,7 +29,7 @@ type Props = {
 export function SimpleCrowd({ x, z, colors, scales, y, seed = "", onSelect }: Props) {
   const N = x.length;
   const body = useRef<THREE.InstancedMesh>(null), head = useRef<THREE.InstancedMesh>(null);
-  const hair = useRef<THREE.InstancedMesh>(null), eyes = useRef<THREE.InstancedMesh>(null);
+  const hair = useRef<THREE.InstancedMesh>(null), eyes = useRef<THREE.InstancedMesh>(null), mouth = useRef<THREE.InstancedMesh>(null);
   const phase = useMemo(() => Float32Array.from({ length: N }, (_, i) => (hash(`${seed}${i}`) % 628) / 100), [N, seed]);
   const tmp = useMemo(() => ({ m: new THREE.Matrix4(), p: new THREE.Matrix4(), q: new THREE.Quaternion(), v: new THREE.Vector3(),
     s: new THREE.Vector3(), up: new THREE.Vector3(0, 1, 0), c: new THREE.Color() }), []);
@@ -58,8 +59,9 @@ export function SimpleCrowd({ x, z, colors, scales, y, seed = "", onSelect }: Pr
       hair.current!.setMatrixAt(i, m.multiplyMatrices(p, L.hair));
       eyes.current!.setMatrixAt(i * 2, m.multiplyMatrices(p, L.eyeL));
       eyes.current!.setMatrixAt(i * 2 + 1, m.multiplyMatrices(p, L.eyeR));
+      mouth.current!.setMatrixAt(i, m.multiplyMatrices(p, L.mouth));
     }
-    for (const r of [body, head, hair, eyes]) if (r.current) r.current.instanceMatrix.needsUpdate = true;
+    for (const r of [body, head, hair, eyes, mouth]) if (r.current) r.current.instanceMatrix.needsUpdate = true;
   });
 
   const click = (e: ThreeEvent<MouseEvent>) => {
@@ -73,6 +75,7 @@ export function SimpleCrowd({ x, z, colors, scales, y, seed = "", onSelect }: Pr
       <instancedMesh ref={head} args={[miiGeo.head, WHITE, N]} castShadow frustumCulled={false} onClick={click} />
       <instancedMesh ref={hair} args={[miiGeo.hair, WHITE, N]} frustumCulled={false} />
       <instancedMesh ref={eyes} args={[miiGeo.eye, DARK, N * 2]} frustumCulled={false} />
+      <instancedMesh ref={mouth} args={[miiGeo.mouth, DARK, N]} frustumCulled={false} />
     </group>
   );
 }

@@ -17,9 +17,15 @@ export const miiGeo = {
   body: new THREE.CylinderGeometry(0.55, 0.85, 1.6, 16),
   head: new THREE.SphereGeometry(0.75, 20, 16),
   hair: new THREE.SphereGeometry(0.8, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2.2),
-  eye: new THREE.SphereGeometry(0.1, 8, 8),
+  eye: new THREE.SphereGeometry(0.11, 8, 8),
+  mouth: new THREE.TorusGeometry(0.17, 0.035, 6, 12, Math.PI), // a smile (flipped so the arc hangs down)
   crown: new THREE.ConeGeometry(0.45, 0.6, 5),
 };
+// every Mii stands on a stack of cash: a green block with a white paper strap
+export const cashGeo = { block: new THREE.BoxGeometry(2.0, 1, 1.4), strap: new THREE.BoxGeometry(0.6, 1.02, 1.44) };
+export const cashMat = { block: new THREE.MeshLambertMaterial({ color: "#3fcf5c" }), strap: new THREE.MeshLambertMaterial({ color: "#f4fff6" }) };
+/** Pedestal height for a first-degree person: unknown wealth = a thin block, richer = taller. */
+export const pedestalOf = (mid: number | null | undefined) => (!mid || mid <= 0 ? 0.45 : 0.45 + Math.min(2.6, Math.max(0, (Math.log10(mid) - 3.6) * 0.95)));
 const T = (x: number, y: number, z: number) => new THREE.Matrix4().makeTranslation(x, y, z);
 const L = {
   body: T(0, 0.8, 0),
@@ -27,6 +33,7 @@ const L = {
   hair: T(0, 2.3, 0).multiply(new THREE.Matrix4().makeRotationX(-0.25)),
   eyeL: T(-0.25, 2.25, 0.68),
   eyeR: T(0.25, 2.25, 0.68),
+  mouth: T(0, 2.02, 0.7).multiply(new THREE.Matrix4().makeRotationZ(Math.PI)),
   crown: T(0, 3.25, 0),
 };
 const lambert = (color: string) => new THREE.MeshLambertMaterial({ color });
@@ -74,20 +81,21 @@ type Props = {
 
 export function Crowd({ nodes, links, layout, heights, dim, player, walking, state, onSelect, onNearest, veil = 0 }: Props) {
   const mats = useMemo(() => {
-    if (!veil) return { white, dark, gold };
+    if (!veil) return { white, dark, gold, block: cashMat.block, strap: cashMat.strap };
     const fade = <M extends THREE.Material>(m: M) => Object.assign(m.clone(), { transparent: true, opacity: 1 - veil * 0.6 });
-    return { white: fade(white), dark: fade(dark), gold: fade(gold) };
+    return { white: fade(white), dark: fade(dark), gold: fade(gold), block: fade(cashMat.block), strap: fade(cashMat.strap) };
   }, [veil]);
   const N = nodes.length;
   const body = useRef<THREE.InstancedMesh>(null), head = useRef<THREE.InstancedMesh>(null), hair = useRef<THREE.InstancedMesh>(null);
-  const eyes = useRef<THREE.InstancedMesh>(null), crown = useRef<THREE.InstancedMesh>(null);
+  const eyes = useRef<THREE.InstancedMesh>(null), crown = useRef<THREE.InstancedMesh>(null), mouth = useRef<THREE.InstancedMesh>(null);
+  const block = useRef<THREE.InstancedMesh>(null), strap = useRef<THREE.InstancedMesh>(null);
   const accRefs = useRef<(THREE.InstancedMesh | null)[]>([]);
 
   const sim = useMemo(() => {
     const s = {
       x: new Float32Array(N), z: new Float32Array(N), y: new Float32Array(N), tx: new Float32Array(N), tz: new Float32Array(N),
       heading: new Float32Array(N), scale: new Float32Array(N).fill(1), target: new Float32Array(N).fill(1),
-      phase: new Float32Array(N), size: new Float32Array(N), crowned: new Uint8Array(N), hop: new Float32Array(N),
+      phase: new Float32Array(N), size: new Float32Array(N), crowned: new Uint8Array(N), hop: new Float32Array(N), stk: new Float32Array(N),
       buddy: new Int32Array(N).fill(-1), mutual: new Uint8Array(N),
       act: new Uint8Array(N), cx: new Float32Array(N), cz: new Float32Array(N), // activity + center of your group
       acc: ACCESSORIES.map(() => [] as number[]), // indices of people wearing each accessory
@@ -98,6 +106,7 @@ export function Crowd({ nodes, links, layout, heights, dim, player, walking, sta
       s.phase[i] = (h % 628) / 100;
       s.size[i] = 0.8 + (n.wealth ? Math.min(1, n.wealth.mid / 2e6) : 0.2) * 0.5; // V1: richer = a bit taller
       s.crowned[i] = (n.wealth?.mid ?? 0) > 1_000_000 ? 1 : 0;
+      s.stk[i] = pedestalOf(n.wealth?.mid);
       s.mutual[i] = n.tie === "mutual" ? 1 : 0;
       s.act[i] = ACTIVITY.find(([re]) => re.test(n.tribe))?.[1] ?? 0;
       const a = ACCESSORIES.findIndex((acc) => acc.match.test(n.tribe));
@@ -193,7 +202,8 @@ export function Crowd({ nodes, links, layout, heights, dim, player, walking, sta
         else if (act === ROBOT) sim.heading[i] = Math.round(t * 0.6 + ph) * (Math.PI / 2); // jerky quarter turns
         else if (act === POSE) sim.heading[i] = t * 0.6 + ph;
       }
-      sim.y[i] = H ? heightAt(H, sim.x[i], sim.z[i]) : 0;
+      const ground = H ? heightAt(H, sim.x[i], sim.z[i]) : 0;
+      sim.y[i] = ground + sim.stk[i] * sim.scale[i]; // standing on the cash
       sim.scale[i] += (sim.target[i] - sim.scale[i]) * Math.min(1, dt * 6);
       // mutual friends hop when you walk past them
       const pd = pl ? (pl.x - sim.x[i]) ** 2 + (pl.z - sim.z[i]) ** 2 : Infinity;
@@ -209,6 +219,10 @@ export function Crowd({ nodes, links, layout, heights, dim, player, walking, sta
         : Math.abs(Math.sin(t * 3 + ph)) * 0.05;
       const bob = (fast && act !== GLIDE ? Math.abs(Math.sin(t * 11 + ph)) * 0.22 : actBob) + hopY + (act === PICNIC && !fast ? -0.45 : 0); // sitting
       const sc = sim.scale[i] * sim.size[i];
+      // the pedestal: axis-aligned, no bob, shrinks with the dim fade
+      const st = sim.stk[i] * sim.scale[i];
+      m.compose(v.set(sim.x[i], ground + st / 2, sim.z[i]), q.identity(), s.set(sim.scale[i], st, sim.scale[i]));
+      block.current!.setMatrixAt(i, m); strap.current!.setMatrixAt(i, m);
       p.compose(v.set(sim.x[i], sim.y[i] + bob, sim.z[i]), q.setFromAxisAngle(up, sim.heading[i]), s.set(sc, sc, sc));
       parents[i].copy(p);
       body.current!.setMatrixAt(i, m.multiplyMatrices(p, L.body));
@@ -216,6 +230,7 @@ export function Crowd({ nodes, links, layout, heights, dim, player, walking, sta
       hair.current!.setMatrixAt(i, m.multiplyMatrices(p, L.hair));
       eyes.current!.setMatrixAt(i * 2, m.multiplyMatrices(p, L.eyeL));
       eyes.current!.setMatrixAt(i * 2 + 1, m.multiplyMatrices(p, L.eyeR));
+      mouth.current!.setMatrixAt(i, m.multiplyMatrices(p, L.mouth));
       crown.current!.setMatrixAt(i, sim.crowned[i] ? m.multiplyMatrices(p, L.crown) : zero);
       if (pd < bestD) { bestD = pd; best = nodes[i].id; }
     }
@@ -229,7 +244,7 @@ export function Crowd({ nodes, links, layout, heights, dim, player, walking, sta
       });
       mesh.instanceMatrix.needsUpdate = true;
     });
-    for (const r of [body, head, hair, eyes, crown]) if (r.current) r.current.instanceMatrix.needsUpdate = true;
+    for (const r of [body, head, hair, eyes, mouth, crown, block, strap]) if (r.current) r.current.instanceMatrix.needsUpdate = true;
     if (best !== nearest.current) { nearest.current = best; onNearest(best); }
   });
 
@@ -243,7 +258,10 @@ export function Crowd({ nodes, links, layout, heights, dim, player, walking, sta
       <instancedMesh ref={head} args={[miiGeo.head, mats.white, N]} castShadow frustumCulled={false} onClick={click} />
       <instancedMesh ref={hair} args={[miiGeo.hair, mats.white, N]} frustumCulled={false} />
       <instancedMesh ref={eyes} args={[miiGeo.eye, mats.dark, N * 2]} frustumCulled={false} />
+      <instancedMesh ref={mouth} args={[miiGeo.mouth, mats.dark, N]} frustumCulled={false} />
       <instancedMesh ref={crown} args={[miiGeo.crown, mats.gold, N]} frustumCulled={false} />
+      <instancedMesh ref={block} args={[cashGeo.block, mats.block, N]} castShadow receiveShadow frustumCulled={false} onClick={click} />
+      <instancedMesh ref={strap} args={[cashGeo.strap, mats.strap, N]} frustumCulled={false} />
       {ACCESSORIES.map((acc, a) => sim.acc[a].length > 0 && (
         <instancedMesh key={a} ref={(el) => { accRefs.current[a] = el; }} args={[acc.geo, acc.mat, sim.acc[a].length]} castShadow frustumCulled={false} />
       ))}

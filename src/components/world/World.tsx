@@ -14,6 +14,8 @@ import { Terrain } from "./Terrain";
 import { TribeProps } from "./TribeProps";
 import { Chamber } from "./Chamber";
 import { Environment } from "./Environment";
+import { LinkLines } from "./LinkLines";
+import { Clouds, Scenery } from "./Scenery";
 import { TribeArcs, tribeLinks } from "./TribeArcs";
 import { ValueBar, fmtCount, type Facet } from "./ValueBar";
 import { lineFor } from "./speech";
@@ -215,11 +217,14 @@ export default function World({ analysis, links, details, audience = [], overlay
   const fact = bubble?.fact ?? "";
 
   return (
-    <div className="fixed inset-0 select-none bg-[linear-gradient(180deg,#8ec5ff_0%,#b3d8ff_30%,#d9ecff_55%,#e3f6ea_80%,#f1f8e9_100%)]">
-      <Canvas shadows gl={{ alpha: true }} camera={{ position: [0, 70, 95], fov: 50 }} onPointerMissed={() => { setSelected(null); setNpcSel(null); }}>
+    <div className="fixed inset-0 select-none bg-[linear-gradient(180deg,#4aa3ff_0%,#7dc0ff_35%,#b9dfff_70%,#dff1ff_100%)]">
+      <Canvas shadows gl={{ alpha: true }} camera={{ position: [0, 92, 132], fov: 50 }} onPointerMissed={() => { setSelected(null); setNpcSel(null); }}>
         <Environment />
 
         <Terrain layout={layout} heights={heights} onGround={onGround} />
+        <Scenery layout={layout} clear={npc.outer} />
+        <Clouds radius={layout.island + 40} />
+        <LinkLines links={links} crowd={crowd} layout={layout} heights={heights} egoId={analysis.egoId} />
         <Chamber />
         {byTribe && !follow && focus && <TribeArcs layout={layout} arcs={arcs} focus={focus} />}
         {category === "places" && <Landmarks layout={layout} />}
@@ -240,7 +245,7 @@ export default function World({ analysis, links, details, audience = [], overlay
 
         <SelectedLinks selected={selected} neighbors={neighbors} crowds={[crowd, crowd2]} player={playerPos} egoId={analysis.egoId} heights={heights} />
 
-        <OrbitControls ref={controls} enabled={!follow} maxPolarAngle={Math.PI / 2.2} minDistance={10} maxDistance={260} enableDamping />
+        <OrbitControls ref={controls} enabled={!follow} maxPolarAngle={Math.PI / 2.2} minDistance={10} maxDistance={300} enableDamping />
       </Canvas>
 
       <ValueBar value={analysis.value} active={facet} onPick={(f) => { setFacet(f); setSelected(null); setFocus(null); }} />

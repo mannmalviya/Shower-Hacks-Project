@@ -14,7 +14,7 @@ export default function LiveWorld({ me, seed }: { me: string | null; seed: boole
   const rows = useWorldRows(seed);
   const router = useRouter();
   if (!rows) return <Center>Loading the world…</Center>;
-  const egoId = seed ? rows.egoId! : me;
+  const egoId = me; // seed mode: /world is the open world with the seed person as its one hub, /world?me=<seed id> their world
   if (!egoId) return <OpenWorld rows={rows} onVisit={(id) => router.push(`/world?me=${id}`)} />;
   if (!rows.people.some((p) => p.id === egoId)) return <Center>Nobody with that id. <Link href="/world" className="underline">Open world</Link></Center>;
   return <EgoWorld rows={rows} egoId={egoId} live={!seed} />;
