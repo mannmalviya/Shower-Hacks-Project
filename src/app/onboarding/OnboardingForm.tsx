@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { findProfiles, submitOnboarding, type Candidate, type OnboardingInput, type OnboardingResult } from "./actions";
 import type { Platform } from "@/lib/db";
 import { normalizeSocialUrl } from "@/lib/socials";
-import { ScrapeStatus } from "./ScrapeStatus";
+import { useRouter } from "next/navigation";
 
 const PLATFORMS: Platform[] = ["linkedin", "x", "instagram", "github"];
 
@@ -50,6 +50,12 @@ export function OnboardingForm() {
   const [noneMatched, setNoneMatched] = useState(false);
   const [pending, startTransition] = useTransition();
   const lastQuery = useRef(0);
+  const router = useRouter();
+
+  // Saved: go straight to your world. It fills in live while the scraper works.
+  useEffect(() => {
+    if (result?.status === "saved") router.push(`/world?me=${result.personId}`);
+  }, [result, router]);
 
   // Typeahead: search every platform after the user stops typing their name or company for 500 ms.
   // Starts on step 1, so results are ready on step 2.
@@ -99,12 +105,11 @@ export function OnboardingForm() {
   }
 
   if (result?.status === "saved") {
+    // the world page shows the scrape status and fills in live
     return (
       <div className="flex flex-col items-center gap-3 py-6 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-600">✓</div>
-        <p className="text-lg font-medium text-slate-900">You are all set</p>
-        <ScrapeStatus personId={result.personId} />
-        <code className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">{result.personId}</code>
+        <p className="text-lg font-medium text-slate-900">Opening your world…</p>
       </div>
     );
   }

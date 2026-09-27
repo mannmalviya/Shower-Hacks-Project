@@ -110,4 +110,4 @@ The net worth estimate. One row per person. Always a range, never one number.
 
 ## Realtime
 
-The 3D page listens for changes on `people`, `social_profiles`, `experiences`, `follows`, `scrape_jobs`, and `net_worth`. New sims pop in live.
+The 3D page listens for changes on `people`, `social_profiles`, `experiences`, `education` (added in `20260927000000_realtime_education.sql`), `follows`, `scrape_jobs`, and `net_worth`. New sims pop in live.

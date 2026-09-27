@@ -55,7 +55,7 @@ export function ScrapeStatus({ personId }: { personId: string }) {
       {jobs.map((j) => (
         <div key={j.id} className="flex items-start gap-2 rounded-2xl bg-slate-50 px-4 py-2 text-sm text-slate-600">
           <span className={j.status === "running" ? "animate-spin" : ""}>{ICONS[j.status] ?? "○"}</span>
-          <span className={j.status === "failed" ? "text-rose-600" : ""}>{message(j)}</span>
+          <span title={j.error ?? undefined} className={`min-w-0 break-words ${j.status === "failed" ? "line-clamp-3 text-rose-600" : ""}`}>{message(j)}</span>
         </div>
       ))}
       <p className="text-center text-xs text-slate-400">

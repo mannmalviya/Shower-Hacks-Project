@@ -6,12 +6,11 @@ Polls Supabase `scrape_jobs`, scrapes the person's LinkedIn / X / Instagram URL 
 
 The app queues jobs with `queueScrapeJobs()` (`src/lib/db.ts`). The worker claims the oldest `queued` job, with signed-up users' jobs first, and sets `running`, then `done` or `failed` (with `error`).
 
-For a `linkedin` job whose person is a **signed-up user** (`people.user_id` set):
+Each job scrapes that person's profile on the job's platform.
 
-1. **Connections first**, because the crowd is what the 3D page shows. The worker reads the connections list of the account signed in to the harness Chrome. It checks `/in/me/` first and skips this step if that account isn't the user. It clicks "Load more" (10 per click) up to `CONNECTIONS_LIMIT`, about 20 s for 30 people. Each connection becomes a `people` row plus **two** `follows` rows (a connection is mutual). The `CONNECTIONS_ENQUEUE` most recent get their own `linkedin` job for a full profile.
-2. **The user's own profile** (~25 s cold, instant from cache).
+An `instagram` job also reads the person's **followers** (their audience). The worker opens the profile, clicks "N followers", and scrolls the list up to `FOLLOWERS_LIMIT` (100). Each follower becomes a `people` row, a `social_profiles` row and one `follows` row (they follow the person). The first `FOLLOWERS_VISIT` (10) also get a full profile visit (bio, follower count). Instagram shows the list only to a signed-in account, and a private account's list only to its followers. In that case the job ends `failed` with the reason, after the profile itself is saved.
 
-Any other job scrapes that one profile.
+We never read LinkedIn connections.
 
 ## What gets written
 
@@ -19,7 +18,7 @@ Any other job scrapes that one profile.
 - **`people` columns** (`name, headline, location, photo_url`): the first platform with a value in LinkedIn > GitHub > X > Facebook > Instagram.
 - **`social_profiles`**: one row per platform (url, handle, bio, follower_count, avatar_url, raw). The worker reads the URL to scrape from here. The onboarding form writes it.
 - **`experiences` / `education`**: rebuilt from `raw.linkedin` after a LinkedIn scrape. The primary job is the first current one. If the scrape finds no jobs, the onboarding company stays.
-- **Connections** carry only a headline. "SWE at Stripe" gives a job. "Student @ UC Berkeley" gives a school, never a company. Schools are spelled like the seed ("University of California, Berkeley" → "UC Berkeley") so circles match.
+- **Followers** from the list carry only username, name and photo (`raw.instagram.source = "followers"`) until their profile is visited.
 - **URLs** use the app's form (`src/lib/socials.ts`), e.g. `https://www.linkedin.com/in/<handle>`. `social_profiles.url` is unique, so the same person is never inserted twice.
 
 ## Setup
@@ -31,7 +30,7 @@ uv tool install --python 3.12 browser-harness
 ```
 
 - **Keys:** the worker reads `worker/.env`, and falls back to the app's `../.env.local`. It needs `SUPABASE_URL` (or `NEXT_PUBLIC_SUPABASE_URL`) and `SUPABASE_SECRET_KEY`. See `.env.example`.
-- **Chrome:** open `chrome://inspect/#remote-debugging`, tick "Allow remote debugging", and stay signed in to LinkedIn with **your own** account. LinkedIn's User Agreement forbids fake accounts, and a connections list is only visible to its owner. Check the connection with `browser-harness <<< 'print(page_info())'`.
+- **Chrome:** open `chrome://inspect/#remote-debugging`, tick "Allow remote debugging", and stay signed in to LinkedIn and Instagram with **your own** accounts. LinkedIn's User Agreement forbids fake accounts. Check the connection with `browser-harness <<< 'print(page_info())'`.
 - **Before any deep profile scrapes:** turn on LinkedIn Private mode (Settings > Visibility > Profile viewing options). Otherwise every scraped contact sees that you viewed their profile.
 
 ## Commands
@@ -39,8 +38,7 @@ uv tool install --python 3.12 browser-harness
 ```bash
 uv run python -m scraper run                                   # the worker loop (--once: exit when the queue is empty)
 uv run python -m scraper scrape https://www.linkedin.com/in/<handle>/   # one profile -> JSON, no DB
-uv run python -m scraper connections --limit 30                # signed-in account's connections -> JSON, no DB
-uv run python -m scraper connections --user <person_id>        # -> people + follows (+ jobs)
+uv run python -m scraper followers https://www.instagram.com/<handle> --limit 30   # followers list -> JSON, no DB
 uv run python -m scraper enqueue <person_id> linkedin          # queue a job by hand
 ```
 
@@ -60,15 +58,13 @@ The app never calls the worker. Both talk to Supabase: the app adds `scrape_jobs
 
 | Backend | How | Status |
 | --- | --- | --- |
-| `harness` | Scripted `browser-harness` over CDP against your logged-in Chrome, with fixed JS extractors (`scraper/extractors/*.js`). No LLM. Opens its own background tab and closes it. | Verified on LinkedIn's 2026 layout: profile ~25 s, 30 connections ~20 s |
+| `harness` | Scripted `browser-harness` over CDP against your logged-in Chrome, with fixed JS extractors (`scraper/extractors/*.js`). No LLM. Opens its own background tab and closes it. | Verified on LinkedIn's 2026 layout: LinkedIn profile ~25 s; Instagram 30 followers ~15 s |
 | `zo` | `POST api.zo.computer/zo/ask` with a JSON schema; Zo's agent reads the page in its own logged-in browser. | Untested; slow (1–3 min) |
 | `http` | Instagram's public `web_profile_info` endpoint. | Answers 401 logged out |
 
-`import-linkedin-csv` loads LinkedIn's official `Connections.csv` export through the same code path as the connections sync.
-
 ## Demo safety
 
-- **Warm the cache:** run `scrape` / `connections` on every demo profile before judging. The worker then serves them from `.cache/` without touching LinkedIn.
+- **Warm the cache:** run `scrape` on every demo profile before judging. The worker then serves them from `.cache/` without touching LinkedIn.
 - **Don't commit data:** never commit `.cache/`, seed dumps or exports, because the repo is public. Delete the demo network's rows after the event.
 - **Stop on pushback:** stop at the first sign of LinkedIn pushing back (rate limit or security checkpoint). Don't retry.
 

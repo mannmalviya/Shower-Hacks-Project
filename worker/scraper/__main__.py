@@ -2,9 +2,8 @@
 
     uv run python -m scraper run                          # poll scrape_jobs forever
     uv run python -m scraper scrape <url> [-b harness]    # one profile -> JSON on stdout (no DB)
+    uv run python -m scraper followers <instagram url> [--limit 100]  # followers list -> JSON (no DB)
     uv run python -m scraper enqueue <person_id> linkedin # queue a job by hand
-    uv run python -m scraper connections [--user <person_id>] [--limit 50] [--enqueue 15]
-    uv run python -m scraper import-linkedin-csv Connections.csv --user <person_id> [--enqueue 15]
 """
 
 from __future__ import annotations
@@ -24,47 +23,27 @@ load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env.local")  # the
 
 from . import db as dbm  # noqa: E402
 from .backends import harness, scrape  # noqa: E402
-from .cache import CACHE_DIR  # noqa: E402
-from .models import PLATFORMS, ScrapeError, handle  # noqa: E402
+from .models import PLATFORMS, ScrapeError  # noqa: E402
 
 log = logging.getLogger("scraper")
 
-# First-degree LinkedIn connections are synced inside a signed-up user's `linkedin`
-# job (scrape_jobs.platform only allows linkedin | x | instagram). Cache dir name:
-CONNECTIONS_JOB = "linkedin_connections"
-CONNECTIONS_LIMIT = int(os.environ.get("CONNECTIONS_LIMIT", "50"))
-CONNECTIONS_ENQUEUE = int(os.environ.get("CONNECTIONS_ENQUEUE", "15"))
+# Instagram followers of the job's person: how many to read from the list, and how
+# many of those get a full profile visit (~10 s each, the rest keep list data only).
+FOLLOWERS_LIMIT = int(os.environ.get("FOLLOWERS_LIMIT", "100"))
+FOLLOWERS_VISIT = int(os.environ.get("FOLLOWERS_VISIT", "10"))
 
 
-def get_connections(limit: int, use_cache: bool = True, expected_owner: str | None = None) -> tuple[str, list[dict]]:
-    """Connections of the account signed in to the harness Chrome, cached per owner.
-    expected_owner (a LinkedIn handle) guards against attaching the wrong network."""
-    if use_cache and expected_owner:
-        path = CACHE_DIR / CONNECTIONS_JOB / f"{expected_owner}.json"
-        if path.exists() and len(cached := json.loads(path.read_text())) >= limit:
-            log.info("cache hit: %d connections of %s", len(cached), expected_owner)
-            return expected_owner, cached[:limit]
-    owner, contacts = harness.scrape_connections(limit)
-    if expected_owner and owner != expected_owner:
-        raise ScrapeError(f"harness Chrome is signed in as {owner!r}, not {expected_owner!r}; "
-                          "a connections list can only be read from its owner's session")
-    path = CACHE_DIR / CONNECTIONS_JOB / f"{owner}.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(contacts, indent=2, ensure_ascii=False))
-    log.info("scraped %d connections of %s", len(contacts), owner)
-    return owner, contacts
-
-
-def sync_connections(db, person: dict) -> None:
-    """Best effort: a failure here (e.g. the harness Chrome is signed in as someone
-    else) is logged and must not fail the user's own profile job."""
-    try:
-        _, contacts = get_connections(CONNECTIONS_LIMIT, expected_owner=handle(person["urls"]["linkedin"]))
-        stats = dbm.upsert_contacts(db, person["id"], contacts, source=CONNECTIONS_JOB,
-                                    enqueue_top=CONNECTIONS_ENQUEUE)
-        log.info("connections for %s: %s", person.get("name") or person["id"], stats)
-    except ScrapeError as e:
-        log.warning("skipped connections for %s: %s", person.get("name") or person["id"], e)
+def sync_followers(db, person: dict, url: str) -> None:
+    """Followers list -> people + social_profiles + follows (they follow the person).
+    Raises ScrapeError when the list is not visible (private account, logged out)."""
+    followers = harness.scrape_followers(url, FOLLOWERS_LIMIT)
+    ids = dbm.upsert_followers(db, person["id"], followers)
+    log.info("%d followers for %s", len(ids), person.get("name") or person["id"])
+    for f_url, pid in list(ids.items())[:FOLLOWERS_VISIT]:
+        try:
+            dbm.save_profile(db, dbm.get_person(db, pid), scrape(f_url))
+        except ScrapeError as e:  # one bad profile must not stop the rest
+            log.warning("follower %s: %s", f_url, e)
 
 
 def run_job(db, job: dict) -> None:
@@ -77,13 +56,11 @@ def run_job(db, job: dict) -> None:
     url = person["urls"].get(platform)
     if not url:
         raise ScrapeError(f"person has no {platform} social_profiles row")
-    if platform == "linkedin" and person.get("user_id"):
-        # A signed-up user: pull their network first, since the crowd is what the 3D page shows.
-        sync_connections(db, person)
-        person = dbm.get_person(db, person["id"])
     profile = scrape(url)
     dbm.save_profile(db, person, profile)
     log.info("saved %s %s -> %s (%s)", platform, url, profile.name, profile.backend)
+    if platform == "instagram":
+        sync_followers(db, person, url)
 
 
 def cmd_run(args) -> None:
@@ -112,29 +89,14 @@ def cmd_scrape(args) -> None:
     print()
 
 
+def cmd_followers(args) -> None:
+    followers = harness.scrape_followers(args.url, args.limit)
+    json.dump({"count": len(followers), "followers": followers}, sys.stdout, indent=2, ensure_ascii=False)
+    print()
+
+
 def cmd_enqueue(args) -> None:
     print(json.dumps(dbm.enqueue(dbm.client(), args.person_id, args.platform), indent=2, default=str))
-
-
-def cmd_connections(args) -> None:
-    if not args.user:
-        owner, contacts = get_connections(args.limit, use_cache=False)
-        json.dump({"owner": owner, "count": len(contacts), "connections": contacts},
-                  sys.stdout, indent=2, ensure_ascii=False)
-        print()
-        return
-    db = dbm.client()
-    person = dbm.get_person(db, args.user)
-    if not person:
-        raise SystemExit(f"person {args.user} not found")
-    _, contacts = get_connections(args.limit, use_cache=not args.no_cache,
-                                  expected_owner=handle(person["urls"]["linkedin"]))
-    print(json.dumps(dbm.upsert_contacts(db, person["id"], contacts, CONNECTIONS_JOB, args.enqueue), indent=2))
-
-
-def cmd_import_csv(args) -> None:
-    from .linkedin_export import import_connections
-    print(json.dumps(import_connections(dbm.client(), Path(args.path), args.user, args.enqueue), indent=2))
 
 
 def main() -> None:
@@ -156,23 +118,15 @@ def main() -> None:
     p.add_argument("--no-cache", action="store_true")
     p.set_defaults(fn=cmd_scrape)
 
+    p = sub.add_parser("followers", help="read an Instagram followers list and print JSON (no database)")
+    p.add_argument("url")
+    p.add_argument("--limit", type=int, default=FOLLOWERS_LIMIT)
+    p.set_defaults(fn=cmd_followers)
+
     p = sub.add_parser("enqueue", help="insert a queued scrape_jobs row")
     p.add_argument("person_id")
     p.add_argument("platform", choices=PLATFORMS)
     p.set_defaults(fn=cmd_enqueue)
-
-    p = sub.add_parser("connections", help="first-degree LinkedIn connections of the signed-in account")
-    p.add_argument("--user", help="people.id of the signed-in user: write people + follows (omit to print JSON)")
-    p.add_argument("--limit", type=int, default=CONNECTIONS_LIMIT)
-    p.add_argument("--enqueue", type=int, default=CONNECTIONS_ENQUEUE, help="queue full scrapes for the N most recent")
-    p.add_argument("--no-cache", action="store_true")
-    p.set_defaults(fn=cmd_connections)
-
-    p = sub.add_parser("import-linkedin-csv", help="import LinkedIn's official Connections.csv")
-    p.add_argument("path")
-    p.add_argument("--user", required=True, help="people.id of the user who owns the export")
-    p.add_argument("--enqueue", type=int, default=0, help="also queue full scrapes for the N most recent connections")
-    p.set_defaults(fn=cmd_import_csv)
 
     args = ap.parse_args()
     try:
