@@ -1,24 +1,29 @@
 "use client";
 // The open world (/world): everyone we scraped stands on a grid in sign-up order, their audience around them
 // (real scraped followers first, NPCs up to 300). Walk around, click anyone. Click a person to open their world.
-import { OrbitControls, Sparkles } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { PersonRow, WorldRows } from "@/lib/worldData";
 import { NPC_COLOR, PLATFORM_COLOR, PLATFORM_NAME, audienceOf, fakeProfile, npcColor, npcLayout, npcSplit, totalOf } from "./npcs";
+import { Environment } from "./Environment";
 import { LabelProjector, type Anchor } from "./Labels";
-import { FlatIsland, Sea, Trees, treeSpots } from "./Island";
 import { CashStack, Player, stackHeight } from "./Player";
 import { Gear, NpcCard, PersonDetailCard } from "./SimCard";
 import { SimpleCrowd } from "./SimpleCrowd";
 import { hash } from "./Crowd";
+import { Clouds, FlatScenery } from "./Scenery";
+import { Sea, checkerMaterial } from "./Terrain";
+
 import { PALETTE, TERRAIN_SEG } from "./worldLayout";
 import { count, money } from "./format";
 
 const NPC_CAP = 300; // most sims per person here (their own world shows up to 5,000)
 const HUB = "#ff3366"; // same as your own Mii
+const ROCK = new THREE.MeshLambertMaterial({ color: "#9aa3a8" });
+const ISLAND_MATS = [ROCK, checkerMaterial({ vertexColors: false, color: "#7fdc5a" }), ROCK];
 const HUB_SCALE = 1.6; // a person with a world is drawn bigger, and so is their cash stack
 
 type Sim = { kind: "hub" | "real"; id: string } | { kind: "npc"; hub: string; platform: string; k: number };
@@ -78,11 +83,8 @@ export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: W
     const extent = cols * cell;
     // middle of the occupied grid (the camera circles it in backdrop mode)
     const cx = ((cols - 1) * cell) / 2, cz = ((Math.ceil(hubs.length / cols) - 1) * cell) / 2;
-    // island around the whole grid; trees on open ground, never inside someone's crowd
-    const icx = Math.max(0, cx), icz = Math.max(0, cz);
-    const islandR = Math.max(60, ...hubs.map((h) => Math.hypot(h.x - icx, h.z - icz))) + cell / 2 + 30;
-    const trees = treeSpots(icx, icz, 0, islandR - 6, Math.round(islandR * 1.6), 11, hubs.map((h) => ({ x: h.x, z: h.z, r: cell / 2 - 2 })));
-    return { byId, hubs, followsCount, sims, colors, labels, extent, cx: icx, cz: icz, islandR, trees,
+    const avoid = hubs.map((h) => ({ x: h.x, z: h.z, r: cell / 2 - 5 }));
+    return { byId, hubs, followsCount, sims, colors, labels, extent, avoid, cx: Math.max(0, cx), cz: Math.max(0, cz),
       x: Float32Array.from(xs), z: Float32Array.from(zs), y: Float32Array.from(ys), scales: Float32Array.from(scales) };
   }, [rows, grouped]);
 
@@ -121,20 +123,20 @@ export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: W
 
   const s = sel != null ? world.sims[sel] : null;
   const person = s && s.kind !== "npc" ? world.byId.get(s.id) : null;
+  const islandR = Math.max(44, Math.hypot(world.cx, world.cz) + 34); // covers the corner hubs and their crowds
 
   return (
-    <div className="fixed inset-0 select-none bg-[linear-gradient(180deg,#8ec5ff_0%,#b3d8ff_30%,#d9ecff_55%,#e3f6ea_80%,#f1f8e9_100%)]">
-      <Canvas shadows gl={{ alpha: true }} camera={{ position: backdrop ? [world.cx, 32, world.cz + 62] : [start.x, 34, start.z + 48], fov: 50 }} onPointerMissed={() => setSel(null)}>
-        <fog attach="fog" args={["#dcecfb", 120, 380]} />
-        <hemisphereLight args={["#eef6ff", "#9ed98a", 1.2]} />
-        <directionalLight position={[world.cx + 50, 90, world.cz + 40]} intensity={0.95} color="#fff6ee" castShadow shadow-mapSize={[2048, 2048]}
-          shadow-camera-left={-110} shadow-camera-right={110} shadow-camera-top={110} shadow-camera-bottom={-110}>
-          <object3D attach="target" position={[world.cx, 0, world.cz]} />
-        </directionalLight>
-        <Sparkles count={260} scale={[280, 50, 280]} position={[world.cx, 22, world.cz]} size={5} speed={0.35} opacity={0.8} color="#ffffff" />
-        <FlatIsland cx={world.cx} cz={world.cz} radius={world.islandR} onGround={(p) => { walkTo.current = p; }} />
-        <Sea cx={world.cx} cz={world.cz} />
-        <Trees spots={world.trees} />
+    <div className="fixed inset-0 select-none bg-[linear-gradient(180deg,#4aa3ff_0%,#7dc0ff_35%,#b9dfff_70%,#dff1ff_100%)]">
+      <Canvas shadows gl={{ alpha: true }} camera={{ position: backdrop ? [world.cx, 36, world.cz + 70] : [start.x, 58, start.z + 92], fov: 50 }} onPointerMissed={() => setSel(null)}>
+        <Environment center={[world.cx, world.cz]} />
+        {/* one big island: a checkered lawn plateau with rock cliffs, in the sea */}
+        <mesh position={[world.cx, -4.5, world.cz]} material={ISLAND_MATS} receiveShadow
+          onClick={(e) => { e.stopPropagation(); walkTo.current = e.point.clone(); }}>
+          <cylinderGeometry args={[islandR, islandR + 3, 9, 72]} />
+        </mesh>
+        <Sea x={world.cx} z={world.cz} coast={islandR} />
+        <Clouds center={[world.cx, world.cz]} radius={islandR + 45} />
+        <FlatScenery cx={world.cx} cz={world.cz} radius={islandR} avoid={world.avoid} />
         {world.hubs.map((h) => h.stack > 0 && (
           <group key={h.p.id} position={[h.x, 0, h.z]} scale={HUB_SCALE}><CashStack height={h.stack / HUB_SCALE} /></group>
         ))}

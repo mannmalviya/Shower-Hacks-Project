@@ -28,14 +28,17 @@ export type WorldLayout = {
   colorOf: Map<string, string>; // body color per person
   ego: { x: number; z: number };
   ring: { inner: number; radius: number; groups: Group[]; hidden: number }; // the N+1 circle around your world
+  island: number; // coastline radius (the terrain drops into the sea past it)
   heights: Float32Array; // terrain grid heights (TERRAIN_SEG+1)^2
   tints: Float32Array; // terrain vertex colors rgb
 };
 
 export const TERRAIN_SIZE = 260;
-/** The world is an island: land up to this radius, then a beach sloping under the sea. */
-export const ISLAND_R = 118;
 export const TERRAIN_SEG = 110;
+export const SEA_LEVEL = -1.8; // water height; the island's cliffs drop below it
+export const CLIFF_BOTTOM = -9;
+/** Coastline radius at an angle: a wobbly circle, so the island looks hand-drawn. */
+export const coastAt = (R: number, angle: number) => R + Math.sin(angle * 3 + 0.7) * 5 + Math.sin(angle * 7 + 2.1) * 2.5 + Math.sin(angle * 11) * 1.2;
 
 /** N+1 people are only shown when we know where they work (unknowns are dropped; your own circle keeps everyone). */
 export const hasData = (n: Node) => !!n.company;
@@ -233,8 +236,9 @@ export function computeWorld(a: Analysis, links: [string, string][], c: Category
     return { key: k, count: members.length, x, z, color: colorFor.get(k)!, era: eraOf(k) };
   });
 
-  const { heights, tints } = terrain(first, pos, colorOf, r1);
-  return { category: c, groups, pos, colorOf, ego: egoAnchor, ring: { inner: r1, radius: R2, groups: ringOut, hidden: allSecond.length - second.length }, heights, tints };
+  const island = Math.min(122, Math.max(70, R2 + 12));
+  const { heights, tints } = terrain(first, pos, colorOf, r1, island);
+  return { category: c, groups, pos, colorOf, ego: egoAnchor, ring: { inner: r1, radius: R2, groups: ringOut, hidden: allSecond.length - second.length }, heights, tints, island };
 }
 
 // ---------- terrain ----------
@@ -243,7 +247,10 @@ const hexRgb = (h: string) => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.sli
 
 const toLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
 
-function terrain(first: Node[], pos: Map<string, { x: number; z: number }>, colorOf: Map<string, string>, r1: number) {
+const ROCK = hexRgb("#9aa3a8"), SAND = hexRgb("#f3e3a3");
+const smooth = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+function terrain(first: Node[], pos: Map<string, { x: number; z: number }>, colorOf: Map<string, string>, r1: number, island: number) {
   const S = TERRAIN_SEG + 1, half = TERRAIN_SIZE / 2, step = TERRAIN_SIZE / TERRAIN_SEG;
   const rich = first.filter((n) => n.wealth).map((n) => ({ ...pos.get(n.id)!, w: Math.max(0, Math.min(1.3, (Math.log10(n.wealth!.mid + 1) - 3.5) / 2.5)) }));
   const people = first.map((n) => ({ ...pos.get(n.id)!, rgb: hexRgb(colorOf.get(n.id)!) }));
@@ -262,10 +269,6 @@ function terrain(first: Node[], pos: Map<string, { x: number; z: number }>, colo
       }
       const rad = Math.hypot(x, z), edge = Math.min(1, Math.max(0, (rad - (r1 - 2)) / 10));
       const h = k > 0 ? (kw / (k + 0.35)) * 7 * (1 - edge * edge * (3 - 2 * edge)) : 0; // smoothstep falloff at your circle's edge
-      // island: a sand beach, then the ground dips under the sea (see Island.tsx)
-      const shore = Math.max(0, Math.min(1, (rad - ISLAND_R) / 10));
-      heights[v] = h - 3 * shore * shore * (3 - 2 * shore);
-      const sand = Math.max(0, Math.min(1, (rad - (ISLAND_R - 10)) / 8));
       // ground tint = color of the group standing there, over grass that turns golden uphill
       let cr = 0, cg = 0, cb = 0, ck = 0;
       for (const p of people) {
@@ -275,13 +278,21 @@ function terrain(first: Node[], pos: Map<string, { x: number; z: number }>, colo
         cr += g * p.rgb[0]; cg += g * p.rgb[1]; cb += g * p.rgb[2]; ck += g;
       }
       const t = Math.min(1, h / 7);
-      const base = [0.56 + 0.4 * t, 0.84 + 0.04 * t, 0.46 + 0.1 * t]; // fresh grass green, golden uphill
+      let base = [0.5 + 0.25 * t, 0.86 + 0.02 * t, 0.36 + 0.06 * t]; // bright lawn green, a touch golden uphill
       const m = Math.min(0.22, ck * 0.15); // just a hint of the group color
+      let rgb = ck ? [base[0] * (1 - m) + (cr / ck) * m, base[1] * (1 - m) + (cg / ck) * m, base[2] * (1 - m) + (cb / ck) * m] : base;
+      // the island: past the coastline the ground drops off a cliff into the sea
+      const coast = coastAt(island, Math.atan2(z, x));
+      const drop = smooth(coast - 1.5, coast + 2.5, rad);
+      heights[v] = h * (1 - drop) + CLIFF_BOTTOM * drop;
+      const sand = smooth(coast - 7, coast - 2, rad) * (1 - smooth(coast - 1, coast + 1, rad));
+      rgb = [rgb[0] + (SAND[0] - rgb[0]) * sand, rgb[1] + (SAND[1] - rgb[1]) * sand, rgb[2] + (SAND[2] - rgb[2]) * sand];
+      if (drop > 0.15) { const k = Math.min(1, (drop - 0.15) / 0.35); rgb = [rgb[0] + (ROCK[0] - rgb[0]) * k, rgb[1] + (ROCK[1] - rgb[1]) * k, rgb[2] + (ROCK[2] - rgb[2]) * k]; }
+      base = rgb;
       // vertex colors are linear in three.js: convert from sRGB or everything looks washed out
-      const SAND = [0.95, 0.87, 0.64];
-      tints[v * 3] = toLinear((ck ? base[0] * (1 - m) + (cr / ck) * m : base[0]) * (1 - sand) + SAND[0] * sand);
-      tints[v * 3 + 1] = toLinear((ck ? base[1] * (1 - m) + (cg / ck) * m : base[1]) * (1 - sand) + SAND[1] * sand);
-      tints[v * 3 + 2] = toLinear((ck ? base[2] * (1 - m) + (cb / ck) * m : base[2]) * (1 - sand) + SAND[2] * sand);
+      tints[v * 3] = toLinear(base[0]);
+      tints[v * 3 + 1] = toLinear(base[1]);
+      tints[v * 3 + 2] = toLinear(base[2]);
     }
   }
   return { heights, tints };

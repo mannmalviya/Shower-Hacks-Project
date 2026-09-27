@@ -1,6 +1,6 @@
 "use client";
 // The social mirror: an open Mii world of your network. Walk among your tribes; every category reorganizes the world.
-import { OrbitControls, Sparkles } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
@@ -13,11 +13,13 @@ import { Portrait } from "./Portrait";
 import { Terrain } from "./Terrain";
 import { TribeProps } from "./TribeProps";
 import { Chamber } from "./Chamber";
+import { Environment } from "./Environment";
+import { LinkLines } from "./LinkLines";
+import { Clouds, Scenery } from "./Scenery";
 import { TribeArcs, tribeLinks } from "./TribeArcs";
 import { ValueBar, fmtCount, type Facet } from "./ValueBar";
 import { lineFor } from "./speech";
-import { CATEGORIES, ISLAND_R, PALETTE, TERRAIN_SEG, coverage, getWorld, hasData, heightAt, keysOf, type Category } from "./worldLayout";
-import { Trees, treeSpots } from "./Island";
+import { CATEGORIES, PALETTE, TERRAIN_SEG, coverage, getWorld, hasData, heightAt, keysOf, type Category } from "./worldLayout";
 import type { PersonRow } from "@/lib/worldData";
 import { PLATFORM_COLOR, PLATFORM_NAME, fakeProfile, npcColor, npcLayout, npcSplit, totalOf, type Split } from "./npcs";
 import { SimpleCrowd } from "./SimpleCrowd";
@@ -81,12 +83,10 @@ export default function World({ analysis, links, details, audience = [], overlay
   const npc = useMemo(() => {
     let r1 = 0;
     for (const n of crowdNodes) { const p = layout.pos.get(n.id); if (p) r1 = Math.max(r1, Math.hypot(p.x, p.z)); }
-    return npcLayout(0, 0, r1 + 6, npcSplit(audience, realFollowers, NPC_CAP), grouped, analysis.egoId, ISLAND_R - 8);
+    return npcLayout(0, 0, r1 + 6, npcSplit(audience, realFollowers, NPC_CAP), grouped, analysis.egoId, layout.island - 7); // stay on the island
   }, [crowdNodes, layout, audience, realFollowers, grouped, analysis.egoId]);
   const npcColors = useMemo(() => npc.platform.map((p, i) => npcColor(analysis.egoId, i, p, grouped, PALETTE)), [npc, grouped, analysis.egoId]);
   const followerTotal = totalOf(audience);
-  // trees on the open ground between the crowd and the beach
-  const trees = useMemo(() => treeSpots(0, 0, npc.outer + 5, ISLAND_R - 6, 140, 7, [], (x, z) => heightAt(layout.heights, x, z)), [npc.outer, layout]);
   const byTribe = category === "tribe";
   const neighbors = useMemo(() => {
     const m = new Map<string, Set<string>>();
@@ -216,16 +216,14 @@ export default function World({ analysis, links, details, audience = [], overlay
   const fact = bubble?.fact ?? "";
 
   return (
-    <div className="fixed inset-0 select-none bg-[linear-gradient(180deg,#8ec5ff_0%,#b3d8ff_30%,#d9ecff_55%,#e3f6ea_80%,#f1f8e9_100%)]">
-      <Canvas shadows gl={{ alpha: true }} camera={{ position: [0, 70, 95], fov: 50 }} onPointerMissed={() => { setSelected(null); setNpcSel(null); }}>
-        <fog attach="fog" args={["#dcecfb", 120, 330]} />
-        <hemisphereLight args={["#eef6ff", "#9ed98a", 1.2]} />
-        <directionalLight position={[50, 90, 40]} intensity={0.95} color="#fff6ee" castShadow shadow-mapSize={[2048, 2048]}
-          shadow-camera-left={-110} shadow-camera-right={110} shadow-camera-top={110} shadow-camera-bottom={-110} />
+    <div className="fixed inset-0 select-none bg-[linear-gradient(180deg,#4aa3ff_0%,#7dc0ff_35%,#b9dfff_70%,#dff1ff_100%)]">
+      <Canvas shadows gl={{ alpha: true }} camera={{ position: [0, 92, 132], fov: 50 }} onPointerMissed={() => { setSelected(null); setNpcSel(null); }}>
+        <Environment />
 
         <Terrain layout={layout} heights={heights} onGround={onGround} />
-        <Trees spots={trees} />
-        <Sparkles count={260} scale={[280, 50, 280]} position={[0, 22, 0]} size={5} speed={0.35} opacity={0.8} color="#ffffff" />
+        <Scenery layout={layout} clear={npc.outer} />
+        <Clouds radius={layout.island + 40} />
+        <LinkLines links={links} crowd={crowd} layout={layout} heights={heights} egoId={analysis.egoId} />
         <Chamber />
         {byTribe && !follow && focus && <TribeArcs layout={layout} arcs={arcs} focus={focus} />}
         {category === "places" && <Landmarks layout={layout} />}
@@ -246,7 +244,7 @@ export default function World({ analysis, links, details, audience = [], overlay
 
         <SelectedLinks selected={selected} neighbors={neighbors} crowds={[crowd, crowd2]} player={playerPos} egoId={analysis.egoId} heights={heights} />
 
-        <OrbitControls ref={controls} enabled={!follow} maxPolarAngle={Math.PI / 2.2} minDistance={10} maxDistance={260} enableDamping />
+        <OrbitControls ref={controls} enabled={!follow} maxPolarAngle={Math.PI / 2.2} minDistance={10} maxDistance={300} enableDamping />
       </Canvas>
 
       <ValueBar value={analysis.value} active={facet} onPick={(f) => { setFacet(f); setSelected(null); setFocus(null); }} />

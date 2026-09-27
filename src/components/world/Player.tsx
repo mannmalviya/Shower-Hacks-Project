@@ -12,6 +12,16 @@ const BUNDLE = new THREE.BoxGeometry(0.62, 1, 0.42); // one bundle of cash; heig
 const cashMat = new THREE.MeshLambertMaterial({ color: "#ffffff" });
 const ghost = new THREE.MeshLambertMaterial({ color: "#40c057", transparent: true, opacity: 0.22 });
 const GREENS = [new THREE.Color("#40c057"), new THREE.Color("#2f9e44")];
+const gold = new THREE.MeshLambertMaterial({ color: "#ffc800", emissive: "#ffb300", emissiveIntensity: 0.35 });
+const ray = new THREE.BoxGeometry(0.12, 0.5, 0.12);
+/** Soft radial glow sprite behind the crown. */
+function glowTexture() {
+  const c = document.createElement("canvas"); c.width = c.height = 128;
+  const g = c.getContext("2d")!, r = g.createRadialGradient(64, 64, 4, 64, 64, 64);
+  r.addColorStop(0, "rgba(255,225,120,0.95)"); r.addColorStop(0.45, "rgba(255,210,80,0.35)"); r.addColorStop(1, "rgba(255,200,60,0)");
+  g.fillStyle = r; g.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+}
 
 /** Cash stack height (world units): log scale, so billionaires don't reach the moon. */
 export const stackHeight = (mid: number | null | undefined) => (!mid || mid <= 0 ? 0.15 : Math.max(0.15, (Math.log10(mid) - 3) * 1.1));
@@ -43,6 +53,31 @@ export function CashStack({ height, isGhost = false }: { height: number; isGhost
     if (im.instanceColor) im.instanceColor.needsUpdate = true;
   }, [layout, isGhost]);
   return <instancedMesh key={layout.spots.length} ref={mesh} args={[BUNDLE, isGhost ? ghost : cashMat, layout.spots.length]} castShadow />;
+}
+
+/** Your crown: gold, glowing, with little rays that pulse. */
+function Crown() {
+  const tex = useMemo(() => glowTexture(), []);
+  const rays = useRef<THREE.Group>(null);
+  useFrame(({ clock }) => {
+    if (!rays.current) return;
+    const k = 1 + Math.sin(clock.elapsedTime * 3) * 0.12;
+    rays.current.scale.setScalar(k);
+    rays.current.rotation.y = clock.elapsedTime * 0.4;
+  });
+  return (
+    <group position={[0, 3.35, 0]}>
+      <sprite scale={[3.2, 3.2, 1]} position={[0, 0.3, -0.2]}><spriteMaterial map={tex} transparent depthWrite={false} /></sprite>
+      <mesh geometry={miiGeo.crown} material={gold} castShadow />
+      <mesh geometry={miiGeo.crown} material={gold} position={[0, 0.02, 0]} rotation-y={Math.PI / 5} scale={[0.85, 1.1, 0.85]} />
+      <group ref={rays}>
+        {Array.from({ length: 6 }, (_, i) => {
+          const a = (i / 6) * Math.PI * 2;
+          return <mesh key={i} geometry={ray} material={gold} position={[Math.cos(a) * 1.1, 0.55 + Math.sin(i) * 0.1, Math.sin(a) * 1.1]} rotation-z={Math.cos(a) * 0.6} rotation-x={-Math.sin(a) * 0.6} />;
+        })}
+      </group>
+    </group>
+  );
 }
 
 const KEYS = {
@@ -133,6 +168,8 @@ export function Player({ heights, pos, walkTo, keys, follow, stack, ghostStack, 
         <mesh geometry={miiGeo.hair} position={[0, 2.3, 0]} rotation-x={-0.25}><meshLambertMaterial color="#111111" /></mesh>
         <mesh geometry={miiGeo.eye} position={[-0.25, 2.25, 0.68]}><meshBasicMaterial color="#212529" /></mesh>
         <mesh geometry={miiGeo.eye} position={[0.25, 2.25, 0.68]}><meshBasicMaterial color="#212529" /></mesh>
+        <mesh geometry={miiGeo.mouth} position={[0, 2.02, 0.7]} rotation-z={Math.PI}><meshBasicMaterial color="#212529" /></mesh>
+        <Crown />
       </group>
       {children}
     </group>

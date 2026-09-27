@@ -92,5 +92,6 @@ function fromSeed(s: SeedFile): WorldRows {
       }),
     };
   });
-  return { people, follows: s.follows, netWorth: s.net_worth, jobs: [], egoId: s._meta.ego_id };
+  // the seed ego counts as "signed up" (a done job), so the open world shows them as a hub
+  return { people, follows: s.follows, netWorth: s.net_worth, jobs: [{ person_id: s._meta.ego_id, platform: "linkedin", status: "done", created_at: "" }], egoId: s._meta.ego_id };
 }

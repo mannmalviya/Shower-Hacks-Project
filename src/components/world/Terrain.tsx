@@ -1,11 +1,11 @@
 "use client";
 /* eslint-disable react-hooks/immutability -- imperative three.js animation state, mutated every frame on purpose */
-// Rolling hills where the rich stand; ground tinted by the group standing there. Morphs between categories.
+// The island: rolling checkered lawn where the rich stand on hills, sand at the coast, grey cliffs dropping into a blue sea.
+// Ground tinted by the group standing there. Morphs between categories.
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
-import { Sea } from "./Island";
-import { TERRAIN_SEG, TERRAIN_SIZE, type WorldLayout } from "./worldLayout";
+import { SEA_LEVEL, TERRAIN_SEG, TERRAIN_SIZE, type WorldLayout } from "./worldLayout";
 
 type Props = {
   layout: WorldLayout;
@@ -13,10 +13,9 @@ type Props = {
   onGround: (p: THREE.Vector3) => void;
 };
 
-// Lambert + a grid drawn in the fragment shader from world position: the lines follow the hills
-// (a flat grid plane cut through them), antialiased with fwidth, fading out toward the horizon.
-function gridMaterial() {
-  const m = new THREE.MeshLambertMaterial({ vertexColors: true });
+/** Lambert + a soft checkerboard drawn in the fragment shader from world position (only on the lawn, not on cliffs). */
+export function checkerMaterial(opts: { vertexColors?: boolean; color?: string } = {}) {
+  const m = new THREE.MeshLambertMaterial({ vertexColors: opts.vertexColors ?? true, color: opts.color ?? "#ffffff" });
   m.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader
       .replace("#include <common>", `#include <common>
@@ -25,18 +24,26 @@ varying vec3 vWPos;`)
 vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>
-varying vec3 vWPos;
-float gridLine(vec2 p, float size) {
-  vec2 q = p / size;
-  vec2 g = abs(fract(q - 0.5) - 0.5) / fwidth(q);
-  return 1.0 - min(min(g.x, g.y), 1.0);
-}`)
+varying vec3 vWPos;`)
       .replace("#include <color_fragment>", `#include <color_fragment>
-        float fade = 1.0 - smoothstep(70.0, 125.0, length(vWPos.xz));
-        float lines = max(gridLine(vWPos.xz, 4.0) * 0.35, gridLine(vWPos.xz, 20.0) * 0.7) * fade;
-        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.42, 0.66, 0.38), lines);`);
+        float ch = mod(floor(vWPos.x / 4.0) + floor(vWPos.z / 4.0), 2.0);
+        float lawn = smoothstep(-0.6, 0.2, vWPos.y);
+        diffuseColor.rgb *= mix(1.0, 1.0 + 0.085 * ch, lawn);`);
   };
   return m;
+}
+
+const WATER = new THREE.MeshLambertMaterial({ color: "#2f8fff" });
+const SHALLOW = new THREE.MeshLambertMaterial({ color: "#8fd8ff", transparent: true, opacity: 0.55, depthWrite: false });
+
+/** The sea: a huge disc at sea level plus a soft light ring of shallows hugging the coast. */
+export function Sea({ x = 0, z = 0, coast }: { x?: number; z?: number; coast: number }) {
+  return (
+    <group position={[x, SEA_LEVEL, z]}>
+      <mesh rotation-x={-Math.PI / 2} material={WATER} receiveShadow><circleGeometry args={[1500, 64]} /></mesh>
+      <mesh rotation-x={-Math.PI / 2} position-y={0.05} material={SHALLOW}><ringGeometry args={[Math.max(1, coast - 8), coast + 12, 96]} /></mesh>
+    </group>
+  );
 }
 
 export function Terrain({ layout, heights, onGround }: Props) {
@@ -47,7 +54,7 @@ export function Terrain({ layout, heights, onGround }: Props) {
     g.setAttribute("color", new THREE.BufferAttribute(new Float32Array(S * S * 3).fill(0.6), 3));
     return g;
   }, [S]);
-  const material = useMemo(() => gridMaterial(), []);
+  const material = useMemo(() => checkerMaterial(), []);
   const settling = useRef(0);
   const colors = useRef(new Float32Array(S * S * 3).fill(0.6));
 
@@ -75,10 +82,10 @@ export function Terrain({ layout, heights, onGround }: Props) {
 
   return (
     <group>
-      <mesh geometry={geo} receiveShadow onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onGround(e.point); }}>
+      <mesh geometry={geo} receiveShadow castShadow onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onGround(e.point); }}>
         <primitive object={material} attach="material" />
       </mesh>
-      <Sea />
+      <Sea coast={layout.island} />
     </group>
   );
 }
