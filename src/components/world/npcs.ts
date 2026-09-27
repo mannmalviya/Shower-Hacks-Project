@@ -72,3 +72,33 @@ export function npcLayout(cx: number, cz: number, inner: number, split: Split, g
   }
   return { x, z, platform, groups, outer };
 }
+
+// ---------- fake profiles: every NPC gets a stable made-up identity (same NPC, same card) ----------
+
+const FIRST = ["Alex", "Maya", "Jordan", "Priya", "Sam", "Lucas", "Aisha", "Kenji", "Sofia", "Omar", "Chloe", "Diego", "Nina", "Ethan",
+  "Zara", "Leo", "Hana", "Mateo", "Ava", "Ravi", "Emma", "Kai", "Lina", "Noah", "Mei", "Tomás", "Ivy", "Yusuf", "Grace", "Arjun"];
+const LAST = ["Nguyen", "Patel", "Garcia", "Kim", "Smith", "Okafor", "Rossi", "Tanaka", "Silva", "Haddad", "Novak", "Chen", "Lopez",
+  "Müller", "Singh", "Johnson", "Park", "Costa", "Ali", "Brown", "Ivanova", "Martin", "Sato", "Mensah", "Dubois", "Khan"];
+const JOBS: [string, string][] = [["Software Engineer", "Stripe"], ["Barista", "Blue Bottle"], ["Student", "UC Berkeley"], ["Designer", "Figma"],
+  ["Nurse", "Kaiser Permanente"], ["Founder", "a stealth startup"], ["Data Scientist", "Airbnb"], ["Teacher", "Oakland Unified"],
+  ["Product Manager", "Google"], ["Photographer", "Freelance"], ["Analyst", "Goldman Sachs"], ["Chef", "Nopa"], ["Student", "Stanford"],
+  ["Marketing Lead", "Nike"], ["Mechanic", "Tesla"], ["Content Creator", "YouTube"], ["Research Scientist", "OpenAI"], ["Sales", "Salesforce"]];
+const CITIES = ["San Francisco", "New York", "Austin", "Los Angeles", "Seattle", "Toronto", "London", "Berlin", "Singapore", "Taipei",
+  "São Paulo", "Mumbai", "Lagos", "Sydney", "Oakland", "Chicago"];
+
+export type FakeProfile = { name: string; title: string; company: string; city: string; followers: number };
+
+export function fakeProfile(seed: string, i: number): FakeProfile {
+  const h = hash(`${seed}:${i}`), g = (k: number) => (h >>> k) ^ (h * (k + 7));
+  const [title, company] = JOBS[Math.abs(g(3)) % JOBS.length];
+  return {
+    name: `${FIRST[h % FIRST.length]} ${LAST[Math.abs(g(5)) % LAST.length]}`,
+    title, company,
+    city: CITIES[Math.abs(g(9)) % CITIES.length],
+    followers: Math.round(40 + (Math.abs(g(13)) % 1000) ** 1.5 / 10), // mostly small accounts, a few bigger ones
+  };
+}
+
+/** A body color for NPC i (bright, from the world palette), or the platform color when grouped. */
+export const npcColor = (seed: string, i: number, platform: string, grouped: boolean, palette: string[]) =>
+  grouped ? PLATFORM_COLOR[platform] ?? NPC_COLOR : palette[hash(`${seed}:${i}`) % palette.length];

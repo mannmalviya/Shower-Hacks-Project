@@ -2,10 +2,9 @@
 // "My portrait": 3 blocks. Offline templates for now; the Claude route will replace the text
 // (it gets analysis.portraitInput: aggregates only, no names).
 import type { Analysis } from "@/lib/analysis";
+import { money } from "./format";
 
 const pct = (x: number | null | undefined) => (x == null ? "?" : `${Math.round(x * 100)}%`);
-const money = (n: number | null | undefined) =>
-  n == null ? "?" : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}k` : `$${n}`;
 
 export function templatePortrait(a: Analysis) {
   const { bubbles: b, class: c, tribes } = a;

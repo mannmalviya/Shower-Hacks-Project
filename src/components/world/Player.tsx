@@ -3,27 +3,46 @@
 // You: a Mii you walk around (WASD / ZQSD / arrows, or click the ground), riding your cash stack,
 // with the ghost stack of "future you" floating next to you. The camera follows over your shoulder.
 import { useFrame, useThree } from "@react-three/fiber";
-import { useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { miiGeo } from "./Crowd";
 import { heightAt } from "./worldLayout";
 
-const cash = new THREE.BoxGeometry(1.1, 1, 0.7);
-const green = [new THREE.MeshLambertMaterial({ color: "#40c057" }), new THREE.MeshLambertMaterial({ color: "#2f9e44" })];
+const BUNDLE = new THREE.BoxGeometry(0.62, 1, 0.42); // one bundle of cash; height is scaled per pyramid
+const cashMat = new THREE.MeshLambertMaterial({ color: "#ffffff" });
 const ghost = new THREE.MeshLambertMaterial({ color: "#40c057", transparent: true, opacity: 0.22 });
+const GREENS = [new THREE.Color("#40c057"), new THREE.Color("#2f9e44")];
 
 /** Cash stack height (world units): log scale, so billionaires don't reach the moon. */
 export const stackHeight = (mid: number | null | undefined) => (!mid || mid <= 0 ? 0.15 : Math.max(0.15, (Math.log10(mid) - 3) * 1.1));
 
+/** A stepped pyramid of cash bundles, `height` tall with one bundle on top to stand on.
+ *  Richer = taller and wider (the base grows with the height, up to 9 x 9 bundles). One instanced mesh. */
 export function CashStack({ height, isGhost = false }: { height: number; isGhost?: boolean }) {
-  const slabs = Math.max(1, Math.round(height / 0.22)), h = height / slabs;
-  return (
-    <group>
-      {Array.from({ length: slabs }, (_, i) => (
-        <mesh key={i} geometry={cash} position={[0, h * i + h / 2, 0]} scale={[1, h * 0.92, 1]} material={isGhost ? ghost : green[i % 2]} />
-      ))}
-    </group>
-  );
+  const mesh = useRef<THREE.InstancedMesh>(null);
+  const layout = useMemo(() => {
+    const layers = Math.max(1, Math.round(height / 0.3)), h = height / layers;
+    const base = Math.max(1, Math.min(9, Math.ceil(layers / 2)));
+    const spots: [number, number, number, number][] = []; // x, y, z, layer
+    for (let i = 0; i < layers; i++) {
+      const n = Math.max(1, Math.round(base * (1 - i / layers)));
+      for (let a = 0; a < n; a++) for (let b = 0; b < n; b++)
+        spots.push([(a - (n - 1) / 2) * 0.64, h * i + h / 2, (b - (n - 1) / 2) * 0.64, i]);
+    }
+    return { spots, h };
+  }, [height]);
+  useLayoutEffect(() => {
+    const im = mesh.current;
+    if (!im) return;
+    const m = new THREE.Matrix4();
+    layout.spots.forEach(([x, y, z, layer], k) => {
+      im.setMatrixAt(k, m.makeScale(1, layout.h * 0.92, 1).setPosition(x, y, z));
+      if (!isGhost) im.setColorAt(k, GREENS[layer % 2]);
+    });
+    im.instanceMatrix.needsUpdate = true;
+    if (im.instanceColor) im.instanceColor.needsUpdate = true;
+  }, [layout, isGhost]);
+  return <instancedMesh key={layout.spots.length} ref={mesh} args={[BUNDLE, isGhost ? ghost : cashMat, layout.spots.length]} castShadow />;
 }
 
 const KEYS = {
@@ -39,9 +58,10 @@ type Props = {
   stack: number;
   ghostStack: number | null;
   children?: React.ReactNode; // labels that ride with you
+  controls?: React.RefObject<{ target: THREE.Vector3; update: () => void } | null>; // the orbit camera: it tags along when you move
 };
 
-export function Player({ heights, pos, walkTo, keys, follow, stack, ghostStack, children }: Props) {
+export function Player({ heights, pos, walkTo, keys, follow, stack, ghostStack, children, controls }: Props) {
   const ref = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
   const { camera } = useThree();
@@ -49,6 +69,7 @@ export function Player({ heights, pos, walkTo, keys, follow, stack, ghostStack, 
   const camGoal = useRef(new THREE.Vector3());
   const pullBack = useRef(0); // frames left of the zoom-out when switching to overview
   const wasFollowing = useRef(follow);
+  const last = useRef<THREE.Vector3 | null>(null); // where you were last frame (the orbit camera moves by the same step)
 
   useFrame(({ clock }, delta) => {
     const dt = Math.min(delta, 0.05), k = keys.current, p = pos.current;
@@ -79,6 +100,13 @@ export function Player({ heights, pos, walkTo, keys, follow, stack, ghostStack, 
     ref.current!.position.set(p.x, p.y, p.z);
     body.current!.rotation.y = heading.current;
     body.current!.position.y = stack + (moving ? Math.abs(Math.sin(clock.elapsedTime * 11)) * 0.25 : 0);
+    // overview: move the orbit camera and its target by your step, so you stay in view while you walk
+    const c = controls?.current;
+    if (!follow && c && last.current && pullBack.current <= 0) {
+      const dx = p.x - last.current.x, dz = p.z - last.current.z;
+      if (dx || dz) { camera.position.x += dx; camera.position.z += dz; c.target.x += dx; c.target.z += dz; c.update(); }
+    }
+    (last.current ??= new THREE.Vector3()).copy(p);
     if (wasFollowing.current && !follow) pullBack.current = 70;
     wasFollowing.current = follow;
     if (!follow && pullBack.current > 0) {

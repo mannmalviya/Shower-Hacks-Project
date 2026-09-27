@@ -9,6 +9,7 @@ import { useWorldRows, type WorldRows } from "@/lib/worldData";
 import { audienceOf } from "./npcs";
 import OpenWorld from "./OpenWorld";
 import World from "./World";
+import { money } from "./format";
 
 export default function LiveWorld({ me, seed }: { me: string | null; seed: boolean }) {
   const rows = useWorldRows(seed);
@@ -54,7 +55,6 @@ function EgoWorld({ rows, egoId, live }: { rows: WorldRows; egoId: string; live:
   return <World analysis={analysis} links={links} details={details} audience={audience} overlay={overlay} />;
 }
 
-const money = (n: number) => (n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}k` : `$${n}`);
 
 /** Once every scrape job is finished and there is no estimate yet, ask the server for one (POST /api/net-worth).
  *  The new net_worth row arrives through realtime and your cash stack grows. Returns a status line. */

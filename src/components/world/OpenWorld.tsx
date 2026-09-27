@@ -7,20 +7,20 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { PersonRow, WorldRows } from "@/lib/worldData";
-import { NPC_COLOR, PLATFORM_COLOR, PLATFORM_NAME, audienceOf, npcLayout, npcSplit, totalOf } from "./npcs";
+import { NPC_COLOR, PLATFORM_COLOR, PLATFORM_NAME, audienceOf, fakeProfile, npcColor, npcLayout, npcSplit, totalOf } from "./npcs";
 import { LabelProjector, type Anchor } from "./Labels";
 import { CashStack, Player, stackHeight } from "./Player";
 import { Gear, NpcCard, PersonDetailCard } from "./SimCard";
 import { SimpleCrowd } from "./SimpleCrowd";
 import { hash } from "./Crowd";
 import { PALETTE, TERRAIN_SEG } from "./worldLayout";
+import { count, money } from "./format";
 
 const NPC_CAP = 300; // most sims per person here (their own world shows up to 5,000)
 const HUB = "#ff3366"; // same as your own Mii
 const HUB_SCALE = 1.6; // a person with a world is drawn bigger, and so is their cash stack
-const money = (n: number) => (n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}k` : `$${n}`);
 
-type Sim = { kind: "hub" | "real"; id: string } | { kind: "npc"; hub: string; platform: string };
+type Sim = { kind: "hub" | "real"; id: string } | { kind: "npc"; hub: string; platform: string; k: number };
 type Hub = { p: PersonRow; x: number; z: number; total: number; worth: { low: number; high: number } | null; stack: number };
 
 /** backdrop: scenery only (behind the onboarding form): no panel, no clicks, no walking, the camera slowly circles. */
@@ -69,8 +69,8 @@ export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: W
       });
       const npc = npcLayout(h.x, h.z, outerOf(real.length), npcSplit(audienceOf(h.p), real.length, NPC_CAP), grouped, h.p.id);
       for (let k = 0; k < npc.x.length; k++) {
-        xs.push(npc.x[k]); zs.push(npc.z[k]); ys.push(0); colors.push(grouped ? PLATFORM_COLOR[npc.platform[k]] ?? NPC_COLOR : NPC_COLOR);
-        scales.push(1); sims.push({ kind: "npc", hub: h.p.id, platform: npc.platform[k] });
+        xs.push(npc.x[k]); zs.push(npc.z[k]); ys.push(0); colors.push(npcColor(h.p.id, k, npc.platform[k], grouped, PALETTE));
+        scales.push(1); sims.push({ kind: "npc", hub: h.p.id, platform: npc.platform[k], k });
       }
       for (const g of npc.groups) labels.push({ key: `${h.p.id}-${g.platform}`, x: g.x, z: g.z, text: `${PLATFORM_NAME[g.platform] ?? g.platform} ${g.count}`, color: PLATFORM_COLOR[g.platform] ?? NPC_COLOR });
     }
@@ -87,6 +87,7 @@ export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: W
   const playerPos = useRef(new THREE.Vector3(start.x, 0, start.z + 5));
   const walkTo = useRef<THREE.Vector3 | null>(null);
   const keys = useRef(new Set<string>());
+  const controls = useRef<React.ComponentRef<typeof OrbitControls>>(null);
   useEffect(() => {
     const typing = (e: KeyboardEvent) => (e.target as HTMLElement)?.tagName === "INPUT";
     if (backdrop) return;
@@ -137,17 +138,17 @@ export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: W
         ))}
         <SimpleCrowd x={world.x} z={world.z} y={world.y} colors={world.colors} scales={world.scales} seed="open" onSelect={backdrop ? undefined : setSel} />
         <LabelProjector anchors={anchors} els={labelEls} priority={priority} />
-        {!backdrop && <Player heights={heights} pos={playerPos} walkTo={walkTo} keys={keys} follow={follow} stack={0.15} ghostStack={null} />}
+        {!backdrop && <Player heights={heights} pos={playerPos} walkTo={walkTo} keys={keys} follow={follow} stack={0.15} ghostStack={null} controls={controls} />}
         {backdrop
           ? <OrbitControls target={[world.cx, 0, world.cz]} autoRotate autoRotateSpeed={0.35} enableRotate={false} enableZoom={false} enablePan={false} />
-          : <OrbitControls enabled={!follow} target={[start.x, 0, start.z]} maxPolarAngle={Math.PI / 2.2} minDistance={10} maxDistance={400} enableDamping />}
+          : <OrbitControls ref={controls} enabled={!follow} target={[start.x, 0, start.z]} maxPolarAngle={Math.PI / 2.2} minDistance={10} maxDistance={400} enableDamping />}
       </Canvas>
 
       <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
         {world.hubs.map((h) => (
           <button key={h.p.id} ref={bindLabel(`h-${h.p.id}`)} style={{ visibility: "hidden" }} onClick={() => onVisit?.(h.p.id)} title="See their world"
             className={`${backdrop ? "" : "pointer-events-auto "}absolute left-0 top-0 whitespace-nowrap rounded-full bg-rose-500 px-3 py-0.5 text-xs font-extrabold text-white shadow hover:bg-rose-600`}>
-            {h.p.name}{h.total ? ` · 👥 ${h.total.toLocaleString("en-US")}` : ""}{h.worth ? ` · 💰 ${money(h.worth.low)}–${money(h.worth.high)}` : ""}
+            {h.p.name}{h.total ? ` · 👥 ${count(h.total)}` : ""}{h.worth ? ` · 💰 ${money(h.worth.low)}–${money(h.worth.high)}` : ""}
           </button>
         ))}
         {world.labels.map((l) => (
@@ -179,7 +180,7 @@ export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: W
         <PersonDetailCard p={person} followsCount={world.followsCount.get(person.id) ?? 0}
           onVisit={s?.kind === "hub" && onVisit ? () => onVisit(person.id) : undefined} onClose={() => setSel(null)} />
       )}
-      {s?.kind === "npc" && <NpcCard platform={s.platform} of={world.byId.get(s.hub)?.name ?? "them"} onClose={() => setSel(null)} />}
+      {s?.kind === "npc" && <NpcCard platform={s.platform} of={world.byId.get(s.hub)?.name ?? "them"} profile={fakeProfile(s.hub, s.k)} onClose={() => setSel(null)} />}
     </div>
   );
 }

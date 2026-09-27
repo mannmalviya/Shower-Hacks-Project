@@ -16,16 +16,15 @@ import { Chamber } from "./Chamber";
 import { TribeArcs, tribeLinks } from "./TribeArcs";
 import { ValueBar, fmtCount, type Facet } from "./ValueBar";
 import { lineFor } from "./speech";
-import { CATEGORIES, TERRAIN_SEG, coverage, getWorld, hasData, heightAt, keysOf, type Category } from "./worldLayout";
+import { CATEGORIES, PALETTE, TERRAIN_SEG, coverage, getWorld, hasData, heightAt, keysOf, type Category } from "./worldLayout";
 import type { PersonRow } from "@/lib/worldData";
-import { NPC_COLOR, PLATFORM_COLOR, PLATFORM_NAME, npcLayout, npcSplit, totalOf, type Split } from "./npcs";
+import { PLATFORM_COLOR, PLATFORM_NAME, fakeProfile, npcColor, npcLayout, npcSplit, totalOf, type Split } from "./npcs";
 import { SimpleCrowd } from "./SimpleCrowd";
 import { Gear, NpcCard, ScrapedSection } from "./SimCard";
+import { count, money } from "./format";
 
 const NPC_CAP = 5000; // most sims drawn for your audience; the label shows the real number
 
-const money = (n: number | null | undefined) =>
-  n == null ? "?" : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}k` : `$${n}`;
 const FACT_DIM: Partial<Record<Category, Dimension>> = {
   tribe: "tribe", places: "circle", wealthTier: "wealthTier", school: "school", city: "city", industry: "industry", platform: "platform",
 };
@@ -83,7 +82,7 @@ export default function World({ analysis, links, details, audience = [], overlay
     for (const n of crowdNodes) { const p = layout.pos.get(n.id); if (p) r1 = Math.max(r1, Math.hypot(p.x, p.z)); }
     return npcLayout(0, 0, r1 + 6, npcSplit(audience, realFollowers, NPC_CAP), grouped, analysis.egoId);
   }, [crowdNodes, layout, audience, realFollowers, grouped, analysis.egoId]);
-  const npcColors = useMemo(() => npc.platform.map((p) => (grouped ? PLATFORM_COLOR[p] ?? NPC_COLOR : NPC_COLOR)), [npc, grouped]);
+  const npcColors = useMemo(() => npc.platform.map((p, i) => npcColor(analysis.egoId, i, p, grouped, PALETTE)), [npc, grouped, analysis.egoId]);
   const followerTotal = totalOf(audience);
   const byTribe = category === "tribe";
   const neighbors = useMemo(() => {
@@ -238,7 +237,7 @@ export default function World({ analysis, links, details, audience = [], overlay
           <Halo inner={layout.ring.inner + 6} outer={layout.ring.radius + 16} />
         </>}
         <CameraFly flyTo={flyTo} controls={controls} />
-        <Player heights={heights} pos={playerPos} walkTo={walkTo} keys={keys} follow={follow} stack={egoStack} ghostStack={ghostStack} />
+        <Player heights={heights} pos={playerPos} walkTo={walkTo} keys={keys} follow={follow} stack={egoStack} ghostStack={ghostStack} controls={controls} />
         <LabelProjector anchors={anchors} els={labelEls} priority={priority} />
 
         <SelectedLinks selected={selected} neighbors={neighbors} crowds={[crowd, crowd2]} player={playerPos} egoId={analysis.egoId} heights={heights} />
@@ -266,7 +265,7 @@ export default function World({ analysis, links, details, audience = [], overlay
         {npc.groups.map((g, i) => (
           <div key={`npc-${g.platform}`} ref={bindLabel(`n${i}`)} style={{ visibility: "hidden", borderColor: PLATFORM_COLOR[g.platform] }}
             className="absolute left-0 top-0 whitespace-nowrap rounded-full border-2 bg-white/95 px-2.5 py-0.5 text-xs font-extrabold text-slate-700 shadow">
-            {PLATFORM_NAME[g.platform] ?? g.platform} <span className="text-slate-400">{g.count.toLocaleString("en-US")}</span>
+            {PLATFORM_NAME[g.platform] ?? g.platform} <span className="text-slate-400">{count(g.count)}</span>
           </div>
         ))}
         <div ref={bindLabel("you")} style={{ visibility: "hidden" }}
@@ -371,14 +370,14 @@ export default function World({ analysis, links, details, audience = [], overlay
       )}
       {sel && <PersonCard n={sel} detail={details?.get(sel.id)} links={neighbors.get(sel.id)?.size ?? 0} tribes={analysis.tribes} doors={analysis.value.byPerson[sel.id]?.doors ?? []} onClose={() => setSelected(null)} />}
       {npcSel != null && npc.platform[npcSel] && (
-        <NpcCard platform={npc.platform[npcSel]} of={byId.get(analysis.egoId)?.name ?? "them"} onClose={() => setNpcSel(null)} />
+        <NpcCard platform={npc.platform[npcSel]} of={byId.get(analysis.egoId)?.name ?? "them"} profile={fakeProfile(analysis.egoId, npcSel)} onClose={() => setNpcSel(null)} />
       )}
       {portrait && <Portrait analysis={analysis} onClose={() => setPortrait(false)} />}
 
       {followerTotal > 0 && (
         <div className="absolute left-1/2 top-[6.25rem] z-[90] -translate-x-1/2 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-slate-600 shadow max-sm:top-3"
           title={`${realFollowers} scraped for real, ${npc.x.length.toLocaleString("en-US")} NPCs shown${followerTotal > NPC_CAP ? `, capped at ${NPC_CAP.toLocaleString("en-US")} sims` : ""}`}>
-          👥 {followerTotal.toLocaleString("en-US")} followers
+          👥 {count(followerTotal)} followers
         </div>
       )}
       <Gear grouped={grouped} setGrouped={setGrouped} />

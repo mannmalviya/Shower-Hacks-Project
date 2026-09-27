@@ -2,9 +2,9 @@
 // What we scraped about a sim (shown on click), the NPC card, and the gear menu.
 import { useState } from "react";
 import type { PersonRow } from "@/lib/worldData";
-import { PLATFORM_COLOR, PLATFORM_NAME } from "./npcs";
+import { PLATFORM_COLOR, PLATFORM_NAME, type FakeProfile } from "./npcs";
+import { count as num } from "./format";
 
-const num = (n: number) => n.toLocaleString("en-US");
 const year = (d: string | null) => d?.slice(0, 4) ?? "";
 const span = (a: string | null, b: string | null) => (a || b ? `${year(a) || "?"}–${b ? year(b) : "now"}` : "");
 
@@ -48,18 +48,20 @@ export function ScrapedSection({ p }: { p: PersonRow }) {
 
 const CARD = "absolute bottom-4 right-4 z-[100] w-72 max-w-[calc(100vw-2rem)] rounded-3xl border-4 bg-white p-4 shadow-xl";
 
-/** A fake follower: nothing is known about them. */
-export function NpcCard({ platform, of, onClose }: { platform: string; of: string; onClose: () => void }) {
+/** A fake follower: a generated profile stands in until we scrape the real one. */
+export function NpcCard({ platform, of, profile, onClose }: { platform: string; of: string; profile: FakeProfile; onClose: () => void }) {
   return (
-    <div className={`${CARD} border-slate-300`}>
+    <div className={`${CARD} border-sky-300`}>
       <button onClick={onClose} className="absolute right-3 top-2 text-xl text-slate-400" aria-label="Close">×</button>
-      <h2 className="text-lg font-black text-slate-400">NPC</h2>
-      <p className="mb-2 text-xs text-slate-500">Follows {of} on {PLATFORM_NAME[platform] ?? platform}. No data yet.</p>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm text-slate-300">
-        <dt className="font-bold text-slate-400">Name</dt><dd>—</dd>
-        <dt className="font-bold text-slate-400">Work</dt><dd>—</dd>
-        <dt className="font-bold text-slate-400">School</dt><dd>—</dd>
-        <dt className="font-bold text-slate-400">City</dt><dd>—</dd>
+      <h2 className="text-lg font-black text-sky-600">{profile.name}</h2>
+      <p className="mb-2 text-xs text-slate-500">
+        Follows {of} on {PLATFORM_NAME[platform] ?? platform}
+        <span className="ml-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-400" title="Made-up profile: we know this follower exists, not who they are">NPC · generated</span>
+      </p>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+        <dt className="font-bold text-slate-400">Work</dt><dd>{profile.title} · {profile.company}</dd>
+        <dt className="font-bold text-slate-400">City</dt><dd>{profile.city}</dd>
+        <dt className="font-bold text-slate-400">Followers</dt><dd>{num(profile.followers)}</dd>
       </dl>
     </div>
   );
