@@ -9,7 +9,7 @@ import * as THREE from "three";
 import type { PersonRow, WorldRows } from "@/lib/worldData";
 import { NPC_COLOR, PLATFORM_COLOR, PLATFORM_NAME, audienceOf, npcLayout, npcSplit, totalOf } from "./npcs";
 import { LabelProjector, type Anchor } from "./Labels";
-import { Player } from "./Player";
+import { CashStack, Player, stackHeight } from "./Player";
 import { Gear, NpcCard, PersonDetailCard } from "./SimCard";
 import { SimpleCrowd } from "./SimpleCrowd";
 import { hash } from "./Crowd";
@@ -17,9 +17,11 @@ import { PALETTE, TERRAIN_SEG } from "./worldLayout";
 
 const NPC_CAP = 300; // most sims per person here (their own world shows up to 5,000)
 const HUB = "#ff3366"; // same as your own Mii
+const HUB_SCALE = 1.6; // a person with a world is drawn bigger, and so is their cash stack
+const money = (n: number) => (n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}k` : `$${n}`);
 
 type Sim = { kind: "hub" | "real"; id: string } | { kind: "npc"; hub: string; platform: string };
-type Hub = { p: PersonRow; x: number; z: number; total: number };
+type Hub = { p: PersonRow; x: number; z: number; total: number; worth: { low: number; high: number } | null; stack: number };
 
 /** backdrop: scenery only (behind the onboarding form): no panel, no clicks, no walking, the camera slowly circles. */
 export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: WorldRows; onVisit?: (id: string) => void; backdrop?: boolean }) {
@@ -48,21 +50,26 @@ export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: W
     const outerOf = (n: number) => Math.sqrt(INNER * INNER + (n * AREA) / Math.PI);
     const cell = 2 * Math.max(12, ...hubPeople.map((p) => outerOf(Math.min(NPC_CAP, Math.max(totalOf(audienceOf(p)), followersOf.get(p.id)!.length))))) + 14;
     const cols = Math.max(1, Math.ceil(Math.sqrt(hubPeople.length)));
-    const hubs: Hub[] = hubPeople.map((p, i) => ({ p, x: (i % cols) * cell, z: Math.floor(i / cols) * cell, total: totalOf(audienceOf(p)) }));
+    const worthOf = new Map(rows.netWorth.map((n) => [n.person_id, n]));
+    const hubs: Hub[] = hubPeople.map((p, i) => {
+      const w = worthOf.get(p.id) ?? null;
+      // a hub stands on their cash stack (same scale as "you" in the ego world); unknown = no stack
+      return { p, x: (i % cols) * cell, z: Math.floor(i / cols) * cell, total: totalOf(audienceOf(p)), worth: w, stack: w ? HUB_SCALE * stackHeight((w.low + w.high) / 2) : 0 };
+    });
 
-    const xs: number[] = [], zs: number[] = [], colors: string[] = [], scales: number[] = [], sims: Sim[] = [];
+    const xs: number[] = [], zs: number[] = [], ys: number[] = [], colors: string[] = [], scales: number[] = [], sims: Sim[] = [];
     const labels: { key: string; x: number; z: number; text: string; color: string }[] = [];
     const GOLDEN = Math.PI * (3 - Math.sqrt(5));
     for (const h of hubs) {
-      xs.push(h.x); zs.push(h.z); colors.push(HUB); scales.push(1.6); sims.push({ kind: "hub", id: h.p.id });
+      xs.push(h.x); zs.push(h.z); ys.push(h.stack); colors.push(HUB); scales.push(HUB_SCALE); sims.push({ kind: "hub", id: h.p.id });
       const real = followersOf.get(h.p.id)!.slice(0, NPC_CAP);
       real.forEach((id, k) => {
         const r = Math.sqrt(INNER * INNER + (k * AREA) / Math.PI), a = k * GOLDEN;
-        xs.push(h.x + Math.cos(a) * r); zs.push(h.z + Math.sin(a) * r); colors.push(PALETTE[hash(id) % PALETTE.length]); scales.push(1); sims.push({ kind: "real", id });
+        xs.push(h.x + Math.cos(a) * r); zs.push(h.z + Math.sin(a) * r); ys.push(0); colors.push(PALETTE[hash(id) % PALETTE.length]); scales.push(1); sims.push({ kind: "real", id });
       });
       const npc = npcLayout(h.x, h.z, outerOf(real.length), npcSplit(audienceOf(h.p), real.length, NPC_CAP), grouped, h.p.id);
       for (let k = 0; k < npc.x.length; k++) {
-        xs.push(npc.x[k]); zs.push(npc.z[k]); colors.push(grouped ? PLATFORM_COLOR[npc.platform[k]] ?? NPC_COLOR : NPC_COLOR);
+        xs.push(npc.x[k]); zs.push(npc.z[k]); ys.push(0); colors.push(grouped ? PLATFORM_COLOR[npc.platform[k]] ?? NPC_COLOR : NPC_COLOR);
         scales.push(1); sims.push({ kind: "npc", hub: h.p.id, platform: npc.platform[k] });
       }
       for (const g of npc.groups) labels.push({ key: `${h.p.id}-${g.platform}`, x: g.x, z: g.z, text: `${PLATFORM_NAME[g.platform] ?? g.platform} ${g.count}`, color: PLATFORM_COLOR[g.platform] ?? NPC_COLOR });
@@ -71,7 +78,7 @@ export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: W
     // middle of the occupied grid (the camera circles it in backdrop mode)
     const cx = ((cols - 1) * cell) / 2, cz = ((Math.ceil(hubs.length / cols) - 1) * cell) / 2;
     return { byId, hubs, followsCount, sims, colors, labels, extent, cx: Math.max(0, cx), cz: Math.max(0, cz),
-      x: Float32Array.from(xs), z: Float32Array.from(zs), scales: Float32Array.from(scales) };
+      x: Float32Array.from(xs), z: Float32Array.from(zs), y: Float32Array.from(ys), scales: Float32Array.from(scales) };
   }, [rows, grouped]);
 
   // shared player state (same contract as the ego world)
@@ -100,7 +107,7 @@ export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: W
   }, []);
   useEffect(() => {
     const m = new Map<string, Anchor>(), pr = new Map<string, number>();
-    world.hubs.forEach((h) => { m.set(`h-${h.p.id}`, () => [h.x, 5.5, h.z]); pr.set(`h-${h.p.id}`, 1e6 + h.total); });
+    world.hubs.forEach((h) => { m.set(`h-${h.p.id}`, () => [h.x, h.stack + 5.5, h.z]); pr.set(`h-${h.p.id}`, 1e6 + h.total); });
     world.labels.forEach((l) => { m.set(l.key, () => [l.x, 3, l.z]); pr.set(l.key, 1); });
     anchors.current = m;
     priority.current = pr;
@@ -125,7 +132,10 @@ export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: W
           <planeGeometry args={[world.extent + 2000, world.extent + 2000]} />
           <meshLambertMaterial color="#8fd675" />
         </mesh>
-        <SimpleCrowd x={world.x} z={world.z} colors={world.colors} scales={world.scales} seed="open" onSelect={backdrop ? undefined : setSel} />
+        {world.hubs.map((h) => h.stack > 0 && (
+          <group key={h.p.id} position={[h.x, 0, h.z]} scale={HUB_SCALE}><CashStack height={h.stack / HUB_SCALE} /></group>
+        ))}
+        <SimpleCrowd x={world.x} z={world.z} y={world.y} colors={world.colors} scales={world.scales} seed="open" onSelect={backdrop ? undefined : setSel} />
         <LabelProjector anchors={anchors} els={labelEls} priority={priority} />
         {!backdrop && <Player heights={heights} pos={playerPos} walkTo={walkTo} keys={keys} follow={follow} stack={0.15} ghostStack={null} />}
         {backdrop
@@ -137,7 +147,7 @@ export default function OpenWorld({ rows, onVisit, backdrop = false }: { rows: W
         {world.hubs.map((h) => (
           <button key={h.p.id} ref={bindLabel(`h-${h.p.id}`)} style={{ visibility: "hidden" }} onClick={() => onVisit?.(h.p.id)} title="See their world"
             className={`${backdrop ? "" : "pointer-events-auto "}absolute left-0 top-0 whitespace-nowrap rounded-full bg-rose-500 px-3 py-0.5 text-xs font-extrabold text-white shadow hover:bg-rose-600`}>
-            {h.p.name}{h.total ? ` · 👥 ${h.total.toLocaleString("en-US")}` : ""}
+            {h.p.name}{h.total ? ` · 👥 ${h.total.toLocaleString("en-US")}` : ""}{h.worth ? ` · 💰 ${money(h.worth.low)}–${money(h.worth.high)}` : ""}
           </button>
         ))}
         {world.labels.map((l) => (

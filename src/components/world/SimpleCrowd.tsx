@@ -20,11 +20,12 @@ type Props = {
   z: Float32Array;
   colors: string[]; // body color, one per sim
   scales?: Float32Array; // default 1
+  y?: Float32Array; // standing height (e.g. on a cash stack), default 0
   seed?: string; // varies skin / hair between crowds
   onSelect?: (i: number) => void;
 };
 
-export function SimpleCrowd({ x, z, colors, scales, seed = "", onSelect }: Props) {
+export function SimpleCrowd({ x, z, colors, scales, y, seed = "", onSelect }: Props) {
   const N = x.length;
   const body = useRef<THREE.InstancedMesh>(null), head = useRef<THREE.InstancedMesh>(null);
   const hair = useRef<THREE.InstancedMesh>(null), eyes = useRef<THREE.InstancedMesh>(null);
@@ -51,7 +52,7 @@ export function SimpleCrowd({ x, z, colors, scales, seed = "", onSelect }: Props
       const ph = phase[i], sc = scales?.[i] ?? 1;
       const dx = Math.sin(t * 0.25 + ph) * 0.6, dz = Math.cos(t * 0.19 + ph * 1.7) * 0.6; // stroll a small loop
       const heading = Math.atan2(Math.cos(t * 0.25 + ph) * 0.25, -Math.sin(t * 0.19 + ph * 1.7) * 0.19);
-      p.compose(v.set(x[i] + dx, Math.abs(Math.sin(t * 3 + ph)) * 0.05, z[i] + dz), q.setFromAxisAngle(up, heading), s.set(sc, sc, sc));
+      p.compose(v.set(x[i] + dx, (y?.[i] ?? 0) + Math.abs(Math.sin(t * 3 + ph)) * 0.05, z[i] + dz), q.setFromAxisAngle(up, heading), s.set(sc, sc, sc));
       body.current!.setMatrixAt(i, m.multiplyMatrices(p, L.body));
       head.current!.setMatrixAt(i, m.multiplyMatrices(p, L.head));
       hair.current!.setMatrixAt(i, m.multiplyMatrices(p, L.hair));

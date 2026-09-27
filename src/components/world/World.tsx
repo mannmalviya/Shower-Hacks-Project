@@ -264,7 +264,8 @@ export default function World({ analysis, links, details, audience = [], overlay
           </div>
         ))}
         <div ref={bindLabel("you")} style={{ visibility: "hidden" }}
-          className="absolute left-0 top-0 whitespace-nowrap rounded-full bg-rose-500 px-3 py-0.5 text-xs font-extrabold text-white shadow">You</div>
+          className="absolute left-0 top-0 whitespace-nowrap rounded-full bg-rose-500 px-3 py-0.5 text-xs font-extrabold text-white shadow">
+          You{analysis.class.ego ? ` · 💰 ${money(analysis.class.ego.low)}–${money(analysis.class.ego.high)}` : ""}</div>
         {analysis.class.projected && (
           <div ref={bindLabel("future")} style={{ visibility: "hidden" }}
             className="absolute left-0 top-0 whitespace-nowrap rounded-full bg-emerald-50/90 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
